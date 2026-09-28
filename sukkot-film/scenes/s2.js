@@ -495,7 +495,48 @@
       });
       const dust = [];
       for (let i = 0; i < 12; i++) dust.push([rng() * PI * 2, 0.3 + rng() * 0.7, rng()]);
-      L = { hills, city: cc.city, lights: cc.lights, olive, fronds, grain, vg, clouds, stars, motes, flocks, dust };
+      // pre-rendered gradient sprites (gradient fills are costly per frame)
+      const radial = (stops) => {
+        const s = mk(256, 256), sx = s.getContext('2d');
+        const gg = sx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        for (const st of stops) gg.addColorStop(st[0], st[1]);
+        sx.fillStyle = gg; sx.fillRect(0, 0, 256, 256); return s;
+      };
+      const soft = (r, g, b) => radial([[0, `rgba(${r},${g},${b},1)`], [0.2, `rgba(${r},${g},${b},0.62)`], [0.45, `rgba(${r},${g},${b},0.25)`], [0.7, `rgba(${r},${g},${b},0.07)`], [1, `rgba(${r},${g},${b},0)`]]);
+      const sprGold = soft(255, 214, 150), sprRose = soft(246, 136, 110), sprAmber = soft(255, 160, 80);
+      const sprHot = radial([[0, 'rgba(255,250,230,1)'], [0.25, 'rgba(255,226,160,0.7)'], [0.6, 'rgba(255,180,100,0.15)'], [1, 'rgba(255,160,80,0)']]);
+      const strip = (stops) => {
+        const s = mk(4, 256), sx = s.getContext('2d');
+        const gg = sx.createLinearGradient(0, 0, 0, 256);
+        for (const st of stops) gg.addColorStop(st[0], st[1]);
+        sx.fillStyle = gg; sx.fillRect(0, 0, 4, 256); return s;
+      };
+      const stripHaze = strip([[0, 'rgba(240,172,132,0)'], [0.3, 'rgba(240,172,132,0.3)'], [1, 'rgba(200,140,130,0.12)']]);
+      const stripNight = strip([[0, 'rgba(26,20,56,0)'], [0.3, 'rgba(26,20,56,0.7)'], [0.55, 'rgba(26,20,56,1)'], [1, 'rgba(26,20,56,1)']]);
+      const stripFloor = strip([[0, 'rgba(150,100,80,0)'], [0.35, 'rgba(150,104,80,0.45)'], [1, 'rgba(78,54,50,0.96)']]);
+      // sky: one column per moment of the scene
+      const SKN = 72, sky = mk(SKN * 4, 1200), skx = sky.getContext('2d');
+      for (let i = 0; i < SKN; i++) {
+        const uu = i / (SKN - 1);
+        const gg = skx.createLinearGradient(0, 0, 0, 600);
+        gg.addColorStop(0, rgb(keyed(SKY_TOP, uu))); gg.addColorStop(0.62, rgb(keyed(SKY_MID, uu))); gg.addColorStop(1, rgb(keyed(SKY_HOR, uu)));
+        skx.fillStyle = gg; skx.fillRect(i * 4, 0, 4, 1200);
+      }
+      // sun-ray fan
+      const rays = mk(1024, 1024), rx = rays.getContext('2d');
+      const rgR = rx.createRadialGradient(512, 512, 10, 512, 512, 512);
+      rgR.addColorStop(0, 'rgba(255,220,160,1)'); rgR.addColorStop(0.4, 'rgba(255,200,140,0.45)'); rgR.addColorStop(1, 'rgba(255,190,120,0)');
+      rx.fillStyle = rgR; rx.beginPath();
+      for (let i = 0; i < 11; i++) {
+        const a = -0.35 + i * 0.17 + (rng() - 0.5) * 0.06, hw = 0.012 + rng() * 0.022;
+        rx.moveTo(512, 512);
+        rx.lineTo(512 + Math.cos(a - hw) * 520, 512 + Math.sin(a - hw) * 520);
+        rx.lineTo(512 + Math.cos(a + hw) * 520, 512 + Math.sin(a + hw) * 520);
+        rx.closePath();
+      }
+      rx.fill();
+      L = { hills, city: cc.city, lights: cc.lights, olive, fronds, grain, vg, clouds, stars, motes, flocks, dust,
+        sprGold, sprRose, sprAmber, sprHot, stripHaze, stripNight, stripFloor, sky, SKN, rays };
       // parallax anchor: screen x of the +z direction at mid-orbit
       const cm = camera(DUR / 2);
       L.anchor = PD(cm, 0, 0, 1)[0];

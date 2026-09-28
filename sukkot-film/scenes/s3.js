@@ -680,7 +680,7 @@
         put(hH, OFF_H[0], OFF_H[1], OFF_H[2]);
         put(lH, 0, 0, 0);
         put(r0H, 0, RING_Y[0], 0); put(r1H, 0, RING_Y[1], 0); put(r2H, 0, RING_Y[2], 0);
-      });
+      }, 0.7);
       A.scratch = canvas(A.bundleHL.c.width, A.bundleHL.c.height);
       A.scratchG = A.scratch.getContext('2d');
 
@@ -707,10 +707,10 @@
 
       // --- background (half resolution, blurred = depth of field) ---
       const BW = 2080, BH = 1200, BX = -80, BY = -60; // world rect covered
-      const bgRaw = canvas(BW / 2, BH / 2);
+      const bgRaw = canvas(BW, BH);
       {
         const g = bgRaw.getContext('2d');
-        g.scale(0.5, 0.5); g.translate(-BX, -BY);
+        g.translate(-BX, -BY);
         let gr = g.createLinearGradient(0, BY, 0, 730);
         gr.addColorStop(0, '#0a0905'); gr.addColorStop(0.55, '#1c170b'); gr.addColorStop(1, '#2a2210');
         g.fillStyle = gr; g.fillRect(BX, BY, BW, 800);
@@ -766,11 +766,11 @@
         g.fillStyle = 'rgba(255,215,150,0.10)'; g.fillRect(BX, 724, BW, 3);
         g.globalCompositeOperation = 'source-over';
       }
-      A.bg = canvas(BW / 2, BH / 2);
+      A.bg = canvas(BW, BH);
       {
         const g = A.bg.getContext('2d');
         g.drawImage(bgRaw, 0, 0);
-        g.filter = 'blur(5px)';
+        g.filter = 'blur(10px)';
         g.drawImage(bgRaw, 0, 0);
         g.filter = 'none';
       }
@@ -829,19 +829,19 @@
         gr.addColorStop(0, 'rgba(6,4,2,0)'); gr.addColorStop(0.3, 'rgba(6,4,2,0.5)'); gr.addColorStop(1, 'rgba(4,3,1,0.82)');
         g.fillStyle = gr; g.fillRect(0, 770, W, H - 770);
       }
-      // --- grain tile ---
-      const gt = canvas(256, 256);
+      // --- grain: one oversized transparent noise canvas, offset per frame ---
+      A.grain = canvas(W + 256, H + 256);
       {
-        const g = gt.getContext('2d');
-        const id = g.createImageData(256, 256);
-        for (let i = 0; i < 256 * 256; i++) {
-          const v = 128 + Math.round((rng() + rng() - 1) * 120);
-          id.data[i * 4] = v; id.data[i * 4 + 1] = v; id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 255;
+        const g = A.grain.getContext('2d');
+        const id = g.createImageData(A.grain.width, A.grain.height);
+        const d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const v = rng() + rng() - 1;
+          const c = v > 0 ? 255 : 0;
+          d[i] = c; d[i + 1] = c; d[i + 2] = c; d[i + 3] = Math.round(Math.abs(v) * 34);
         }
         g.putImageData(id, 0, 0);
       }
-      A.grainTile = gt;
-      A.grainPat = null;
     },
 
     draw(ctx, t, env) {
@@ -1022,16 +1022,9 @@
       ctx.drawImage(A.vig, 0, 0, W, H);
 
       // ---- deterministic film grain ----
-      if (!A.grainPat) A.grainPat = ctx.createPattern(A.grainTile, 'repeat');
       const fr = Math.floor(t * 24);
       const gx = (fr * 73) % 256, gy = (fr * 151) % 256;
-      ctx.save();
-      ctx.globalCompositeOperation = 'overlay';
-      ctx.globalAlpha = 0.07;
-      ctx.translate(-gx, -gy);
-      ctx.fillStyle = A.grainPat;
-      ctx.fillRect(gx, gy, W, H);
-      ctx.restore();
+      ctx.drawImage(A.grain, gx, gy, W, H, 0, 0, W, H);
     },
   };
 })();
