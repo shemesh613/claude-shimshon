@@ -46,7 +46,7 @@
   const SKY_MID = [[0, [228, 158, 112]], [0.5, [200, 108, 112]], [1, [74, 48, 94]]];
   const SKY_HOR = [[0, [255, 208, 134]], [0.5, [250, 162, 112]], [1, [196, 104, 92]]];
   const CLOUD = [[0, [255, 206, 160]], [0.5, [244, 146, 134]], [1, [112, 72, 112]]];
-  const GRADE = [[0, [255, 249, 240]], [0.5, [226, 210, 218]], [1, [150, 138, 184]]];
+  const GRADE = [[0, [255, 249, 240]], [0.5, [226, 210, 218]], [1, [132, 120, 172]]];
 
   // ---------- geometry ----------
   const SK = { hw: 1.5, hd: 1.2, h: 2.3 };
@@ -393,7 +393,7 @@
     if (t < fd.s - 0.2) return;
     const e = eOutCubic(pr);
     const settle = pr >= 1 ? 0 : 1 - e;
-    const y = fd.y + 1.5 * settle + 0.03 * Math.sin(pr * PI * 3) * (1 - pr);
+    const y = fd.y + 1.0 * settle + 0.03 * Math.sin(pr * PI * 3) * (1 - pr);
     const sway = 0.45 * settle * Math.sin(t * 2.4 + fd.ph);
     const rot = fd.rot + 0.7 * settle * Math.sin(t * 1.6 + fd.ph);
     const cr = Math.cos(rot), sr = Math.sin(rot);
@@ -401,9 +401,9 @@
     const tilt = 0.25 * settle * Math.sin(t * 3.1 + fd.ph);
     const tf = (px, py, pz) => P(c, cx + px * cr - pz * sr, y + py + px * tilt, cz + px * sr + pz * cr);
     const k = tf(0, 0, 0)[3];
-    const alpha = sm(fd.s - 0.2, fd.s + 0.15, t);
+    const alpha = sm(fd.s - 0.2, fd.s + 0.45, t);
     ctx.globalAlpha = alpha;
-    ctx.lineCap = 'round';
+    ctx.lineCap = fd.palm ? 'butt' : 'round';
     const segPts = fd.segs.map((s) => [tf(s[0], s[1], s[2]), tf(s[3], s[4], s[5])]);
     const ribPts = fd.rib.map((r) => tf(r[0], r[1], r[2]));
     const stroke = (col, lw, ox, oy) => {
@@ -415,7 +415,6 @@
     const lw = fd.palm ? 0.024 * k : 0.055 * k;
     stroke(rgb(scl(fd.col, 0.5)), Math.max(1, lw * 1.2), 0.4, 0.8);
     stroke(rgb(fd.col), Math.max(1, lw), 0, 0);
-    stroke('rgba(226,214,130,0.55)', Math.max(0.8, lw * 0.35), -lw * 0.25, -lw * 0.3);
     ctx.strokeStyle = rgb(scl(fd.col, 1.2)); ctx.lineWidth = Math.max(1, 0.03 * k);
     ctx.beginPath(); ctx.moveTo(ribPts[0][0], ribPts[0][1]);
     for (let i = 1; i < ribPts.length; i++) ctx.lineTo(ribPts[i][0], ribPts[i][1]);
@@ -506,6 +505,8 @@
       const sprGold = soft(256, 255, 214, 150), sprAmber = soft(256, 255, 160, 80);
       const sprHot = radial(128, [[0, 'rgba(255,250,230,1)'], [0.25, 'rgba(255,226,160,0.7)'], [0.6, 'rgba(255,180,100,0.15)'], [1, 'rgba(255,160,80,0)']]);
       const haloGold = soft(1200, 255, 212, 150), haloRose = soft(1400, 246, 136, 110);
+      const lanGlow = soft(840, 255, 160, 80);
+      const spill = mk(840, 252); spill.getContext('2d').drawImage(lanGlow, 0, 0, 840, 252);
       // city by day (hills behind, warm haze baked in) and a darkened night copy
       const day = mk(BG_W, 820), dx = day.getContext('2d');
       dx.drawImage(hills, 0, 0); dx.drawImage(cc.city, 0, 0);
@@ -537,7 +538,7 @@
       }
       rx.fill();
       L = { hills, city: cc.city, lights: cc.lights, olive, fronds, grain, vg, clouds, stars, motes, flocks, dust,
-        sprGold, sprAmber, sprHot, haloGold, haloRose, day, nightC, floorG, rays };
+        sprGold, sprAmber, sprHot, lanGlow, spill, haloGold, haloRose, day, nightC, floorG, rays };
       // parallax anchor: screen x of the +z direction at mid-orbit
       const cm = camera(DUR / 2);
       L.anchor = PD(cm, 0, 0, 1)[0];
@@ -629,12 +630,17 @@
 
       // ---- distant hills and the city ----
       const bx = Math.round(bgx), by = Math.round(bgy);
-      // visible part: screen columns 0..W, rows down to the parapet line
-      const pTop = Math.min(P(c, -6.6, 0, 6.2)[1], P(c, 7.5, 0, 6.2)[1]);
-      const sx1 = -bx, sy1 = Math.max(0, -by), sh1 = Math.min(820, Math.ceil(Math.max(pTop + 60, H * 0.8) - by)) - sy1;
-      const blit = (img) => ctx.drawImage(img, sx1, sy1, W, sh1, 0, by + sy1, W, sh1);
-      blit(L.day);
       const night = sm(3, 18, t);
+      // visible part: screen columns 0..W, rows down to the parapet line
+      const edgeY = (A, B, xe) => { // y where segment A-B crosses screen column xe (or its lower end)
+        if ((A[0] - xe) * (B[0] - xe) > 0) return Math.max(A[1], B[1]);
+        return lerp(A[1], B[1], (xe - A[0]) / (B[0] - A[0]));
+      };
+      const pTop = Math.max(P(c, -6.6, 0, 6.2)[1], P(c, 7.5, 0, 6.2)[1],
+        edgeY(P(c, -6.6, 0.7, 6.2), P(c, -6.6, 0.7, -6.8), 0), edgeY(P(c, 7.5, 0.7, 6.2), P(c, 7.5, 0.7, -6.8), W));
+      const sx1 = -bx, sy1 = Math.max(0, -by), sh1 = Math.min(820, Math.ceil(Math.min(H, pTop + 30) - by)) - sy1;
+      const blit = (img) => ctx.drawImage(img, sx1, sy1, W, sh1, 0, by + sy1, W, sh1);
+      if (night < 0.999) blit(L.day);
       if (night > 0) { ctx.globalAlpha = night; blit(L.nightC); ctx.globalAlpha = 1; }
       const la = sm(6.5, 15, t);
       if (la > 0) {
@@ -873,12 +879,12 @@
       if (glow > 0) {
         const lc = P(c, lanPos[0], lanPos[1], lanPos[2]);
         const g1 = glow * flick;
-        spr(L.sprAmber, lc[0], lc[1] + 0.35 * lc[3], 2.8 * lc[3], 0.62 * g1);
+        ctx.globalAlpha = Math.min(1, 0.62 * g1); ctx.drawImage(L.lanGlow, Math.round(lc[0] - 420), Math.round(lc[1] + 0.35 * lc[3] - 420));
         spr(L.sprGold, lc[0], lc[1], 1.1 * lc[3], 0.4 * g1);
         spr(L.sprHot, lc[0], lc[1], 0.22 * lc[3], 0.95 * g1);
         // light spilling onto the stones through the open side
         const fp = P(c, 0.1, 0, -1.7);
-        spr(L.sprAmber, fp[0], fp[1], 2.4 * fp[3], 0.3 * g1, 0.3);
+        ctx.globalAlpha = 0.3 * g1; ctx.drawImage(L.spill, Math.round(fp[0] - 420), Math.round(fp[1] - 126));
         ctx.globalAlpha = 1;
       }
 

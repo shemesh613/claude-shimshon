@@ -360,8 +360,8 @@
     // platform steps
     for (let k = 3; k >= 0; k--) {
       const y = 1140 + k * 27, w2 = 300 + k * 32;
-      g.fillStyle = '#d9c3a0'; g.fillRect(960 - w2, y, w2 * 2, 27);
-      g.fillStyle = 'rgba(255,245,220,0.35)'; g.fillRect(960 - w2, y, w2 * 2, 4);
+      g.fillStyle = '#b89d78'; g.fillRect(960 - w2, y, w2 * 2, 27);
+      g.fillStyle = 'rgba(255,240,210,0.3)'; g.fillRect(960 - w2, y, w2 * 2, 4);
       g.fillStyle = 'rgba(60,35,15,0.35)'; g.fillRect(960 - w2, y + 20, w2 * 2, 7);
     }
     // cabinet
@@ -794,12 +794,17 @@
     // ----- world -----
     ctx.save();
     applyCam(ctx, c, 1);
-    ctx.drawImage(L.bg, 0, 0);
+    { // only the visible part of the tall background
+      const vw = W / c.z, vh = H / c.z;
+      const x0 = clamp(Math.floor(c.fx - vw / 2) - 2, 0, W), y0 = clamp(Math.floor(c.fy - vh / 2) - 2, 0, WH);
+      const x1 = clamp(Math.ceil(c.fx + vw / 2) + 2, 0, W), y1 = clamp(Math.ceil(c.fy + vh / 2) + 2, 0, WH);
+      ctx.drawImage(L.bg, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    }
 
     // ark: glow behind curtain
     ctx.globalCompositeOperation = 'lighter';
     const ga = 0.15 + 0.85 * open;
-    ctx.globalAlpha = clamp(ga * 0.9 * fl, 0, 1);
+    ctx.globalAlpha = clamp(ga * 0.6 * fl, 0, 1);
     ctx.drawImage(L.glow, 960 - 260, 925 - 260, 520, 520);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -840,13 +845,13 @@
       ctx.globalCompositeOperation = 'lighter';
       ctx.save();
       ctx.beginPath(); ctx.rect(800, 760, 320, 350); ctx.clip();
-      ctx.globalAlpha = 0.55 * open * fl;
+      ctx.globalAlpha = 0.3 * open * fl;
       ctx.drawImage(L.glow, 960 - 200, 900 - 170, 400, 340);
       ctx.restore();
       ctx.save();
       ctx.translate(960, 900);
-      for (let i = 0; i < 9; i++) {
-        const a = -Math.PI / 2 + (i - 4) * 0.28 + 0.05 * Math.sin(t * 0.5 + i);
+      for (let i = 0; i < 7; i++) {
+        const a = -Math.PI / 2 + (i - 3) * 0.34 + 0.05 * Math.sin(t * 0.5 + i);
         const len = 520 + 80 * Math.sin(t * 0.7 + i * 1.7);
         const rg = ctx.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len);
         rg.addColorStop(0, `rgba(255,220,150,${0.12 * open})`); rg.addColorStop(1, 'rgba(255,200,120,0)');
@@ -893,7 +898,7 @@
       }
       list.sort((p, q) => p.depth - q.depth);
       const bearerDone = eo(seg(t, 4.6, 8.0));
-      const bearer = { x: lerp(2150, 960, bearerDone), y: 1345 };
+      const bearer = { x: lerp(2150, 960, bearerDone), y: 1308 };
       let drewBearer = false;
       for (const d of list) {
         if (!drewBearer && d.depth > -0.05) { drawBearer(ctx, bearer.x, bearer.y, t, beat, fl); drewBearer = true; }
@@ -968,12 +973,12 @@
     const flash = burstUp * (1 - ss(15.0, 16.9, t));
     if (flash > 0.002) {
       ctx.globalCompositeOperation = 'lighter';
-      const by = 470;
-      const r = lerp(700, 2600, eos(burstUp));
-      ctx.globalAlpha = clamp(flash, 0, 1);
-      ctx.drawImage(L.glow, 960 - r, by - r * 0.75, 2 * r, 1.5 * r);
-      ctx.fillStyle = `rgba(255,170,70,${0.32 * flash})`; ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
+      const r = lerp(500, 1500, eos(burstUp));
+      const bg = ctx.createRadialGradient(960, 440, 0, 960, 440, r);
+      bg.addColorStop(0, `rgba(255,214,150,${0.62 * flash})`);
+      bg.addColorStop(0.4, `rgba(255,160,70,${0.36 * flash})`);
+      bg.addColorStop(1, `rgba(190,90,25,${0.14 * flash})`);
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
       ctx.globalCompositeOperation = 'source-over';
     }
     drawTitle(ctx, t);
@@ -1066,19 +1071,38 @@
     ctx.restore();
   }
 
+  // The title is fully settled for t >= 17, so the static letters are rendered once into
+  // an offscreen buffer (re-rendered if the web font set changes) and simply blitted.
+  const TCY = 130;
+  let titleCache = null, titleKey = '';
   function drawTitle(ctx, t) {
     const a = ss(15.0, 16.6, t);
     if (a <= 0) return;
-    const k = eo(seg(t, 15.0, 17.0));
-    const cx = 960, cy = 455;
     ctx.save();
     // soft halo behind the words
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.5 * a;
-    ctx.drawImage(L.glow, cx - 560, cy - 250, 1120, 500);
+    ctx.drawImage(L.glow, 960 - 560, 455 - 250, 1120, 500);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-
+    ctx.restore();
+    if (t < 17) { titleText(ctx, t); return; }
+    const fs = document.fonts;
+    const key = fs ? fs.size + '|' + fs.status + '|' + fs.check(`900 270px ${FONT}`) : 'x';
+    if (!titleCache || key !== titleKey) {
+      titleCache = titleCache || mk(W, 720);
+      const g = titleCache.getContext('2d');
+      g.clearRect(0, 0, W, 720);
+      g.save(); g.translate(0, -TCY); titleText(g, 17); g.restore();
+      titleKey = key;
+    }
+    ctx.drawImage(titleCache, 0, TCY);
+  }
+  function titleText(ctx, t) {
+    const a = ss(15.0, 16.6, t);
+    const k = eo(seg(t, 15.0, 17.0));
+    const cx = 960, cy = 455;
+    ctx.save();
     ctx.translate(cx, cy);
     const sc = 1.07 - 0.07 * k;
     ctx.scale(sc, sc);
