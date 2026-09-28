@@ -54,11 +54,12 @@
     });
   }
 
-  // The hero tent: in the camp of Judah, near the middle, facing the Mishkan.
+  // The hero tent: in the camp of Judah, on the corner of its front row, facing the Mishkan
+  // across open ground (beat 3 flies in low from that side, so the approach must be clear).
   let HERO = 0, best = 1e9;
   TENTS.forEach((t, i) => {
     if (t.tribe !== 'judah') return;
-    const d = Math.hypot(t.x - 0, t.y - (-190));
+    const d = Math.hypot(t.x - (-88), t.y - (-158));
     if (d < best) { best = d; HERO = i; }
   });
 

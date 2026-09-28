@@ -647,7 +647,7 @@
       // shafts: anchor x in schach canvas, angle, width
       const rs = fx.rng(4606);
       C.shafts = [];
-      for (let i = 0; i < 5; i++) C.shafts.push([200 + i * 180 + (rs() - 0.5) * 80, 0.16 + (rs() - 0.5) * 0.08, 50 + rs() * 70, 0.5 + rs() * 0.5, rs() * TAU]);
+      for (let i = 0; i < 4; i++) C.shafts.push([230 + i * 230 + (rs() - 0.5) * 80, 0.16 + (rs() - 0.5) * 0.08, 50 + rs() * 70, 0.5 + rs() * 0.5, rs() * TAU]);
 
       const bk = fx.canvas(128, 128), bg = bk.getContext('2d');
       const bgr = bg.createRadialGradient(64, 64, 0, 64, 64, 62);
@@ -730,11 +730,11 @@
     // sky + luminous drifting clouds
     const skyVisible = Lc.schAnchor > 0;
     if (skyVisible) {
-      const sy0 = Lc.skyOff - 40, vis = Math.min(SKY_H, Math.ceil(Lc.schAnchor - sy0));
+      const sy0 = Math.round(Lc.skyOff - 40), vis = Math.min(SKY_H, Math.ceil(Lc.schAnchor - sy0));
       if (vis > 0) ctx.drawImage(C.sky, 0, 0, W, vis, 0, sy0, W, vis);
       ctx.globalCompositeOperation = 'lighter';
-      for (let k = 0; k < 3; k++) {
-        const x = ((k * 430 + t * (14 + k * 5)) % 1500) - 450, y = Lc.skyOff + 120 + k * 260;
+      for (let k = 0; k < 2; k++) {
+        const x = ((k * 700 + t * (14 + k * 5)) % 1500) - 450, y = Lc.skyOff + 120 + k * 260;
         ctx.globalAlpha = 0.28 + 0.1 * Math.sin(t * 0.7 + k);
         ctx.drawImage(C.cloud, x, y, 620, 280);
       }
@@ -746,7 +746,7 @@
     const lampF = (fl[0] + fl[1] + fl[2]) / 3;
 
     // wall
-    const wt = Lc.wallTop;
+    const wt = Math.round(Lc.wallTop);
     if (wt < H) ctx.drawImage(C.wall, 0, wt);
 
     // schach: anchored at the beam, foreshortening as the camera tilts down
@@ -757,12 +757,6 @@
         const cut = -sTop / Lc.schSy;
         ctx.drawImage(C.sch, 0, cut, SCH_W, SCH_H - cut, -60, 0, SCH_W, Lc.schAnchor);
       }
-      // warm uplight on the schach
-      const ug = ctx.createLinearGradient(0, Lc.schAnchor, 0, Math.max(sTop, Lc.schAnchor - 900));
-      ug.addColorStop(0, `rgba(255,160,80,${0.2 * lampF})`); ug.addColorStop(1, 'rgba(255,160,80,0)');
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = ug; ctx.fillRect(0, Math.max(0, sTop), W, Lc.schAnchor - Math.max(0, sTop));
-      ctx.globalCompositeOperation = 'source-over';
     }
 
     // amber uplight from the lamps below while we look up
@@ -777,7 +771,7 @@
     const cloudLight = 0.75 + 0.25 * Math.sin(t * 0.8 + 1.2) * Math.sin(t * 0.33);
 
     // table
-    const tt = Lc.tableTop;
+    const tt = Math.round(Lc.tableTop);
     if (tt < H) ctx.drawImage(C.table, 0, tt);
 
     // light shafts from schach gaps (moonlight)
@@ -787,7 +781,7 @@
       const a = (0.07 + 0.035 * Math.sin(t * 0.6 + ph)) * str * cloudLight;
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
       ctx.globalAlpha = a;
-      ctx.drawImage(C.shaft, -wdt / 2, 0, wdt, 1700);
+      ctx.drawImage(C.shaft, -wdt / 2, 0, wdt, 1350);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
@@ -832,7 +826,7 @@
     ctx.globalCompositeOperation = 'source-over';
 
     // near decorations (blurred, depth of field) and their bokeh
-    const nt = Lc.nearTop;
+    const nt = Math.round(Lc.nearTop);
     ctx.globalCompositeOperation = 'source-over';
     if (nt < H) ctx.drawImage(C.near, 0, nt);
     ctx.globalCompositeOperation = 'lighter';

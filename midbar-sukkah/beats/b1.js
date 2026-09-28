@@ -14,9 +14,9 @@
   const F = 1100;              // focal length (px)
   const DB = 3;                // base row spacing (m)
   const NS = 34;               // samples per row
-  const LAM = 140;             // dune wavelength (m)
+  const LAM = 105;             // dune wavelength (m)
   const CR = 0.26;             // crest position within a dune period (steep slipface faces the camera)
-  const AMP = 30;              // dune amplitude (m)
+  const AMP = 26;              // dune amplitude (m)
   const HMAX = 58;             // max terrain height (m)
   const CAMP_A = 2.0;          // metres per camp unit
   const PZ = 1400;             // camp centre in world z (x = 0)
@@ -29,12 +29,12 @@
   function mask(x, z) {
     const dx = x / 720, dz = (z - PZ) / 900;
     const d = Math.sqrt(dx * dx + dz * dz);
-    const cx = (x - 5) / 260, cz = (z + 930) / 200; // a low hollow under the opening camera
-    const hol = 0.35 + 0.65 * fx.smooth(Math.sqrt(cx * cx + cz * cz) - 0.6);
-    return (0.2 + 0.8 * fx.smooth((d - 1) / 0.75)) * hol;
+    const cx = (x - 5) / 90, cz = (z + 930) / 90; // a low hollow under the opening camera
+    const hol = 0.3 + 0.7 * fx.smooth(Math.sqrt(cx * cx + cz * cz) - 0.5);
+    return (0.5 + 0.5 * fx.smooth((d - 1) / 0.75)) * hol;
   }
   function warpZ(x, z) {
-    return z + 55 * fx.noise(x * 0.0032 + 11.3, z * 0.0032) + 40 * Math.sin(x * 0.0047 + 2 * fx.noise(z * 0.001, 3.3));
+    return z + 34 * fx.noise(x * 0.0024 + 11.3, z * 0.0032) + 26 * Math.sin(x * 0.0036 + 2 * fx.noise(z * 0.001, 3.3));
   }
   function Ht(x, z) {
     const p = warpZ(x, z) / LAM;
@@ -80,8 +80,8 @@
     const r = fx.ease.inOutSine(fx.range(t, 4.6, 10.2));
     let x = lerp(-20, 30, a);
     let z = lerp(-980, -870, a);
-    let h = lerp(44, 92, r);
-    let pitch = lerp(4.6, 4.2, r);
+    let h = lerp(56, 100, r);
+    let pitch = lerp(7.5, 6, r);
     const tc = topCam(T_TOP);
     const uh = fx.ease.inOutSine(fx.range(t, 8.7, T_TOP));
     const up = fx.ease.inOut(fx.range(t, 9.2, T_TOP));
@@ -392,12 +392,17 @@
     ctx.closePath();
     ctx.fill();
     if (row.ink > 0) {
+      // contour strokes only on the dune faces (where the profile is steep along z)
       const fog = Math.exp(-row.zc / (P.fogD * 0.8));
       ctx.strokeStyle = fx.rgba(P.ink, P.inkA * row.ink * fog);
-      ctx.lineWidth = fx.clamp(400 / row.zc, 0.6, 1.6);
+      ctx.lineWidth = fx.clamp(400 / row.zc, 0.6, 1.5);
       ctx.beginPath();
-      ctx.moveTo(sx[0], sy[0]);
-      for (let j = 1; j < NS; j++) ctx.lineTo(sx[j], sy[j]);
+      let pen = false;
+      for (let j = 0; j < NS; j++) {
+        const hz = Math.abs(Ht(xs[j], row.z + 2) - hs[j]) / 2;
+        if (hz > 0.16) { if (pen) ctx.lineTo(sx[j], sy[j]); else { ctx.moveTo(sx[j], sy[j]); pen = true; } }
+        else if (pen) { ctx.lineTo(sx[j], sy[j]); pen = false; }
+      }
       ctx.stroke();
     }
   }

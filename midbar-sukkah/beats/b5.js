@@ -377,15 +377,16 @@
 
   // ---------------------------------------------------------------- sprites
   function glowOf(src, blur, rgb) {
-    const cv = fx.canvas(src.width, src.height), g = cv.getContext('2d');
-    g.filter = `blur(${blur}px)`; g.drawImage(src, 0, 0); g.filter = 'none';
+    // blurred light: a quarter of the sprite's resolution is plenty
+    const cv = fx.canvas(Math.ceil(src.width / 4), Math.ceil(src.height / 4)), g = cv.getContext('2d');
+    g.filter = `blur(${blur / 4}px)`; g.drawImage(src, 0, 0, cv.width, cv.height); g.filter = 'none';
     g.globalCompositeOperation = 'source-in'; g.fillStyle = col(rgb); g.fillRect(0, 0, cv.width, cv.height);
     return cv;
   }
   function leafSprite(len, wid, droop, cols, rib, ovate) {
     const pad = 3, w = Math.ceil(len + pad * 2), h = Math.ceil(wid + Math.abs(droop) + pad * 2);
-    const cv = fx.canvas(w * 4, h * 4), g = cv.getContext('2d');
-    g.scale(4, 4); g.translate(pad, h / 2 - droop / 2);
+    const cv = fx.canvas(w * 2, h * 2), g = cv.getContext('2d');
+    g.scale(2, 2); g.translate(pad, h / 2 - droop / 2);
     const n = 24, up = [], dn = [];
     for (let i = 0; i <= n; i++) {
       const u = i / n, cx = u * len, cy = droop * u * u;
@@ -428,7 +429,9 @@
       const gr = gb.createRadialGradient(270, 450, 60, 270, 480, 620);
       gr.addColorStop(0, 'rgb(200,170,140)'); gr.addColorStop(1, 'rgb(150,120,100)');
       gb.fillStyle = gr; gb.fillRect(0, 0, 540, 960);
-      gb.globalCompositeOperation = 'source-over';
+      gb.globalCompositeOperation = 'lighter'; gb.globalAlpha = 0.3;
+      gb.drawImage(fx.glow(280, [255, 180, 100]), 270 - 280, 450 - 336, 560, 672);
+      gb.globalCompositeOperation = 'source-over'; gb.globalAlpha = 1;
       return B;
     } catch (err) { console.warn('b5: b4 background unavailable', err); return null; }
   }
@@ -614,6 +617,22 @@
     makeEtrog();
     makeHolder();
     SPR.bg = bgFromB4(env) || makeBG();
+    {
+      // same light as beat 6's opening frame (H5), cached small
+      const cv = fx.canvas(280, 496), g = cv.getContext('2d');
+      g.scale(280 / (W + 60), 496 / (H + 60)); g.translate(30, 30);
+      const gg = g.createRadialGradient(540, 930, 0, 540, 930, 1250);
+      gg.addColorStop(0, 'rgb(255,240,200)'); gg.addColorStop(0.3, 'rgb(255,208,130)');
+      gg.addColorStop(0.7, 'rgb(226,150,66)'); gg.addColorStop(1, 'rgb(150,84,40)');
+      g.fillStyle = gg; g.fillRect(-30, -30, W + 60, H + 60);
+      SPR.gold = cv;
+      const wv = fx.canvas(256, 256), gw = wv.getContext('2d');
+      const wg = gw.createRadialGradient(128, 128, 0, 128, 128, 128);
+      wg.addColorStop(0, 'rgba(255,215,140,0.5)'); wg.addColorStop(0.72, 'rgba(255,190,110,0.3)');
+      wg.addColorStop(0.9, 'rgba(255,215,140,0.9)'); wg.addColorStop(1, 'rgba(255,200,120,0)');
+      gw.fillStyle = wg; gw.fillRect(0, 0, 256, 256);
+      SPR.wave = wv;
+    }
     SPR.bokeh = [bokehSprite([255, 190, 110]), bokehSprite([255, 225, 170]), bokehSprite([240, 160, 90])];
     BOKEH.length = 0;
     const RB = fx.rng(5513);
@@ -765,23 +784,14 @@
       const r = b.r * (1 + 0.04 * Math.sin(t * 0.5 + b.ph));
       c.drawImage(SPR.bokeh[b.k], b.x - r, b.y - 8 * t * b.sp * 0.3 - r, r * 2, r * 2);
     }
-    // soft aura behind the species, rising as they appear
-    const aura = 0.25 + 0.35 * smooth(range(t, 1.5, 6.5));
-    c.globalAlpha = aura;
-    c.drawImage(glow(560, [255, 180, 100]), WC[0] - 560, 900 - 560, 1120, 1120 * 1.2);
     c.globalCompositeOperation = 'source-over';
     c.globalAlpha = 1;
 
     // the gold that fills the frame at the end (under the species so they stay legible)
     const gold = smooth(range(t, 7.5, 9));
     if (gold > 0) {
-      c.save();
-      // same light as beat 6's opening frame (H5)
-      const gg = c.createRadialGradient(540, 930, 0, 540, 930, 1250);
-      gg.addColorStop(0, 'rgb(255,240,200)'); gg.addColorStop(0.3, 'rgb(255,208,130)');
-      gg.addColorStop(0.7, 'rgb(226,150,66)'); gg.addColorStop(1, 'rgb(150,84,40)');
-      c.globalAlpha = gold * 0.92; c.fillStyle = gg; c.fillRect(-100, -100, W + 200, H + 200);
-      c.restore();
+      c.globalAlpha = gold * 0.92;
+      c.drawImage(SPR.gold, -30, -30, W + 60, H + 60);
       c.globalAlpha = 1;
     }
 
@@ -856,15 +866,9 @@
     if (t > T_W0) {
       const kw = range(t, T_W0, T_W1);
       const Rw = 80 + ease.out(kw) * 1500;
-      c.save(); c.globalCompositeOperation = 'lighter';
-      c.translate(WC[0], WC[1]); c.scale(1, 1.55);
-      const wg = c.createRadialGradient(0, 0, 0, 0, 0, Rw);
       const a = 0.5 * fx.smooth(kw * 1.6) * (1 - 0.55 * fx.smooth(fx.range(kw, 0.55, 1)));
-      wg.addColorStop(0, `rgba(255,215,140,${a * 0.5})`);
-      wg.addColorStop(0.72, `rgba(255,190,110,${a * 0.3})`);
-      wg.addColorStop(0.9, `rgba(255,215,140,${a * 0.9})`);
-      wg.addColorStop(1, 'rgba(255,200,120,0)');
-      c.fillStyle = wg; c.fillRect(-Rw, -Rw, Rw * 2, Rw * 2);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a;
+      c.drawImage(SPR.wave, WC[0] - Rw, WC[1] - Rw * 1.55, Rw * 2, Rw * 3.1);
       c.restore();
     }
     c.restore();
