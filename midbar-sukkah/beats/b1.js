@@ -165,28 +165,35 @@
   let stars = [];
   let rippleTex = null, gridTex = null;
   // grains
-  let ROLE, ARM, SPOS, SJ1, SJ2, TS, GX, GY, GZ, GW, STRM, SEED, TX, TY, EST, ARC, FOOTX;
+  let ROLE, ARM, STR, SPOS, SJ1, SJ2, TS, GX, GY, GZ, GW, STRM, SEED, TX, TY, EST, ARC, FOOTX;
   const SIM_T0 = 1.6;
   // the sand devil: three arms unwinding by differential rotation, lifted and curl-perturbed
   function spiral(i, t, o) {
     const tau = t - SIM_T0;
     const s = SPOS[i];
+    // 1) the sand devil: five helical strands on a flaring funnel that rises from the grain
+    const hf = s;
+    const Hc = 560 * fx.ease.out(fx.range(tau, 0, 1.3));
+    const rF = 10 + Math.pow(hf, 1.4) * 210 * fx.ease.out(fx.range(tau, 0, 1.4));
+    const thF = STR[i] + hf * 5.2 + tau * 6.2 + SJ1[i] * 0.05;
+    const sway = 38 * Math.sin(hf * 2.6 + tau * 1.7) * hf;
+    const xF = 540 + rF * Math.cos(thF) + sway + SJ1[i] * 4 * (0.4 + hf);
+    const yF = 1010 - hf * Hc + rF * Math.sin(thF) * 0.2 + SJ2[i] * 6 - 3;
+    // 2) the devil unfolds (top first) into three ribbons spiralling out over the dunes
+    const u = fx.ease.inOut(fx.range(tau, 0.75 + 0.7 * (1 - hf), 2.0 + 0.7 * (1 - hf)));
+    if (u <= 0) { o[0] = xF; o[1] = yF; return o; }
     const R = 900 * (1 - Math.exp(-tau * 0.75));
     const r = R * (0.03 + 0.97 * s) * (1 + 0.1 * SJ1[i] * s);
     const om = 5.2 * (1 - Math.exp(-tau * 0.9)) / (0.3 + s) + 0.35 * tau;
     const th = ARM[i] + om + SJ1[i] * 0.09 * (1 - s);
     let x = 540 + r * Math.cos(th);
-    let y = 1010 + r * Math.sin(th) * 0.36;
-    // a rising column at the core, fading as the devil unfolds
-    const lift = (1 - s) * (1 - s) * 520 * Math.sin(Math.min(1, tau / 2.6) * Math.PI) * (0.6 + 0.4 * SJ2[i]);
-    y -= lift;
-    x += Math.sin(y * 0.02 + tau * 3 + SJ2[i] * 6) * 18 * (1 - s) * Math.min(1, tau);
+    let y = 1010 + r * Math.sin(th) * 0.36 - hf * Hc * (1 - u) * 0.6;
     // curl-noise drift grows with time
     const e = 0.02, nx = x * 0.0035, ny = y * 0.0035 + tau * 0.15;
     const g = Math.min(1, tau / 2.2) * 70;
     x += (fx.noise(nx, ny + e) - fx.noise(nx, ny - e)) / (2 * e) * g;
     y -= (fx.noise(nx + e, ny) - fx.noise(nx - e, ny)) / (2 * e) * g * 0.6;
-    o[0] = x; o[1] = y;
+    o[0] = lerp(xF, x, u); o[1] = lerp(yF, y, u);
     return o;
   }
   const sp2 = [0, 0];
@@ -753,7 +760,7 @@
     for (let i = 0; i < N; i++) {
       proj(c, GX[i], GY[i], GZ[i]);
       const d = Math.min(1, Math.abs(PXo - 540) / 560 + Math.abs(PYo - 1010) / 1400);
-      TS[i] = 2.6 + 2.0 * d + 0.35 * SEED[i];
+      TS[i] = 2.9 + 1.9 * d + 0.3 * SEED[i];
       GW[i] = ROLE[i] === 3 ? 0.06 + 0.1 * r() : 0.42 + 0.3 * r();
     }
     // footprints: world x along the caravan path
@@ -763,11 +770,12 @@
     }
 
     // sand-devil spiral parameters
-    ARM = new Float32Array(N); SPOS = new Float32Array(N); SJ1 = new Float32Array(N); SJ2 = new Float32Array(N);
+    ARM = new Float32Array(N); STR = new Float32Array(N); SPOS = new Float32Array(N); SJ1 = new Float32Array(N); SJ2 = new Float32Array(N);
     const gauss = () => { let q = 0; for (let k = 0; k < 4; k++) q += r(); return (q - 2) / 1.15; };
     for (let i = 0; i < N; i++) {
       ARM[i] = ((i * 7) % 3) * (Math.PI * 2 / 3) + gauss() * 0.12;
       SPOS[i] = Math.pow(r(), 0.8);
+      STR[i] = (i % 5) * (Math.PI * 2 / 5);
       SJ1[i] = gauss(); SJ2[i] = r();
     }
   }
@@ -799,7 +807,8 @@
       campTarget(i, cc, cp);
       TX[i] = cp[0]; TY[i] = cp[1];
       const xr = fx.clamp((tmpg[4 * i] - minx) / (maxx - minx + 1));
-      EST[i] = 9.4 + 1.1 * xr + 0.5 * SEED[i];
+      const late = ROLE[i] === 1 || ROLE[i] === 2 ? 0.7 : 0;
+      EST[i] = 8.4 + 0.9 * xr + 0.6 * SEED[i] + late;
     }
   }
 
@@ -866,11 +875,11 @@
     const fr = frame(t), c = fr.c;
     phaseD(t, ptmp);
     const burstW = fx.smooth(fx.range(t, SIM_T0, SIM_T0 + 0.5));
-    const final = t > 9.3;
+    const final = t > 8.3;
     for (let i = 0; i < N; i++) {
       let X = ptmp[4 * i], Y = ptmp[4 * i + 1], Z = ptmp[4 * i + 2], w = ptmp[4 * i + 3];
       if (final) {
-        const k = fx.ease.inOut(fx.range(t, EST[i], EST[i] + 1.7));
+        const k = fx.ease.inOut(fx.range(t, EST[i], EST[i] + 2.0));
         if (k > 0) {
           // fly (in the world) to a tent-outline point on the camp plain
           const sk = Math.sin(Math.PI * k);
@@ -889,7 +898,7 @@
         spiral(i, t, sp2);
         const qx = sp2[0], qy = sp2[1];
         const k = fx.ease.inOut(fx.range(t, TS[i], TS[i] + 1.2));
-        const wb = (i === 0 ? 0.95 : (0.2 + 0.45 * SEED[i]) * (1.25 - 0.5 * SPOS[i]) * burstW);
+        const wb = (i === 0 ? 0.95 : (0.32 + 0.5 * SEED[i]) * (1.2 - 0.45 * SPOS[i]) * burstW);
         if (k <= 0) { x = qx; y = qy; w = wb; }
         else { x = lerp(qx, x, k); y = lerp(qy, y, k); w = lerp(wb, w, k); }
       }
