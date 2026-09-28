@@ -43,7 +43,7 @@
   }
   function star(g, cx, cy, r) { // Magen David outline path (two triangles)
     for (let k = 0; k < 2; k++) {
-      const off = k ? Math.PI / 2 + Math.PI / 3 : -Math.PI / 2;
+      const off = k ? Math.PI / 2 : -Math.PI / 2;
       for (let i = 0; i < 3; i++) {
         const a = off + (i * TAU) / 3;
         const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);

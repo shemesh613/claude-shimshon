@@ -373,7 +373,7 @@
           const h = (13 + rng() * 18) * sc;
           const cx = x + w / 2;
           const dist = Math.hypot(cx - 960, (y - 470) * 1.35);
-          const lf = Math.pow(clamp(1.35 - dist / 1250, 0, 1), 0.9) * (1 - 0.6 * sstep(900, 1140, y));
+          const lf = Math.pow(clamp(1.4 - dist / 1500, 0, 1), 0.8) * (1 - 0.6 * sstep(900, 1140, y));
           const hs = { x, y, w, h, d: (3 + rng() * 4) * sc * (cx < 960 ? 1 : -1), tone: rng(), lf, par: rng() < 0.4 };
           houses.push(hs);
           const nw = w > 30 * sc ? 1 + Math.floor(rng() * 2.6) : (rng() < 0.6 ? 1 : 0);
@@ -499,7 +499,7 @@
     }
     // glitter on the water stream
     st.glit = [];
-    for (let i = 0; i < 42; i++) st.glit.push({ o: rng(), ph: rng() * 6.28, f: 4 + rng() * 6, j: (rng() - 0.5) * 2.6, s: 3 + rng() * 4 });
+    for (let i = 0; i < 60; i++) st.glit.push({ o: rng(), ph: rng() * 6.28, f: 4 + rng() * 6, j: (rng() - 0.5) * 3.2, s: 3 + rng() * 5 });
     // flame seeds
     st.fseed = [];
     for (let i = 0; i < 16; i++) st.fseed.push(rng() * 100);
@@ -542,7 +542,7 @@
   }
   function flick(t, s) { return 1 + 0.07 * Math.sin(t * 6.3 + s) + 0.05 * Math.sin(t * 10.7 + s * 2.1) + 0.03 * Math.sin(t * 17.9 + s * 3.3); }
 
-  const FL_LAYERS = [[1, 'rgba(255,84,18,0.55)'], [0.74, 'rgba(255,160,45,0.8)'], [0.5, 'rgba(255,225,140,0.9)'], [0.28, 'rgba(255,252,225,0.95)']];
+  const FL_LAYERS = [[1.12, 'rgba(255,70,15,0.25)'], [1, 'rgba(255,95,20,0.45)'], [0.74, 'rgba(255,160,45,0.7)'], [0.5, 'rgba(255,220,130,0.85)'], [0.28, 'rgba(255,250,220,0.9)']];
   function flame(ctx, x, y, h, w, t, sd) {
     const N = 12;
     for (const [k, col] of FL_LAYERS) {
@@ -594,7 +594,7 @@
     const cam = camAt(t);
     const P = 0.62 + 0.38 * sstep(0, 7, t);          // lamp power, blooming
     const Fm = flick(t, 0.7);
-    const cityGlow = sstep(0.6, 8.5, t);
+    const cityGlow = sstep(0.3, 5.5, t);
     const pour = sstep(10.6, 12.2, t);
 
     ctx.save();
@@ -659,7 +659,7 @@
       ctx.fillStyle = gr; ctx.fillRect(480, -40, 960, 940);
     }
     // altar fire
-    for (let i = 0; i < 3; i++) spr(ctx, st.glowWarm, 1030 + i * 14, 458, 60, 0.35 * flick(t, i + 7));
+    for (let i = 0; i < 3; i++) spr(ctx, st.glowWarm, 1030 + i * 14, 458, 44, 0.22 * flick(t, i + 7));
     ctx.globalAlpha = 1;
     for (let i = 0; i < 4; i++) flame(ctx, 1030 + i * 10, 462, 9 + 2 * Math.sin(t * 3 + i), 3.2, t, 40 + i * 3.1);
     ctx.globalCompositeOperation = 'source-over';
@@ -690,7 +690,7 @@
       if (pour > 0.001) {
         const N = 34, pts = [];
         for (let i = 0; i <= N; i++) pts.push(streamPoint(e, (i / N) * pour, t));
-        const passes = [[3.6, 'rgba(30,45,90,0.55)'], [9, 'rgba(120,170,255,0.12)'], [3.4, 'rgba(160,200,255,0.4)'], [1.6, 'rgba(235,245,255,0.9)'], [0.6, 'rgba(255,255,255,1)']];
+        const passes = [[4.4, 'rgba(30,45,90,0.5)'], [11, 'rgba(120,170,255,0.12)'], [4.2, 'rgba(160,200,255,0.38)'], [2, 'rgba(235,245,255,0.85)'], [0.7, 'rgba(255,255,255,1)']];
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (let pi = 0; pi < passes.length; pi++) {
           const [lw, col] = passes[pi];
@@ -705,7 +705,7 @@
           const s = fract(gl.o + t * 0.55);
           if (s > pour) continue;
           const p = streamPoint(e, s, t);
-          const tw = Math.pow(Math.max(0, Math.sin(t * gl.f + gl.ph)), 5);
+          const tw = 0.25 + 0.75 * Math.pow(Math.max(0, Math.sin(t * gl.f + gl.ph)), 3);
           spr(ctx, st.star, p[0] + gl.j * Math.sin(t * 3 + gl.ph), p[1], gl.s, tw * 0.95);
         }
         const hp = streamPoint(e, pour, t);
@@ -758,6 +758,10 @@
     }
     ctx.globalAlpha = 1;
     for (let li = 0; li < 4; li++) {
+      const sd0 = st.fseed[li * 4];
+      ctx.globalAlpha = 0.55;
+      flame(ctx, LAMPS[li], BOWL_Y + 1, (52 + 8 * Math.sin(t * 1.7 + sd0)) * (0.75 + 0.25 * P), 26, t, sd0 + 3);
+      ctx.globalAlpha = 1;
       for (let b = 0; b < 4; b++) {
         const sd = st.fseed[li * 4 + b];
         const hh = (30 + 7 * Math.sin(t * 2.1 + sd) + 4 * Math.sin(t * 5.7 + sd * 1.3)) * (0.75 + 0.25 * P) * (b === 1 || b === 2 ? 1.18 : 1);
