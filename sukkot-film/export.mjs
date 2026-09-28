@@ -51,6 +51,19 @@ await page.evaluate(async () => {
 const { duration, cues } = await page.evaluate(() => ({ duration: FILM.duration, cues: FILM.cues }));
 console.log(`duration ${duration.toFixed(2)} s, ${fps} fps, width ${width}`);
 
+// Preview mode: STILLS="3,20,64" writes PNG stills next to `out` instead of a video.
+if (process.env.STILLS) {
+  await page.evaluate((w) => { document.getElementById('poster').hidden = true; FILM.setResolution(w); }, width);
+  for (const T of process.env.STILLS.split(',').map(Number)) {
+    const url = await page.evaluate((T) => { FILM.renderAt(T); return document.getElementById('film').toDataURL('image/jpeg', 0.85); }, T);
+    const file = out.replace(/\.mp4$/, '') + `-${String(T).padStart(5, '0')}.jpg`;
+    writeFileSync(file, Buffer.from(url.slice(url.indexOf(',') + 1), 'base64'));
+    console.log('still', file);
+  }
+  await browser.close();
+  process.exit(0);
+}
+
 // 1) audio: render the score offline, write a 16-bit WAV
 const wavB64 = await page.evaluate(async ({ cues, duration }) => {
   const sr = 48000;
