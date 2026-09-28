@@ -412,8 +412,8 @@
       for (const sg of segPts) { ctx.moveTo(sg[0][0] + ox, sg[0][1] + oy); ctx.lineTo(sg[1][0] + ox, sg[1][1] + oy); }
       ctx.stroke();
     };
-    const lw = fd.palm ? 0.035 * k : 0.07 * k;
-    stroke(rgb(scl(fd.col, 0.55)), Math.max(1, lw * 1.25), 0, 0.6);
+    const lw = fd.palm ? 0.024 * k : 0.055 * k;
+    stroke(rgb(scl(fd.col, 0.5)), Math.max(1, lw * 1.2), 0.4, 0.8);
     stroke(rgb(fd.col), Math.max(1, lw), 0, 0);
     stroke('rgba(226,214,130,0.55)', Math.max(0.8, lw * 0.35), -lw * 0.25, -lw * 0.3);
     ctx.strokeStyle = rgb(scl(fd.col, 1.2)); ctx.lineWidth = Math.max(1, 0.03 * k);
@@ -428,11 +428,11 @@
     const pr = prog(t, pl.s, pl.d);
     const e = eOutBack(pr, 1.1);
     const lift = 1.3 * (1 - e);
-    const tl = 0.35 * (1 - eOutCubic(pr)) * pl.tilt;
+    const tl = 0.15 * (1 - eOutCubic(pr)) * pl.tilt;
     const y = SK.h + 0.06;
     const a = P(c, pl.x, y + lift + tl, -1.42), b = P(c, pl.x, y + lift - tl, 1.42);
     const k = (a[3] + b[3]) / 2;
-    ctx.globalAlpha = sm(pl.s - 0.2, pl.s + 0.1, t);
+    ctx.globalAlpha = sm(pl.s - 0.2, pl.s + 0.35, t);
     ctx.lineCap = 'round';
     ctx.strokeStyle = 'rgb(128,110,54)'; ctx.lineWidth = Math.max(1.5, 0.07 * k);
     ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
@@ -631,7 +631,7 @@
       const bx = Math.round(bgx), by = Math.round(bgy);
       // visible part: screen columns 0..W, rows down to the parapet line
       const pTop = Math.min(P(c, -6.6, 0, 6.2)[1], P(c, 7.5, 0, 6.2)[1]);
-      const sx1 = -bx, sy1 = Math.max(0, -by), sh1 = Math.min(820, Math.ceil(pTop - by + 60)) - sy1;
+      const sx1 = -bx, sy1 = Math.max(0, -by), sh1 = Math.min(820, Math.ceil(Math.max(pTop + 60, H * 0.8) - by)) - sy1;
       const blit = (img) => ctx.drawImage(img, sx1, sy1, W, sh1, 0, by + sy1, W, sh1);
       blit(L.day);
       const night = sm(3, 18, t);
@@ -678,7 +678,8 @@
       const G = (x, z, h) => P(c, x + sdx * h, 0, z + sdz * h);
       // back parapet shadow
       ctx.beginPath();
-      { const a = G(FX0, FZ1 - 0.35, 0), b = G(FX1, FZ1 - 0.35, 0), b2 = G(FX1, FZ1 - 0.35, 0.65), a2 = G(FX0, FZ1 - 0.35, 0.65);
+      for (const sg of [[FX0, FZ1, FX1, FZ1], [FX0, FZ0, FX0, FZ1]]) {
+        const a = G(sg[0], sg[1], 0), b = G(sg[2], sg[3], 0), b2 = G(sg[2], sg[3], 0.71), a2 = G(sg[0], sg[1], 0.71);
         ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(a2[0], a2[1]); ctx.closePath(); }
       ctx.fill();
       // sukkah shadows
@@ -707,29 +708,33 @@
       }
       ctx.restore();
 
-      // back parapet (Jerusalem stone, low wall with coping)
-      {
-        const z = FZ1 - 0.35, hP = 0.65;
-        const a = P(c, FX0, 0, z), b = P(c, FX1, 0, z), b2 = P(c, FX1, hP, z), a2 = P(c, FX0, hP, z);
-        const pg = ctx.createLinearGradient(0, a2[1], 0, a[1]);
-        pg.addColorStop(0, 'rgb(206,166,124)'); pg.addColorStop(1, 'rgb(150,112,90)');
-        ctx.fillStyle = pg; poly(ctx, [a, b, b2, a2]); ctx.fill();
-        const t1 = P(c, FX0, hP + 0.06, z + 0.4), t2 = P(c, FX1, hP + 0.06, z + 0.4), t3 = P(c, FX1, hP + 0.06, z - 0.05), t4 = P(c, FX0, hP + 0.06, z - 0.05);
-        ctx.fillStyle = 'rgb(236,200,150)'; poly(ctx, [t4, t3, t2, t1]); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,224,170,' + (0.5 + 0.4 * sunStr).toFixed(3) + ')'; ctx.lineWidth = 2;
+      // parapets (Jerusalem stone, low walls with coping): back, left, right
+      const hP = 0.65;
+      const parapet = (ax, az, bx, bz, ox, oz, faceCol, len) => {
+        const a = P(c, ax, 0, az), b = P(c, bx, 0, bz), b2 = P(c, bx, hP, bz), a2 = P(c, ax, hP, az);
+        ctx.fillStyle = faceCol; poly(ctx, [a, b, b2, a2]); ctx.fill();
+        const t4 = P(c, ax - ox * 0.05, hP + 0.06, az - oz * 0.05), t3 = P(c, bx - ox * 0.05, hP + 0.06, bz - oz * 0.05);
+        const t2 = P(c, bx + ox * 0.4, hP + 0.06, bz + oz * 0.4), t1 = P(c, ax + ox * 0.4, hP + 0.06, az + oz * 0.4);
+        ctx.fillStyle = 'rgba(120,80,64,0.85)'; poly(ctx, [t4, t3, b2, a2]); ctx.fill();
+        ctx.fillStyle = 'rgb(234,198,150)'; poly(ctx, [t4, t3, t2, t1]); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,224,170,' + (0.45 + 0.4 * sunStr).toFixed(3) + ')'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(t1[0], t1[1]); ctx.lineTo(t2[0], t2[1]); ctx.stroke();
-        ctx.fillStyle = 'rgba(120,80,64,0.8)'; poly(ctx, [t4, t3, b2, a2]); ctx.fill();
-        ctx.strokeStyle = 'rgba(110,76,58,0.4)'; ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(100,68,52,0.4)'; ctx.lineWidth = 1;
         ctx.beginPath();
-        const m1 = P(c, FX0, hP * 0.5, z), m2 = P(c, FX1, hP * 0.5, z);
+        const m1 = P(c, ax, hP * 0.5, az), m2 = P(c, bx, hP * 0.5, bz);
         ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m2[0], m2[1]);
-        for (let x = FX0; x < FX1; x += 0.6) {
-          const off = (Math.round((x - FX0) / 0.6) % 2) * 0.3;
-          const q1 = P(c, x + off, 0, z), q2 = P(c, x + off, hP * 0.5, z), q3 = P(c, x, hP * 0.5, z), q4 = P(c, x, hP, z);
+        const n = Math.round(len / 0.6);
+        for (let i = 0; i < n; i++) {
+          const u0 = i / n, u1 = (i + 0.5) / n;
+          const q1 = P(c, lerp(ax, bx, u1), 0, lerp(az, bz, u1)), q2 = P(c, lerp(ax, bx, u1), hP * 0.5, lerp(az, bz, u1));
+          const q3 = P(c, lerp(ax, bx, u0), hP * 0.5, lerp(az, bz, u0)), q4 = P(c, lerp(ax, bx, u0), hP, lerp(az, bz, u0));
           ctx.moveTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]); ctx.moveTo(q3[0], q3[1]); ctx.lineTo(q4[0], q4[1]);
         }
         ctx.stroke();
-      }
+      };
+      parapet(FX0, FZ1, FX1, FZ1, 0, 1, 'rgb(172,132,102)', FX1 - FX0);
+      parapet(FX0, FZ0, FX0, FZ1, -1, 0, 'rgb(150,112,92)', FZ1 - FZ0);
+      parapet(FX1, FZ1, FX1, FZ0, 1, 0, 'rgb(214,170,124)', FZ1 - FZ0);
       // potted olive trees
       for (const pt of [[-4.6, 5.0], [4.9, 4.6], [6.2, 2.4]]) {
         const b = P(c, pt[0], 0, pt[1]); const s = b[3] * 1.9 / 380;
@@ -868,7 +873,7 @@
       if (glow > 0) {
         const lc = P(c, lanPos[0], lanPos[1], lanPos[2]);
         const g1 = glow * flick;
-        spr(L.sprAmber, lc[0], lc[1] + 0.3 * lc[3], 2.6 * lc[3], 0.5 * g1);
+        spr(L.sprAmber, lc[0], lc[1] + 0.35 * lc[3], 2.8 * lc[3], 0.62 * g1);
         spr(L.sprGold, lc[0], lc[1], 1.1 * lc[3], 0.4 * g1);
         spr(L.sprHot, lc[0], lc[1], 0.22 * lc[3], 0.95 * g1);
         // light spilling onto the stones through the open side
