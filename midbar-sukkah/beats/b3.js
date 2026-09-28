@@ -1000,6 +1000,9 @@
     }
     const spines = new Batch(ctx, true, mask ? '#000' : rgb(mix([120, 132, 76], [92, 74, 42], below)));
     const sway = 0.035 * Math.sin(t * 0.9);
+    // in the last stretch of the cross-fade into beat 4 (which draws its own schach on top) the
+    // leaflets thin out one by one: unseen under the dissolve, and it keeps those frames affordable
+    const thin = t > 8.6 ? 0.75 * sm(8.6, 9.9, t) : 0;
     for (const fr of G.fronds) {
       const g = clamp((m - fr.start) / 0.22);
       if (g <= 0) continue;
@@ -1014,6 +1017,7 @@
       for (const lf of fr.leaves) {
         const grow = clamp((g - lf.s) * 4 + 0.3);
         if (grow <= 0) continue;
+        if (thin > 0) { const hh = Math.sin(lf.tw * 9173.1 + lf.droop * 1731.7 + lf.k * 12.9) * 43758.5; if (hh - Math.floor(hh) < thin) continue; }
         const f = lf.s * NS, j = Math.min(NS - 1, Math.floor(f)), u = f - j;
         const a = 3 * j, c = 3 * (j + 1);
         const bx = lerp(sp[a], sp[c], u), by = lerp(sp[a + 1], sp[c + 1], u), bz = lerp(sp[a + 2], sp[c + 2], u);

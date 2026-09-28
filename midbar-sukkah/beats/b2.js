@@ -93,7 +93,7 @@
         const lee = f > 0.72 && f < 0.8 ? 1 : 0;
         seed = (Math.imul(seed, 1103515245) + 12345) | 0;
         const sp = ((seed >>> 16) & 255) / 255 - 0.5;
-        let k = 0.52 + L * 0.42 + (rip - 0.5) * 0.2 * A - lee * 0.07 * A + sp * 0.07;
+        let k = 0.54 + L * 0.24 + (rip - 0.5) * 0.3 * A - lee * 0.1 * A + sp * 0.07; // (QA: less low-frequency blotch, crisper ripples)
         k = k < 0 ? 0 : k > 1 ? 1 : k;
         const o = 4 * (py * w + px);
         d[o] = dark[0] + (light[0] - dark[0]) * k;

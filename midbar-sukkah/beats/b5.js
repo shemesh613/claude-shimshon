@@ -798,17 +798,20 @@
       c.globalAlpha = 1;
     }
 
+    // the species melt into the light as the wave fills the frame, so they do not ghost over
+    // beat 6's sukkah during the cross-fade (their glow layers below stay and carry the light)
+    const melt = 1 - 0.8 * smooth(range(t, 7.8, 8.9));
     // ---- aravot (left)
     const aFront = range(t, T_A0, T_A1) * ARA_FULL;
     if (st.ara.a > 0) {
-      c.save(); local(c, st.ara); c.globalAlpha = st.ara.a;
+      c.save(); local(c, st.ara); c.globalAlpha = st.ara.a * melt;
       drawAravot(c, t, st.ara_geom, aFront);
       c.restore();
     }
     // ---- hadassim (right)
     const hFront = range(t, T_H0, T_H1) * HAD_FULL;
     if (st.had.a > 0) {
-      if (hFront >= HAD_FULL) place(c, st.had, SPR.hadas, st.had.a);
+      if (hFront >= HAD_FULL) place(c, st.had, SPR.hadas, st.had.a * melt);
       else {
         c.save(); local(c, st.had); c.globalAlpha = st.had.a; drawHadassim(c, hFront);
         c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.6;
@@ -819,7 +822,7 @@
     // ---- lulav (centre)
     const lF = range(t, T_L0, T_L1) * (LUL_LEN + 1);
     if (lF > 0) {
-      if (lF > LUL_LEN) place(c, st.lul, SPR.lulav, st.lul.a);
+      if (lF > LUL_LEN) place(c, st.lul, SPR.lulav, st.lul.a * melt);
       else {
         c.save(); local(c, st.lul); c.globalAlpha = st.lul.a; drawLulav(c, lF);
         // the luminous "pen" at the growing tip
@@ -831,7 +834,7 @@
     // ---- binding: the woven holder and two rings
     const bp = ease.inOut(range(t, T_B0, T_B1));
     if (bp > 0) {
-      c.save(); local(c, st.lul);
+      c.save(); local(c, st.lul); c.globalAlpha = melt;
       const hs = SPR.holder;
       const top = 52 + (203 - 52) * bp;
       c.save(); c.beginPath(); c.rect(-70, -top, 140, top); c.clip();
@@ -860,7 +863,7 @@
     }
     if (solid(t) > 0) {
       const s = solid(t);
-      place(c, et, SPR.etrog, s);
+      place(c, et, SPR.etrog, s * melt);
       c.save(); c.globalCompositeOperation = 'lighter';
       place(c, et, SPR.etrogGlow, 1.6 * s * (1 - s) + 0.15 * s);
       c.restore();

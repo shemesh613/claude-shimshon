@@ -288,15 +288,21 @@
         const pg = g.createRadialGradient(x - R * 0.2, y + R * 0.45, R * 0.1, x, y, R * 1.1);
         pg.addColorStop(0, '#d8704c'); pg.addColorStop(0.45, '#9a3226'); pg.addColorStop(1, '#3d120e');
         g.fillStyle = pg; g.beginPath(); g.ellipse(x, y, R, R * 0.96, 0, 0, TAU); g.fill();
-        // crown at the bottom
-        g.fillStyle = '#5e1a14';
-        g.beginPath();
-        for (let k = 0; k <= 6; k++) {
-          const a = Math.PI * (0.2 + 0.6 * k / 6), rr = k % 2 ? R * 0.2 : R * 0.36;
-          const px = x + Math.cos(a) * rr * 1.2 - R * 0.0, py = y + R * 0.86 + Math.sin(a) * rr * 0.8;
-          k ? g.lineTo(px, py) : g.moveTo(px, py);
+        // the crown (calyx) at the bottom: a clear, pointed pomegranate crown, so the fruit never reads as a bauble
+        {
+          const cy = y + R * 0.8, cw = R * 0.34, ch = R * 0.42;
+          g.beginPath();
+          g.moveTo(x - cw, cy);
+          for (let k = 0; k <= 5; k++) {
+            const u = k / 5, px = x - cw + 2 * cw * u;
+            g.lineTo(px + (u - 0.5) * cw * 0.35, cy + ch * (k % 5 === 0 ? 0.75 : 1)); // sepal tip
+            if (k < 5) g.lineTo(px + cw * 0.2, cy + ch * 0.45);                    // notch
+          }
+          g.lineTo(x + cw, cy);
+          g.closePath();
+          g.fillStyle = '#6e2218'; g.fill();
+          g.strokeStyle = 'rgba(214,120,80,0.55)'; g.lineWidth = Math.max(1, R * 0.05); g.stroke();
         }
-        g.closePath(); g.fill();
         g.fillStyle = 'rgba(255,200,140,0.35)'; g.beginPath(); g.ellipse(x - R * 0.35, y + R * 0.35, R * 0.18, R * 0.1, -0.6, 0, TAU); g.fill();
         wallGlints.push(x - R * 0.35, y + R * 0.35, x + R * 0.3, y + R * 0.5);
       }

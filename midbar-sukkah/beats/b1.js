@@ -320,6 +320,15 @@
   // y-buffer (every pixel written once), Gouraud shading between adjacent rows, hard (antialiased)
   // edges where a far dune shows above a nearer crest.
   let IMG = null, COL = new Float32Array(0), SKY = new Float32Array(0);
+  // ripple profile (gentle windward rise, short steep lee) and a sine for the crest wobble
+  const RIP_N = 1024, RIP_M = RIP_N - 1, RIP_L = 1.6, RIP_A = 0.06;
+  const RIP = new Float32Array(RIP_N), RIP_SIN = new Float32Array(RIP_N);
+  for (let i = 0; i < RIP_N; i++) {
+    const u = i / RIP_N;
+    const v = u < 0.75 ? u / 0.75 : (1 - u) / 0.25;
+    RIP[i] = (v * v * (3 - 2 * v)) * 2 - 1;
+    RIP_SIN[i] = Math.sin(u * Math.PI * 2);
+  }
   function rasterTerrain(g, fr, lw, lh) {
     if (!IMG || IMG.width !== lw || IMG.height !== lh) IMG = g.createImageData(lw, lh);
     const d = IMG.data;
@@ -365,10 +374,21 @@
         const adj = prevIdx === r + 1;
         // shade down toward the next nearer row (even where it is hidden behind a crest)
         let nr = cr, ng = cg, nb = cb, ny = ybot;
+        // wind ripples, anchored in the world (phase from the interpolated ground z and x), faded
+        // out where a ripple wavelength would shrink below a few pixels (no aliasing, no swim)
+        let rA = 0, rz0 = 0, rdz = 0, rx0 = 0, rdx = 0;
         if (r + 1 < R) {
           const sy2 = rows[r + 1].sy, o2 = ((r + 1) * NS + j) * 3;
           ny = (sy2[j] + (sy2[j + 1] - sy2[j]) * k) * ky;
           nr = COL[o2] + (COL[o2 + 3] - COL[o2]) * k; ng = COL[o2 + 1] + (COL[o2 + 4] - COL[o2 + 1]) * k; nb = COL[o2 + 2] + (COL[o2 + 5] - COL[o2 + 2]) * k;
+          const za = rows[r].z, zb = rows[r + 1].z;
+          const ppw = Math.abs(ny - y) / (Math.abs(za - zb) + 1e-3) * RIP_L; // px per ripple wavelength
+          if (ppw > 2.5) {
+            rA = RIP_A * fx.smooth((ppw - 2.5) / 5);
+            const xa = rows[r].xs, xb = rows[r + 1].xs;
+            rz0 = za; rdz = zb - za;
+            rx0 = xa[j] + (xa[j + 1] - xa[j]) * k; rdx = xb[j] + (xb[j + 1] - xb[j]) * k - rx0;
+          }
         }
         const yt = y < 0 ? 0 : y;
         const pTop = Math.floor(yt), pBot = Math.floor(ybot);
@@ -378,7 +398,13 @@
           const i4 = q * 4;
           let m = (pp + 0.5 - y) * inv;
           m = m < 0 ? 0 : m > 1 ? 1 : m;
-          d[i4] = cr + (nr - cr) * m; d[i4 + 1] = cg + (ng - cg) * m; d[i4 + 2] = cb + (nb - cb) * m;
+          let f = 1;
+          if (rA > 0) {
+            const zz = rz0 + rdz * m, xx = rx0 + rdx * m;
+            const wob = RIP_SIN[((xx * 0.021 * RIP_N) | 0) & RIP_M];
+            f = 1 + rA * RIP[(((zz * (1 / RIP_L) + 0.6 * wob + xx * 0.045) * RIP_N) | 0) & RIP_M];
+          }
+          d[i4] = (cr + (nr - cr) * m) * f; d[i4 + 1] = (cg + (ng - cg) * m) * f; d[i4 + 2] = (cb + (nb - cb) * m) * f;
           d[i4 + 3] = 255;
         }
         if (pBot < lh && !adj) { // antialiased silhouette: blend into the nearer crest's top pixel
@@ -475,15 +501,17 @@
         ctx.globalCompositeOperation = 'lighter';
         const g1 = fx.glow(520, [255, 150, 80]);
         ctx.globalAlpha = 0.55 * sunK; ctx.drawImage(g1, s[0] - 520, s[1] - 520);
-        const g2 = fx.glow(160, [255, 214, 150]);
-        ctx.globalAlpha = 0.8 * sunK; ctx.drawImage(g2, s[0] - 160, s[1] - 160);
-        ctx.globalCompositeOperation = 'source-over';
+        // (warmer, a touch softer: at full strength the old pale-gold halo clipped to a greenish yellow)
+        const g2 = fx.glow(160, [255, 200, 136]);
+        ctx.globalAlpha = 0.65 * sunK; ctx.drawImage(g2, s[0] - 160, s[1] - 160);
         ctx.save();
         ctx.beginPath(); ctx.rect(0, 0, W, hy + 1); ctx.clip();
+        // the disc is added, never painted over: a painted cream disc read as a dark pupil in the glare
         ctx.globalAlpha = sunK;
         ctx.fillStyle = '#fff4dc';
         ctx.beginPath(); ctx.arc(s[0], s[1], 17, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
     }

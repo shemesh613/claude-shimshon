@@ -155,14 +155,16 @@
       g.lineWidth = Math.max(0.5, w * (0.012 + R() * 0.012));
       g.beginPath(); g.moveTo(ax, ay);
       g.quadraticCurveTo((ax + bx) / 2, (ay + by) / 2 - dy * 0.15, bx, by); g.stroke();
-      if (detail) { // leaflets
+      if (detail) { // leaflets (one path per frond: same look, a fifth of the stroke calls)
         g.lineWidth = Math.max(0.4, w * 0.006);
+        const ll = w * 0.03;
+        g.beginPath();
         for (let j = 1; j < 6; j++) {
           const f = j / 6, px = lerp(ax, bx, f), py = lerp(ay, by, f) - dy * 0.1 * Math.sin(f * Math.PI);
-          const ll = w * 0.03;
-          g.beginPath(); g.moveTo(px, py); g.lineTo(px + ll * 0.6, py - ll * 0.7);
-          g.moveTo(px, py); g.lineTo(px + ll * 0.6, py + ll * 0.5); g.stroke();
+          g.moveTo(px, py); g.lineTo(px + ll * 0.6, py - ll * 0.7);
+          g.moveTo(px, py); g.lineTo(px + ll * 0.6, py + ll * 0.5);
         }
+        g.stroke();
       }
     }
     // overhanging fronds on the front edge
@@ -631,16 +633,17 @@
     if (wave > 0.001) {
       ctx.save();
       const cy = P[1] + T[4][1] - 40;
+      // One full-frame pass: painting colour c at alpha a1 and then adding it at a2 equals painting
+      // c * (1 + a2 / a1) at a1 (up to the clip at white), which saves a second full-frame gradient fill.
+      const a1 = Math.pow(wave, 0.7) * 0.94, gain = 1 + (0.35 * wave) / a1;
+      const st = (r, g, b) => `rgb(${Math.min(255, r * gain) | 0},${Math.min(255, g * gain) | 0},${Math.min(255, b * gain) | 0})`;
       const rg = ctx.createRadialGradient(540, cy, 0, 540, cy, 1250);
-      rg.addColorStop(0, 'rgb(255,240,200)');
-      rg.addColorStop(0.3, 'rgb(255,208,130)');
-      rg.addColorStop(0.7, 'rgb(226,150,66)');
-      rg.addColorStop(1, 'rgb(150,84,40)');
-      ctx.globalAlpha = Math.pow(wave, 0.7) * 0.94;
+      rg.addColorStop(0, st(255, 240, 200));
+      rg.addColorStop(0.3, st(255, 208, 130));
+      rg.addColorStop(0.7, st(226, 150, 66));
+      rg.addColorStop(1, st(150, 84, 40));
+      ctx.globalAlpha = a1;
       ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.35 * wave;
-      ctx.fillRect(0, 0, W, H);
       ctx.restore();
     }
 

@@ -217,7 +217,7 @@
     // 2) faint tails on the fastest flyers
     if (nStreak) {
       const t = tints[Math.min(NT - 1, Math.round(k * (NT - 1)))];
-      ctx.strokeStyle = `rgba(${t[0]},${t[1]},${t[2]},0.15)`;
+      ctx.strokeStyle = `rgba(${t[0]},${t[1]},${t[2]},0.1)`; // (QA: 0.15 read as light hairs on the brightest frames)
       ctx.lineWidth = Math.max(1, sc);
       ctx.lineCap = 'butt';
       ctx.beginPath();

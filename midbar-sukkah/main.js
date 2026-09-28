@@ -26,21 +26,23 @@
   const canvas = document.getElementById('film');
   const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
-  const bufA = document.createElement('canvas');
   const bufB = document.createElement('canvas');
   let scale = 1;
 
   function setResolution(pw) {
     const ph = Math.round(pw * H / W);
-    for (const c of [canvas, bufA, bufB]) { c.width = pw; c.height = ph; }
+    for (const c of [canvas, bufB]) { c.width = pw; c.height = ph; }
     scale = pw / W;
   }
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cssW = stage.clientWidth || 360;
     setResolution(Math.max(360, Math.min(W, Math.round(cssW * dpr))));
-    renderAt(filmTime);
+    renderAt(shownT());
   }
+  // while the poster is up, the frame behind it is the poster frame (the camp under the clouds)
+  const POSTER_T = 22;
+  const shownT = () => (!document.getElementById('poster').hidden ? POSTER_T : filmTime);
 
   const localT = (e, T) => Math.max(0, Math.min(e.dur, T - e.start));
 
@@ -121,8 +123,7 @@
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 
     const tA = localT(A, T);
-    drawBeat(bufA, A, tA);
-    ctx.drawImage(bufA, 0, 0);
+    drawBeat(canvas, A, tA); // beats paint every pixel opaque, so A goes straight to the screen (saves a blit)
     let k = 0, tB = 0;
     if (B) {
       tB = localT(B, T);
@@ -247,13 +248,12 @@
     if (e.key === 'ArrowLeft') seek(filmTime - 5);
   });
   window.addEventListener('resize', resize);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderAt(filmTime));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!playing) renderAt(shownT()); });
 
   // hook for offline export
   window.FILM = { duration: DURATION, cues, W, H, renderAt: (T) => { filmTime = T; renderAt(T); }, setResolution };
 
-  filmTime = 26; // poster frame: the camp under the clouds
-  resize();
+  resize(); // draws the poster frame
   filmTime = 0;
   updateUI();
 })();

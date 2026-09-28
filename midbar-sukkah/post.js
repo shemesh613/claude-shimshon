@@ -45,12 +45,13 @@
           // watercolour: pigment pools irregularly toward the edge
           const n = fx.fbm(x * 0.045 + 3.1, y * 0.045 - 7.4, 4);
           const n2 = fx.fbm(x * 0.13 - 1.3, y * 0.13 + 2.2, 2);
-          e = e * (1 + 0.22 * n) + 0.04 * n2 * e;
-          const k = Math.min(0.4, fx.smooth(fx.clamp((e - 0.5) / 0.9)) * 0.42);
+          // (kept to the margins and gentle: the wash is a material feel, never a cloud over the picture)
+          e = e * (1 + 0.1 * n) + 0.025 * n2 * e;
+          const k = fx.smooth(fx.clamp((e - 0.8) / 0.75)) * 0.3;
           // a darker rim where the wash dried (the "tide line" of watercolour), very faint
-          const rim = 0.05 * Math.exp(-Math.pow((e - 1.02) / 0.06, 2));
+          const rim = 0.03 * Math.exp(-Math.pow((e - 1.04) / 0.05, 2));
           // centre: highlights warmed (blue/green held back); edge: toward ink-brown #3b2616
-          const kk = Math.min(0.46, k + rim);
+          const kk = Math.min(0.32, k + rim);
           const i = 4 * (y * cw + x);
           d[i] = 255 * (1 - kk) + 128 * kk;
           d[i + 1] = 247 * (1 - kk) + 98 * kk;
