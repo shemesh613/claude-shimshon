@@ -248,9 +248,9 @@
       for (let b = 0; b < count; b++) {
         const kind = seedR() < 0.45 ? 0 : 1; // 0 palm frond, 1 leafy bough
         const x = -150 + seedR() * (W + 300);
-        const up = b % 5 === 0;
+        const up = b % 6 === 0;
         const y = Y(up ? -1275 + seedR() * 70 : -1290 + seedR() * 480);
-        const ang = up ? -Math.PI / 2 + (seedR() - 0.5) * 1.6 : (seedR() < 0.5 ? 0 : Math.PI) + (seedR() - 0.5) * 0.9;
+        const ang = up ? -Math.PI / 2 + (seedR() < 0.5 ? -1 : 1) * (0.45 + seedR() * 0.55) : (seedR() < 0.5 ? 0 : Math.PI) + (seedR() - 0.5) * 0.9;
         const len = up ? 90 + seedR() * 150 : 220 + seedR() * 330;
         const bend = (seedR() - 0.5) * 0.5;
         const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
@@ -411,6 +411,20 @@
       const lg = g.createLinearGradient(x, 0, x + w, 0);
       lg.addColorStop(0, 'rgba(60,40,20,0)'); lg.addColorStop(0.5, 'rgba(60,40,20,0.16)'); lg.addColorStop(1, 'rgba(60,40,20,0)');
       g.fillStyle = lg; g.fillRect(x, Y(806), w, 400);
+    }
+    // embroidered hem band on the front drop
+    {
+      const hy = Y(846);
+      g.fillStyle = 'rgba(40,55,110,0.55)';
+      g.beginPath(); g.moveTo(153, hy); g.lineTo(1767, hy); g.lineTo(1769, hy + 26); g.lineTo(151, hy + 26); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(214,170,80,0.85)';
+      g.fillRect(152, hy - 2, 1616, 3); g.fillRect(151, hy + 26, 1618, 3);
+      for (let x = 170; x < 1760; x += 34) {
+        g.beginPath(); g.moveTo(x, hy + 13); g.lineTo(x + 8, hy + 5); g.lineTo(x + 16, hy + 13); g.lineTo(x + 8, hy + 21); g.closePath(); g.fill();
+      }
+      // lace scallops along the tabletop edge
+      g.fillStyle = 'rgba(255,248,232,0.55)';
+      for (let x = 156; x < 1766; x += 22) { g.beginPath(); g.arc(x + 11, Y(803), 10, 0, Math.PI); g.fill(); }
     }
     // tabletop
     const tg = g.createLinearGradient(0, Y(640), 0, Y(800));

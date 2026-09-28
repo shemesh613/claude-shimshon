@@ -584,11 +584,13 @@
     }
     // silk flap draped over the front wall
     const flap = new Path2D();
-    flap.moveTo(1162, FT - 5);
-    flap.bezierCurveTo(1205, FT - 10, 1255, FT - 3, 1302, FT - 7);
-    flap.bezierCurveTo(1290, 722, 1262, 752, 1236, 787);
-    flap.quadraticCurveTo(1229, 795, 1222, 788);
-    flap.bezierCurveTo(1203, 755, 1182, 728, 1162, FT - 5);
+    flap.moveTo(1165, FT - 5);
+    flap.bezierCurveTo(1205, FT - 10, 1255, FT - 3, 1300, FT - 7);
+    flap.bezierCurveTo(1298, 725, 1291, 746, 1284, 763);
+    flap.bezierCurveTo(1270, 772, 1256, 760, 1241, 774);
+    flap.quadraticCurveTo(1232, 783, 1223, 792);
+    flap.bezierCurveTo(1207, 779, 1192, 767, 1177, 772);
+    flap.bezierCurveTo(1172, 745, 1166, 720, 1165, FT - 5);
     flap.closePath();
     gr = g.createLinearGradient(1160, 0, 1302, 0);
     gr.addColorStop(0, '#8e6e38'); gr.addColorStop(0.25, '#e4d09a'); gr.addColorStop(0.45, '#c2a364');
@@ -598,8 +600,8 @@
     gr = g.createLinearGradient(0, FT, 0, 792);
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(40,25,5,0.5)');
     g.fillStyle = gr; g.fillRect(1140, FT - 12, 170, 110);
-    for (const [x0, cx] of [[1190, 1222], [1232, 1228], [1272, 1234]]) {
-      g.beginPath(); g.moveTo(x0, FT - 6); g.quadraticCurveTo((x0 + cx) / 2, 745, cx, 786);
+    for (const [x0, cx] of [[1192, 1196], [1226, 1224], [1262, 1256]]) {
+      g.beginPath(); g.moveTo(x0, FT - 6); g.quadraticCurveTo((x0 + cx) / 2 + 3, 735, cx, 780);
       g.strokeStyle = 'rgba(90,60,15,0.28)'; g.lineWidth = 5; g.stroke();
       g.beginPath(); g.moveTo(x0 + 7, FT - 6); g.quadraticCurveTo((x0 + cx) / 2 + 5, 745, cx + 2, 786);
       g.strokeStyle = 'rgba(255,248,222,0.32)'; g.lineWidth = 1.6; g.stroke();
@@ -607,8 +609,8 @@
     g.restore();
     // fringe tassels at the tip of the flap
     for (let i = 0; i < 5; i++) {
-      const x = 1223 + (i - 2) * 2.5;
-      g.beginPath(); g.moveTo(x, 790); g.lineTo(x + (i - 2) * 0.8, 800 + (2 - Math.abs(i - 2)));
+      const x = 1223 + (i - 2) * 2.2;
+      g.beginPath(); g.moveTo(x, 791); g.lineTo(x + (i - 2) * 0.8, 800 + (2 - Math.abs(i - 2)));
       g.strokeStyle = 'rgba(220,190,120,0.8)'; g.lineWidth = 1; g.stroke();
     }
   }
@@ -769,7 +771,7 @@
       {
         const g = A.bg.getContext('2d');
         g.drawImage(bgRaw, 0, 0);
-        g.filter = 'blur(10px)';
+        g.filter = 'blur(6px)';
         g.drawImage(bgRaw, 0, 0);
         g.filter = 'none';
       }
@@ -837,7 +839,7 @@
         for (let i = 0; i < d.length; i += 4) {
           const v = rng() + rng() - 1;
           const c = v > 0 ? 255 : 0;
-          d[i] = c; d[i + 1] = c; d[i + 2] = c; d[i + 3] = Math.round(Math.abs(v) * 34);
+          d[i] = c; d[i + 1] = c; d[i + 2] = c; d[i + 3] = Math.round(Math.abs(v) * 15);
         }
         g.putImageData(id, 0, 0);
       }
@@ -849,11 +851,10 @@
       const s = cam.s;
 
       // ---- background with gentle parallax ----
-      ctx.fillStyle = '#0a0805';
-      ctx.fillRect(0, 0, W, H);
-      const sb = 1 + (s - 1) * 0.35;
-      const [BX, BY, BW, BH] = A.bgRect;
-      ctx.drawImage(A.bg, cam.cx + (BX - cam.fx) * sb, cam.cy + (BY - cam.fy) * sb, BW * sb, BH * sb);
+      // (the far, defocused background barely scales during a push-in; an unscaled,
+      // pixel-aligned blit of the opaque layer covers the whole frame and is very cheap)
+      const [BX, BY] = A.bgRect;
+      ctx.drawImage(A.bg, Math.round(BX + (cam.cx - cam.fx) * 0.6), Math.round(BY + (cam.cy - cam.fy)));
 
       // ---- world (focus plane) ----
       ctx.save();

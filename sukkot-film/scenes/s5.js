@@ -119,13 +119,9 @@
     }
 
     // ---- Heichal: side depth face
-    g.fillStyle = '#4a3c4c';
-    g.beginPath(); g.moveTo(1080, 254); g.lineTo(1100, 264); g.lineTo(1100, 500); g.lineTo(1080, 500); g.closePath(); g.fill();
-    g.fillStyle = '#3e3242';
-    g.beginPath(); g.moveTo(840, 254); g.lineTo(824, 264); g.lineTo(824, 500); g.lineTo(840, 500); g.closePath(); g.fill();
     // facade
     gr = g.createLinearGradient(0, 250, 0, 500);
-    gr.addColorStop(0, '#8f86a0'); gr.addColorStop(0.3, '#c8b6a6'); gr.addColorStop(0.7, '#efd6a6'); gr.addColorStop(1, '#f8e0ae');
+    gr.addColorStop(0, '#7a7090'); gr.addColorStop(0.3, '#b3a08f'); gr.addColorStop(0.7, '#dcbd8c'); gr.addColorStop(1, '#ecca92');
     g.fillStyle = gr; g.fillRect(840, 250, 240, 250);
     // soft horizontal lighting: centre brighter
     gr = g.createLinearGradient(840, 0, 1080, 0);
@@ -200,13 +196,13 @@
     const tiers = [[994, 1082, 488, 512], [998, 1078, 474, 488], [1002, 1074, 462, 474]];
     for (const [a, b, y0, y1] of tiers) {
       gr = g.createLinearGradient(0, y0, 0, y1);
-      gr.addColorStop(0, '#fbf1dc'); gr.addColorStop(1, '#d8bf98');
+      gr.addColorStop(0, '#d9c2a0'); gr.addColorStop(1, '#8f7258');
       g.fillStyle = gr; g.fillRect(a, y0, b - a, y1 - y0);
       g.fillStyle = 'rgba(80,50,40,0.35)'; g.fillRect(a, y1 - 0.8, b - a, 0.8);
       g.fillStyle = 'rgba(70,50,60,0.3)'; g.fillRect(b - 6, y0, 6, y1 - y0);
     }
     g.fillStyle = '#9a2e22'; g.fillRect(998, 487.2, 80, 1.1); // the red line
-    g.fillStyle = '#f4e6cc';
+    g.fillStyle = '#e2cfae';
     for (const hx of [1002, 1069]) g.fillRect(hx, 456.5, 5, 6);
     g.fillStyle = '#d2bc9a';
     for (const hx of [1008, 1063]) g.fillRect(hx, 457.5, 4, 4.5);
@@ -324,7 +320,6 @@
       for (const o of BOWL_OFF) {
         g.fillStyle = GOLD(g, lx + o - 5, lx + o + 5);
         g.beginPath(); g.ellipse(lx + o, BOWL_Y, 5, 3.4, 0, 0, Math.PI); g.closePath(); g.fill();
-        g.fillStyle = '#fff0b8'; g.fillRect(lx + o - 5, BOWL_Y - 0.5, 10, 0.9);
       }
     }
 
@@ -378,7 +373,7 @@
           const h = (13 + rng() * 18) * sc;
           const cx = x + w / 2;
           const dist = Math.hypot(cx - 960, (y - 470) * 1.35);
-          const lf = Math.pow(clamp(1.3 - dist / 900, 0, 1), 1.2) * (1 - 0.7 * sstep(880, 1120, y));
+          const lf = Math.pow(clamp(1.35 - dist / 1250, 0, 1), 0.9) * (1 - 0.6 * sstep(900, 1140, y));
           const hs = { x, y, w, h, d: (3 + rng() * 4) * sc * (cx < 960 ? 1 : -1), tone: rng(), lf, par: rng() < 0.4 };
           houses.push(hs);
           const nw = w > 30 * sc ? 1 + Math.floor(rng() * 2.6) : (rng() < 0.6 ? 1 : 0);
@@ -416,9 +411,9 @@
       }
       const { x, y, w, h, d, tone } = hs;
       const k = lit ? hs.lf : 0;
-      const front = mixc(mixc('#23233a', '#32324c', tone), mixc('#b0804c', '#d6a868', tone), k);
-      const roof = mixc('#3c3c5a', '#fad48e', k);
-      const side = mixc('#171727', mixc('#8a5e36', '#e0b070', 0.4), k);
+      const front = mixc(mixc('#262742', '#363856', tone), mixc('#c08a50', '#e2b474', tone), k);
+      const roof = mixc(mixc('#474a70', '#55587e', tone), '#ffd996', k);
+      const side = mixc('#1d1d31', '#9a6a3c', k);
       const dy = Math.abs(d) * 0.55;
       // side face (facing the Temple)
       g.fillStyle = side;
@@ -432,6 +427,14 @@
       g.fillStyle = roof;
       g.beginPath(); g.moveTo(x, y - h); g.lineTo(x + w, y - h); g.lineTo(x + w + d, y - h - dy); g.lineTo(x + d, y - h - dy); g.closePath(); g.fill();
       if (hs.par) { g.fillStyle = front; g.fillRect(x, y - h - 1.4, w, 1.4); }
+      if (tone > 0.72 && w > 34) { // upper room on the roof
+        const ux = x + w * 0.35 + d * 0.5, uw = w * 0.42, uh = h * 0.42, uy = y - h - dy * 0.5;
+        g.fillStyle = front; g.fillRect(ux, uy - uh, uw, uh);
+        g.fillStyle = roof;
+        g.beginPath(); g.moveTo(ux, uy - uh); g.lineTo(ux + uw, uy - uh); g.lineTo(ux + uw + d * 0.6, uy - uh - dy * 0.6); g.lineTo(ux + d * 0.6, uy - uh - dy * 0.6); g.closePath(); g.fill();
+        g.fillStyle = lit ? 'rgba(60,34,20,0.8)' : 'rgba(10,10,18,0.85)';
+        g.beginPath(); g.moveTo(ux + uw * 0.4, uy); g.lineTo(ux + uw * 0.4, uy - uh * 0.45); g.arc(ux + uw * 0.5, uy - uh * 0.45, uw * 0.1, Math.PI, 0); g.lineTo(ux + uw * 0.6, uy); g.closePath(); g.fill();
+      }
       // warm top edge on lit walls
       if (lit && k > 0.05) { g.fillStyle = `rgba(255,214,150,${(0.5 * k).toFixed(3)})`; g.fillRect(x, y - h, w, 0.9); }
     }
@@ -506,8 +509,8 @@
     for (let k = 0; k < 4; k++) {
       const c = mk(256, 256), x = c.getContext('2d'), id = x.createImageData(256, 256);
       for (let p = 0; p < id.data.length; p += 4) {
-        const v = (rng() * 255) | 0;
-        id.data[p] = id.data[p + 1] = id.data[p + 2] = v; id.data[p + 3] = 255;
+        const v = rng();
+        id.data[p] = id.data[p + 1] = id.data[p + 2] = v < 0.5 ? 0 : 255; id.data[p + 3] = (Math.abs(v - 0.5) * 2 * 30) | 0;
       }
       x.putImageData(id, 0, 0);
       st.grain.push(c);
@@ -518,8 +521,8 @@
     let gr = v.createRadialGradient(W / 2, H * 0.44, 380, W / 2, H * 0.5, 1250);
     gr.addColorStop(0, 'rgba(4,3,14,0)'); gr.addColorStop(0.6, 'rgba(4,3,14,0.35)'); gr.addColorStop(1, 'rgba(4,3,14,0.85)');
     v.fillStyle = gr; v.fillRect(0, 0, W, H);
-    gr = v.createLinearGradient(0, H * 0.66, 0, H);
-    gr.addColorStop(0, 'rgba(6,4,14,0)'); gr.addColorStop(0.4, 'rgba(6,4,14,0.4)'); gr.addColorStop(1, 'rgba(6,4,14,0.72)');
+    gr = v.createLinearGradient(0, H * 0.62, 0, H);
+    gr.addColorStop(0, 'rgba(6,4,14,0)'); gr.addColorStop(0.4, 'rgba(6,4,14,0.45)'); gr.addColorStop(1, 'rgba(6,4,14,0.8)');
     v.fillStyle = gr; v.fillRect(0, H * 0.66, W, H * 0.34);
     st.ready = true;
   }
@@ -650,8 +653,8 @@
     ctx.globalCompositeOperation = 'lighter';
     {
       const gr = ctx.createRadialGradient(960, 440, 0, 960, 450, 460);
-      gr.addColorStop(0, `rgba(255,185,100,${(0.24 * P * Fm).toFixed(3)})`);
-      gr.addColorStop(0.45, `rgba(255,140,60,${(0.1 * P * Fm).toFixed(3)})`);
+      gr.addColorStop(0, `rgba(255,185,100,${(0.15 * P * Fm).toFixed(3)})`);
+      gr.addColorStop(0.45, `rgba(255,140,60,${(0.07 * P * Fm).toFixed(3)})`);
       gr.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gr; ctx.fillRect(480, -40, 960, 940);
     }
@@ -680,16 +683,18 @@
       ctx.fillStyle = '#e8eef8'; ctx.fillRect(-2, -5.6, 4, 0.9);
       ctx.restore();
       ctx.globalCompositeOperation = 'lighter';
-      spr(ctx, st.glowSilver, e.hx - 1, e.hy - 1, 14, 0.35 + 0.25 * Math.sin(t * 2.2));
+      spr(ctx, st.glowSilver, e.hx - 1, e.hy - 1, 10, 0.16 + 0.1 * Math.sin(t * 2.2));
       spr(ctx, st.star, e.hx - 1.5, e.hy - 1.5, 7, 0.5 * Math.pow(Math.max(0, Math.sin(t * 1.7)), 3));
 
       // the water libation: a stream of silver light
       if (pour > 0.001) {
         const N = 34, pts = [];
         for (let i = 0; i <= N; i++) pts.push(streamPoint(e, (i / N) * pour, t));
-        const passes = [[7, 'rgba(120,170,255,0.10)'], [3.2, 'rgba(190,220,255,0.35)'], [1.3, 'rgba(245,250,255,0.85)'], [0.5, 'rgba(255,255,255,1)']];
+        const passes = [[3.6, 'rgba(30,45,90,0.55)'], [9, 'rgba(120,170,255,0.12)'], [3.4, 'rgba(160,200,255,0.4)'], [1.6, 'rgba(235,245,255,0.9)'], [0.6, 'rgba(255,255,255,1)']];
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        for (const [lw, col] of passes) {
+        for (let pi = 0; pi < passes.length; pi++) {
+          const [lw, col] = passes[pi];
+          ctx.globalCompositeOperation = pi === 0 ? 'source-over' : 'lighter';
           ctx.strokeStyle = col; ctx.lineWidth = lw * (0.9 + 0.1 * Math.sin(t * 11));
           ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
           for (let i = 1; i <= N; i++) ctx.lineTo(pts[i][0], pts[i][1]);
@@ -748,8 +753,8 @@
     ctx.globalCompositeOperation = 'lighter';
     for (let li = 0; li < 4; li++) {
       const lx = LAMPS[li], f = flick(t, li * 2.7);
-      spr(ctx, st.glowWarm, lx, BOWL_Y - 22, 360 * P, 0.55 * P * f);
-      spr(ctx, st.glowHot, lx, BOWL_Y - 18, 110 * P, 0.7 * P * f);
+      spr(ctx, st.glowWarm, lx, BOWL_Y - 22, 340 * P, 0.42 * P * f);
+      spr(ctx, st.glowHot, lx, BOWL_Y - 18, 100 * P, 0.6 * P * f);
     }
     ctx.globalAlpha = 1;
     for (let li = 0; li < 4; li++) {
@@ -814,7 +819,7 @@
       const tile = st.grain[fi & 3];
       const ox = ((fi * 73) % 256), oy = ((fi * 151) % 256);
       ctx.save();
-      ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.07;
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.55;
       const pat = ctx.createPattern(tile, 'repeat');
       ctx.translate(-ox, -oy);
       ctx.fillStyle = pat; ctx.fillRect(0, 0, W + 256, H + 256);

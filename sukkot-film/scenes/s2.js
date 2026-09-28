@@ -828,22 +828,15 @@
       ctx.globalCompositeOperation = 'lighter';
 
       // sun bloom and rays
-      const bloomA = 0.55 * sunStr + 0.12;
-      const bl = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], 700);
-      bl.addColorStop(0, rgb(mix([255, 200, 130], [255, 130, 90], u), bloomA)); bl.addColorStop(0.25, rgb([200, 110, 60], bloomA * 0.3)); bl.addColorStop(1, 'rgba(120,50,30,0)');
-      ctx.fillStyle = bl; ctx.fillRect(sp[0] - 700, sp[1] - 700, 1400, 1400);
+      const bloomA = 0.5 * sunStr + 0.14 * (1 - sm(14, 18, t));
+      spr(L.sprGold, sp[0], sp[1], 700, bloomA * (1 - u) * 0.8);
+      spr(L.sprRose, sp[0], sp[1], 760, bloomA * (0.25 + u) * 0.7);
       if (sunStr > 0.02) {
-        const rg = ctx.createRadialGradient(sp[0], sp[1], 30, sp[0], sp[1], 1700);
-        rg.addColorStop(0, 'rgba(255,214,150,' + (0.16 * sunStr).toFixed(3) + ')'); rg.addColorStop(1, 'rgba(255,190,120,0)');
-        ctx.fillStyle = rg; ctx.beginPath();
-        for (let i = 0; i < 9; i++) {
-          const a = -0.25 + i * 0.19 + 0.04 * Math.sin(t * 0.35 + i * 1.7), hw = 0.018 + 0.014 * ((i * 7) % 3);
-          ctx.moveTo(sp[0], sp[1]);
-          ctx.lineTo(sp[0] + Math.cos(a - hw) * 1800, sp[1] + Math.sin(a - hw) * 1800);
-          ctx.lineTo(sp[0] + Math.cos(a + hw) * 1800, sp[1] + Math.sin(a + hw) * 1800);
-          ctx.closePath();
-        }
-        ctx.fill();
+        ctx.save(); ctx.translate(sp[0], sp[1]); ctx.rotate(0.05 * Math.sin(t * 0.21) + 0.12 * u);
+        ctx.globalAlpha = 0.2 * sunStr; ctx.drawImage(L.rays, -1800, -1800, 3600, 3600);
+        ctx.rotate(0.07 + 0.03 * Math.sin(t * 0.33));
+        ctx.globalAlpha = 0.1 * sunStr; ctx.drawImage(L.rays, -1400, -1400, 2800, 2800);
+        ctx.restore();
       }
 
       // "lock" glints when beams seat, dust puffs when posts land
@@ -852,23 +845,25 @@
         if (dt < 0 || dt > 1.2) continue;
         const a = Math.exp(-dt * 4) * 0.9;
         for (const e of [bm.a, bm.b]) {
-          const q = P(c, e[0], SK.h, e[1]), r = 0.35 * q[3];
-          const gg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
-          gg.addColorStop(0, 'rgba(255,226,170,' + a.toFixed(3) + ')'); gg.addColorStop(1, 'rgba(255,180,110,0)');
-          ctx.fillStyle = gg; ctx.fillRect(q[0] - r, q[1] - r, 2 * r, 2 * r);
+          const q = P(c, e[0], SK.h, e[1]);
+          spr(L.sprHot, q[0], q[1], 0.4 * q[3], a);
         }
       }
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
       for (const p of POSTS) {
         const tl = p.s + p.d * 0.5, dt = t - tl;
         if (dt < 0 || dt > 1.6) continue;
         const q = P(c, p.x, 0, p.z);
+        ctx.fillStyle = 'rgba(236,206,166,' + (0.35 * (1 - dt / 1.6)).toFixed(3) + ')';
+        ctx.beginPath();
         for (const d of L.dust) {
           const rr = (0.1 + 0.5 * d[1] * eOutCubic(dt / 1.6)), ang = d[0];
           const x = q[0] + Math.cos(ang) * rr * q[3], y = q[1] + Math.sin(ang) * rr * q[3] * 0.35 - dt * 0.15 * q[3] * d[2];
-          ctx.fillStyle = 'rgba(236,206,166,' + (0.35 * (1 - dt / 1.6)).toFixed(3) + ')';
-          ctx.beginPath(); ctx.arc(x, y, (0.04 + 0.08 * dt) * q[3], 0, PI * 2); ctx.fill();
+          const rad = (0.04 + 0.08 * dt) * q[3];
+          ctx.moveTo(x + rad, y); ctx.arc(x, y, rad, 0, PI * 2);
         }
+        ctx.fill();
       }
       ctx.globalCompositeOperation = 'lighter';
 
@@ -876,24 +871,13 @@
       if (glow > 0) {
         const lc = P(c, lanPos[0], lanPos[1], lanPos[2]);
         const g1 = glow * flick;
-        let r = 2.4 * lc[3];
-        let gg = ctx.createRadialGradient(lc[0], lc[1], 0, lc[0], lc[1], r);
-        gg.addColorStop(0, 'rgba(255,200,120,' + (0.55 * g1).toFixed(3) + ')');
-        gg.addColorStop(0.35, 'rgba(240,140,60,' + (0.22 * g1).toFixed(3) + ')');
-        gg.addColorStop(1, 'rgba(200,90,30,0)');
-        ctx.fillStyle = gg; ctx.fillRect(lc[0] - r, lc[1] - r, 2 * r, 2 * r);
-        r = 0.35 * lc[3];
-        gg = ctx.createRadialGradient(lc[0], lc[1], 0, lc[0], lc[1], r);
-        gg.addColorStop(0, 'rgba(255,240,200,' + (0.9 * g1).toFixed(3) + ')'); gg.addColorStop(1, 'rgba(255,190,110,0)');
-        ctx.fillStyle = gg; ctx.fillRect(lc[0] - r, lc[1] - r, 2 * r, 2 * r);
+        spr(L.sprAmber, lc[0], lc[1] + 0.3 * lc[3], 2.6 * lc[3], 0.5 * g1);
+        spr(L.sprGold, lc[0], lc[1], 1.1 * lc[3], 0.4 * g1);
+        spr(L.sprHot, lc[0], lc[1], 0.22 * lc[3], 0.95 * g1);
         // light spilling onto the stones through the open side
-        const fp = P(c, 0.1, 0, -1.9);
-        ctx.save(); ctx.translate(fp[0], fp[1]); ctx.scale(1, 0.32);
-        r = 2.2 * fp[3];
-        gg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-        gg.addColorStop(0, 'rgba(255,170,90,' + (0.3 * g1).toFixed(3) + ')'); gg.addColorStop(1, 'rgba(255,140,60,0)');
-        ctx.fillStyle = gg; ctx.fillRect(-r, -r, 2 * r, 2 * r);
-        ctx.restore();
+        const fp = P(c, 0.1, 0, -1.7);
+        spr(L.sprAmber, fp[0], fp[1], 2.4 * fp[3], 0.3 * g1, 0.3);
+        ctx.globalAlpha = 1;
       }
 
       // dust motes drifting in the low sun
