@@ -546,57 +546,65 @@
       if (!L) this.init(env);
       const u = clamp(t / DUR, 0, 1);
       const c = camera(t);
-      const hz = c.cy - c.f * c.sp / c.cp;
+      const HZOFF = 125; // the distant city sits a little lower than the true horizon (more sky)
+      const hz = c.cy - c.f * c.sp / c.cp + HZOFF;
       const bgx = PD(c, 0, 0, 1)[0] - L.anchor - (BG_W - W) / 2;
       const bgy = hz - BG_HZ;
+      const spr = (img, x, y, r, a, sy) => {
+        if (a <= 0.002) return;
+        ctx.globalAlpha = Math.min(1, a);
+        ctx.drawImage(img, x - r, y - r * (sy || 1), 2 * r, 2 * r * (sy || 1));
+      };
 
       // sun
-      const el = lerp(0.2, 0.012, eInOutSine(u));
+      const el = lerp(0.135, -0.01, eInOutSine(u));
       const sunDir = [SUN_AZ[0] * Math.cos(el), Math.sin(el), SUN_AZ[1] * Math.cos(el)];
-      const sp = PD(c, sunDir[0], sunDir[1], sunDir[2]);
-      const sunStr = sm(-0.01, 0.12, el);
+      const sp = PD(c, sunDir[0], sunDir[1], sunDir[2]); sp[1] += HZOFF;
+      const sunStr = sm(0.035, 0.11, el);
 
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
 
-      // ---- sky ----
-      const cTop = keyed(SKY_TOP, u), cMid = keyed(SKY_MID, u), cHor = keyed(SKY_HOR, u);
-      const sg = ctx.createLinearGradient(0, hz - 520, 0, hz + 40);
-      sg.addColorStop(0, rgb(cTop)); sg.addColorStop(0.62, rgb(cMid)); sg.addColorStop(1, rgb(cHor));
-      ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+      // ---- sky (pre-rendered columns, cross-blended) ----
+      const sf = u * (L.SKN - 1), si = Math.min(L.SKN - 2, Math.floor(sf)), sfr = sf - si;
+      ctx.fillStyle = rgb(keyed(SKY_TOP, u)); ctx.fillRect(0, 0, W, Math.max(0, hz - 598));
+      ctx.drawImage(L.sky, si * 4 + 1, 0, 2, 1200, 0, hz - 600, W, 1200);
+      if (sfr > 0.01) { ctx.globalAlpha = sfr; ctx.drawImage(L.sky, si * 4 + 5, 0, 2, 1200, 0, hz - 600, W, 1200); ctx.globalAlpha = 1; }
 
       // stars as dusk deepens
       const sa = sm(10, 17.5, t);
       if (sa > 0) {
         ctx.fillStyle = 'rgb(255,244,220)';
         for (const s of L.stars) {
-          const y = s.y + bgy - 40; if (y > hz - 180) continue;
-          ctx.globalAlpha = sa * (0.45 + 0.4 * Math.sin(t * s.w + s.ph)) * clamp((hz - 180 - y) / 160, 0, 1);
+          const y = s.y + bgy - 120; if (y > hz - 200) continue;
+          ctx.globalAlpha = sa * (0.45 + 0.4 * Math.sin(t * s.w + s.ph)) * clamp((hz - 200 - y) / 160, 0, 1);
           ctx.fillRect(s.x + bgx, y, s.r * 1.5, s.r * 1.5);
         }
         ctx.globalAlpha = 1;
       }
 
       // sun halo & disc
-      const halo = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], 520);
-      halo.addColorStop(0, rgb(mix([255, 226, 160], [255, 150, 110], u), 0.75 * (0.4 + 0.6 * sunStr)));
-      halo.addColorStop(0.3, rgb(mix([255, 196, 120], [240, 120, 100], u), 0.3));
-      halo.addColorStop(1, 'rgba(255,160,110,0)');
-      ctx.fillStyle = halo; ctx.fillRect(sp[0] - 520, sp[1] - 520, 1040, 1040);
-      const dg = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], 40);
-      dg.addColorStop(0, 'rgb(255,250,226)'); dg.addColorStop(0.7, rgb(mix([255, 232, 170], [255, 170, 110], u)));
-      dg.addColorStop(1, rgb(mix([255, 210, 140], [250, 140, 100], u), 0));
-      ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(sp[0], sp[1], 40, 0, PI * 2); ctx.fill();
+      const haloA = 0.55 * (0.35 + 0.65 * sunStr);
+      spr(L.sprGold, sp[0], sp[1], 560, haloA * (1 - u));
+      spr(L.sprRose, sp[0], sp[1], 620, haloA * (0.3 + u));
+      ctx.globalAlpha = 1;
+      if (el > -0.03) {
+        const dg = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], 40);
+        dg.addColorStop(0, 'rgb(255,250,226)'); dg.addColorStop(0.7, rgb(mix([255, 232, 170], [255, 170, 110], u)));
+        dg.addColorStop(1, rgb(mix([255, 210, 140], [250, 140, 100], u), 0));
+        ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(sp[0], sp[1], 40, 0, PI * 2); ctx.fill();
+      }
 
       // clouds: thin lit streaks
       const cc = keyed(CLOUD, u);
+      const cA = rgb(scl(cc, 0.86), 0.26), cB = rgb(cc, 0.3);
       for (const cl of L.clouds) {
-        const x = cl.x + bgx + cl.v * t, y = cl.y + hz;
+        const x = cl.x + bgx + cl.v * t, y = cl.y + hz - 40;
         for (const p of cl.puffs) {
-          ctx.fillStyle = rgb(scl(cc, 0.86), 0.28);
+          ctx.fillStyle = cA;
           ctx.beginPath(); ctx.ellipse(x + p[0], y + p[1], p[2], p[3], 0, 0, PI * 2); ctx.fill();
-          ctx.fillStyle = rgb(cc, 0.32);
+          ctx.fillStyle = cB;
           ctx.beginPath(); ctx.ellipse(x + p[0] - p[2] * 0.1, y + p[1] + p[3] * 0.45, p[2] * 0.8, p[3] * 0.35, 0, 0, PI * 2); ctx.fill();
         }
       }
@@ -605,7 +613,7 @@
       ctx.strokeStyle = 'rgba(46,32,48,0.85)'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (const f of L.flocks) {
         const fp = (t - f.t0) / (f.t1 - f.t0); if (fp < 0 || fp > 1) continue;
-        const fx = lerp(f.x0, f.x1, fp) + bgx * 0.5, fy = lerp(f.y0, f.y1, fp) + (hz - 300) + 10 * Math.sin(t * 0.9);
+        const fx = lerp(f.x0, f.x1, fp) + bgx * 0.5, fy = lerp(f.y0, f.y1, fp) + (hz - 330) + 10 * Math.sin(t * 0.9);
         ctx.lineWidth = f.sz * 0.28;
         ctx.beginPath();
         for (const b of f.b) {
@@ -621,31 +629,36 @@
       // ---- distant hills and the city ----
       ctx.drawImage(L.hills, bgx * 0.97, bgy);
       ctx.drawImage(L.city, bgx, bgy);
+      const night = sm(4, 18, t);
+      ctx.globalAlpha = 0.62 * night; ctx.drawImage(L.stripNight, 0, hz - 170, W, 700);
+      ctx.globalAlpha = 1;
       const la = sm(6.5, 15, t);
       if (la > 0) {
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = la * 0.95;
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = la * 0.9;
         ctx.drawImage(L.lights, bgx, bgy);
-        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
       }
-      const hg = ctx.createLinearGradient(0, hz - 140, 0, hz + 420);
-      hg.addColorStop(0, rgb(cHor, 0)); hg.addColorStop(0.3, rgb(cHor, 0.28)); hg.addColorStop(1, rgb(mix(cHor, cTop, 0.5), 0.12 + 0.3 * u));
-      ctx.fillStyle = hg; ctx.fillRect(0, hz - 140, W, 560);
+      ctx.globalAlpha = 1 - 0.5 * u; ctx.drawImage(L.stripHaze, 0, hz - 140, W, 560);
+      ctx.globalAlpha = 1;
 
       // ---- rooftop courtyard ----
       const sunH = [SUN_AZ[0], SUN_AZ[1]];
       const shLen = Math.min(3.2, 1 / Math.tan(Math.max(el, 0.05))) * 0.8;
       const sdx = -SUN_AZ[0] * shLen, sdz = -SUN_AZ[1] * shLen;
-      const shA = 0.42 * sm(0.0, 0.1, el);
+      const shA = 0.42 * sm(0.0, 0.1, el) + 0.08;
 
       const FZ0 = -6.8, FZ1 = 6.2, FX0 = -6.6, FX1 = 7.5;
       const fl = [P(c, FX0, 0, FZ0), P(c, FX1, 0, FZ0), P(c, FX1, 0, FZ1), P(c, FX0, 0, FZ1)];
       const pb = P(c, 0, 0, FZ1);
-      const fg = ctx.createLinearGradient(0, pb[1] - 10, 0, H);
-      fg.addColorStop(0, 'rgb(226,186,138)'); fg.addColorStop(0.35, 'rgb(190,146,108)'); fg.addColorStop(1, 'rgb(96,68,58)');
-      ctx.fillStyle = fg; poly(ctx, fl); ctx.fill();
-      // stone slabs (running bond)
       ctx.save(); poly(ctx, fl); ctx.clip();
-      ctx.strokeStyle = 'rgba(110,72,52,0.32)'; ctx.lineWidth = 1.3;
+      ctx.fillStyle = 'rgb(222,180,134)'; ctx.fillRect(0, pb[1] - 60, W, H - pb[1] + 60);
+      ctx.drawImage(L.stripFloor, 0, pb[1] - 10, W, H - pb[1] + 10);
+      // warm sheen toward the sun
+      const shn = P(c, -2.5, 0, 4.5);
+      spr(L.sprGold, shn[0], shn[1], 1000, 0.4 * sunStr, 0.45);
+      ctx.globalAlpha = 1;
+      // stone slabs (running bond)
+      ctx.strokeStyle = 'rgba(110,72,52,0.3)'; ctx.lineWidth = 1.3;
       ctx.beginPath();
       let row = 0;
       for (let z = FZ0; z <= FZ1 + 0.01; z += 0.72, row++) {
@@ -658,11 +671,6 @@
         }
       }
       ctx.stroke();
-      // warm sheen toward the sun
-      const shn = P(c, -2.5, 0, 4.5);
-      const sh = ctx.createRadialGradient(shn[0], shn[1], 0, shn[0], shn[1], 900);
-      sh.addColorStop(0, 'rgba(255,214,150,' + (0.35 * sunStr).toFixed(3) + ')'); sh.addColorStop(1, 'rgba(255,214,150,0)');
-      ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
 
       // shadows on the floor
       ctx.fillStyle = 'rgba(58,30,52,' + shA.toFixed(3) + ')';

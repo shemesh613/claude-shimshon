@@ -86,7 +86,7 @@
   function lulavHW(u) {
     u = clamp(u);
     const k = clamp(u / 0.07);
-    const base = 10 + 10 * (1 - (1 - k) * (1 - k));
+    const base = 10 + 12.5 * (1 - (1 - k) * (1 - k));
     return base * Math.pow(1 - u, 0.55) + 2.2 * u;
   }
   function drawLulav(g, rng) {
@@ -237,7 +237,7 @@
     for (let s = 0; s < L; s += 10) {
       const a = P(s), b = P(Math.min(L, s + 11));
       g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
-      g.strokeStyle = '#3a2c16'; g.lineWidth = 3.6 - 2 * (s / L); g.lineCap = 'round'; g.stroke();
+      g.strokeStyle = '#5a4424'; g.lineWidth = 3.8 - 2 * (s / L); g.lineCap = 'round'; g.stroke();
       g.beginPath(); g.moveTo(a[0] - 0.6, a[1]); g.lineTo(b[0] - 0.6, b[1]);
       g.strokeStyle = 'rgba(160,130,80,0.5)'; g.lineWidth = 0.8; g.stroke();
     }
@@ -352,7 +352,7 @@
 
     etrogOutline(g);
     let gr = g.createRadialGradient(hx, hy, 4, hx * 0.4, hy * 0.4, 150);
-    gr.addColorStop(0, '#fff5b0'); gr.addColorStop(0.2, '#ffe16a'); gr.addColorStop(0.5, '#f0bd2c');
+    gr.addColorStop(0, '#fff7be'); gr.addColorStop(0.2, '#ffe56e'); gr.addColorStop(0.5, '#f6c62e');
     gr.addColorStop(0.78, '#c68912'); gr.addColorStop(1, '#6b4208');
     g.fillStyle = gr; g.fill();
     g.save(); etrogOutline(g); g.clip();
@@ -366,22 +366,22 @@
     blob(0, 100, 34, 'rgba(130,140,30,0.35)');
     for (let i = 0; i < 6; i++) blob((rng() - 0.5) * 120, (rng() - 0.5) * 160, 20 + rng() * 30, 'rgba(170,165,40,0.12)');
     // bumpy peel
-    for (let i = 0; i < 1500; i++) {
+    for (let i = 0; i < 1100; i++) {
       const a = rng() * Math.PI * 2, rr = Math.sqrt(rng());
       const x = Math.cos(a) * rr * 84, y = Math.sin(a) * rr * 112;
       const d = rr;
-      const r = (2.2 + rng() * 3.6) * (1 - 0.4 * d * d);
+      const r = (3 + rng() * 4.5) * (1 - 0.4 * d * d);
       const fade = 1 - Math.pow(d, 4);
       g.beginPath(); g.arc(x - Lx * r * 0.35, y - Ly * r * 0.35, r, 0, Math.PI * 2);
-      g.fillStyle = 'rgba(110,60,0,' + (0.16 * fade).toFixed(3) + ')'; g.fill();
+      g.fillStyle = 'rgba(120,70,0,' + (0.085 * fade).toFixed(3) + ')'; g.fill();
       g.beginPath(); g.arc(x + Lx * r * 0.3, y + Ly * r * 0.3, r * 0.7, 0, Math.PI * 2);
-      g.fillStyle = 'rgba(255,248,200,' + (0.17 * fade).toFixed(3) + ')'; g.fill();
+      g.fillStyle = 'rgba(255,250,210,' + (0.15 * fade).toFixed(3) + ')'; g.fill();
     }
     // oil-gland pores
-    for (let i = 0; i < 2400; i++) {
+    for (let i = 0; i < 1300; i++) {
       const a = rng() * Math.PI * 2, rr = Math.sqrt(rng());
       g.beginPath(); g.arc(Math.cos(a) * rr * 84, Math.sin(a) * rr * 112, 0.5 + rng() * 0.6, 0, Math.PI * 2);
-      g.fillStyle = 'rgba(120,70,0,0.2)'; g.fill();
+      g.fillStyle = 'rgba(130,80,0,0.11)'; g.fill();
     }
     // form shading (terminator opposite the light)
     gr = g.createRadialGradient(hx * 0.9, hy * 0.9, 40, hx * 0.3, hy * 0.3, 140);
@@ -512,12 +512,12 @@
     gr.addColorStop(0.8, '#ecd8a0'); gr.addColorStop(1, '#8a6a34');
     g.fillStyle = gr; g.fill(silk);
     g.save(); g.clip(silk);
-    for (let i = 0; i < 9; i++) {
-      const x = 1140 + i * 36 + rng() * 14;
-      g.beginPath(); g.moveTo(x, 700); g.bezierCurveTo(x + 8, 690, x - 10, 675, x + 6, 660);
-      g.strokeStyle = 'rgba(95,65,20,0.35)'; g.lineWidth = 5; g.stroke();
-      g.beginPath(); g.moveTo(x + 7, 700); g.bezierCurveTo(x + 15, 690, x - 3, 675, x + 13, 660);
-      g.strokeStyle = 'rgba(255,248,220,0.45)'; g.lineWidth = 2; g.stroke();
+    for (let i = 0; i < 7; i++) {
+      const x = 1135 + i * 48 + rng() * 16;
+      g.beginPath(); g.moveTo(x - 20, 702); g.bezierCurveTo(x, 690, x + 5, 676, x + 30, 662);
+      g.strokeStyle = 'rgba(95,65,20,0.22)'; g.lineWidth = 7; g.stroke();
+      g.beginPath(); g.moveTo(x - 12, 702); g.bezierCurveTo(x + 8, 690, x + 13, 676, x + 38, 662);
+      g.strokeStyle = 'rgba(255,248,220,0.30)'; g.lineWidth = 2.5; g.stroke();
     }
     g.restore();
   }
@@ -584,32 +584,31 @@
     }
     // silk flap draped over the front wall
     const flap = new Path2D();
-    flap.moveTo(1150, FT - 6);
-    flap.bezierCurveTo(1200, FT - 12, 1250, FT - 4, 1296, FT - 8);
-    flap.bezierCurveTo(1290, 725, 1270, 745, 1262, 768);
-    flap.bezierCurveTo(1245, 772, 1230, 786, 1214, 790);
-    flap.bezierCurveTo(1198, 780, 1180, 776, 1168, 760);
-    flap.bezierCurveTo(1160, 740, 1150, 720, 1150, FT - 6);
+    flap.moveTo(1162, FT - 5);
+    flap.bezierCurveTo(1205, FT - 10, 1255, FT - 3, 1302, FT - 7);
+    flap.bezierCurveTo(1290, 722, 1262, 752, 1236, 787);
+    flap.quadraticCurveTo(1229, 795, 1222, 788);
+    flap.bezierCurveTo(1203, 755, 1182, 728, 1162, FT - 5);
     flap.closePath();
-    gr = g.createLinearGradient(1150, 0, 1296, 0);
-    gr.addColorStop(0, '#8a6a34'); gr.addColorStop(0.18, '#e8d6a2'); gr.addColorStop(0.35, '#a9884a');
-    gr.addColorStop(0.55, '#f6e8bf'); gr.addColorStop(0.75, '#b59352'); gr.addColorStop(1, '#6e5226');
+    gr = g.createLinearGradient(1160, 0, 1302, 0);
+    gr.addColorStop(0, '#8e6e38'); gr.addColorStop(0.25, '#e4d09a'); gr.addColorStop(0.45, '#c2a364');
+    gr.addColorStop(0.62, '#f4e6bc'); gr.addColorStop(0.85, '#b39050'); gr.addColorStop(1, '#7a5a2a');
     g.fillStyle = gr; g.fill(flap);
     g.save(); g.clip(flap);
     gr = g.createLinearGradient(0, FT, 0, 792);
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(40,25,5,0.5)');
     g.fillStyle = gr; g.fillRect(1140, FT - 12, 170, 110);
-    for (const [x0, x1] of [[1175, 1190], [1212, 1214], [1250, 1238]]) {
-      g.beginPath(); g.moveTo(x0, FT - 6); g.quadraticCurveTo((x0 + x1) / 2 + 4, 740, x1, 790);
-      g.strokeStyle = 'rgba(90,60,15,0.35)'; g.lineWidth = 4; g.stroke();
-      g.beginPath(); g.moveTo(x0 + 6, FT - 6); g.quadraticCurveTo((x0 + x1) / 2 + 10, 740, x1 + 6, 790);
-      g.strokeStyle = 'rgba(255,248,222,0.4)'; g.lineWidth = 1.6; g.stroke();
+    for (const [x0, cx] of [[1190, 1222], [1232, 1228], [1272, 1234]]) {
+      g.beginPath(); g.moveTo(x0, FT - 6); g.quadraticCurveTo((x0 + cx) / 2, 745, cx, 786);
+      g.strokeStyle = 'rgba(90,60,15,0.28)'; g.lineWidth = 5; g.stroke();
+      g.beginPath(); g.moveTo(x0 + 7, FT - 6); g.quadraticCurveTo((x0 + cx) / 2 + 5, 745, cx + 2, 786);
+      g.strokeStyle = 'rgba(255,248,222,0.32)'; g.lineWidth = 1.6; g.stroke();
     }
     g.restore();
     // fringe tassels at the tip of the flap
-    for (let i = 0; i < 7; i++) {
-      const x = 1200 + i * 4;
-      g.beginPath(); g.moveTo(x, 786 + Math.abs(i - 3)); g.lineTo(x + 0.5, 796 + Math.abs(i - 3));
+    for (let i = 0; i < 5; i++) {
+      const x = 1223 + (i - 2) * 2.5;
+      g.beginPath(); g.moveTo(x, 790); g.lineTo(x + (i - 2) * 0.8, 800 + (2 - Math.abs(i - 2)));
       g.strokeStyle = 'rgba(220,190,120,0.8)'; g.lineWidth = 1; g.stroke();
     }
   }
@@ -898,7 +897,7 @@
       const aE = smooth(seg(t, 6.6, 7.6));
 
       // shadows on the table
-      const shadowAt = (x, alpha, w) => drawSp(ctx, A.shadow, x, 826, 0, alpha, w / 200, 1);
+      const shadowAt = (x, alpha, w) => drawSp(ctx, A.shadow, x, 820, 0, alpha, w / 200, 1);
       if (aA > 0) shadowAt(ara[0], 0.35 * aA * eA, 110);
       if (aH > 0) shadowAt(had[0], 0.35 * aH * eH, 110);
       shadowAt(lulav[0], 0.4 * aL * eL, 90);
