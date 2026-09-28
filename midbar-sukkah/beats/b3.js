@@ -1,23 +1,26 @@
 /* Beat 3: THE TRANSFORMATION, camp -> sukkah. Film 23-33 s (local t 0..10).
  *
- * One continuous 3D camera (pinhole, focal F px) flies from the top-down overview of the camp
- * (exactly WORLD.CAM_CAMP at t 0..1, where the camp is drawn with WORLD.drawCamp) down through
- * the roof of the Clouds of Glory, swings into a 3/4 view of the hero sukkah in the camp of Judah,
- * dollies at eye level through its doorway (the door faces west, toward the Mishkan) and tilts
- * up. Every tent turns into a sukkah in a wave spreading out from the Mishkan: gold
- * construction lines draw the posts and beams, the goat-hair cloth folds up into walls, the
- * palm fronds of the schach grow across the top, and a lamp is lit inside.
+ * One continuous 3D camera (pinhole, focal F = 960 px, eased monotone-cubic keyframes) flies from
+ * the top-down overview of the camp (exactly WORLD.CAM_CAMP until t 1.4; until t 1.2 the camp is
+ * drawn with WORLD.drawCamp over beat 2's own night sand, lane fires and cloud ring) down through
+ * the Clouds of Glory (beat 2's ring treated as a layer 150 units up: it swells past the frame),
+ * rotating slightly, then swings into a 3/4 view of the hero sukkah (WORLD.HERO, corner of the front
+ * row of Judah), dollies at eye level through its doorway (the door faces west, toward the
+ * Mishkan) and tilts up. Every tent turns into a sukkah in a wave spreading out from the Mishkan:
+ * a pulse of gold light, gold construction lines drawing the footprint, posts, beams and
+ * diagonals, the goat-hair cloth folding up from the flat tent into walls, green schach growing
+ * across the top and a lamp lit inside. The clouds part around the hero as we descend.
  *
- * END LOOK (t 8.5-10, gentle drift only): we are INSIDE the hero sukkah at night, sitting just
- * inside the door and looking east, tilted up about 27 degrees. The top ~55% of the frame
- * (y < ~1050) is the schach: palm fronds with long leaflets crossing the roof (warm amber-olive
- * where the lamp lights their undersides, darker toward the back) over wooden lathes, with a deep
- * indigo night sky, stars, soft pearl cloud-light and the full moon (upper right, ~x 700 y 420)
- * between the fronds. Below it the back wall of dark goat-hair cloth (vertical seams), lit
- * amber from below by a clay oil lamp standing on a small stool at the foot of the back wall
- * (bottom centre, y ~1750, mostly under the UI band), corner posts at the frame edges.
- * Grains at the end: ~40% are stars/moonlight flecks in the gaps of the schach, ~25% cling to
- * the frond leaflets as moonlight flecks, ~35% are warm dust motes floating in the lamplight.
+ * END LOOK (t 8.5-10: gentle drift only, the tilt and height settle with zero velocity at t 10):
+ * INSIDE the hero sukkah at night, seated eye height just inside the door, looking east and
+ * tilted up ~39 degrees. The top ~56% of the frame (y < ~1080) is the schach: palm fronds laid
+ * left-right with dense leaflets (olive-gold, warm where the lamp lights their undersides) over
+ * dark wooden lathes, with deep indigo night sky, stars, long pearl cloud wisps and the full moon
+ * at about (714, 375) between them. Below it the back wall of goat-hair cloth (warm brown,
+ * horizontal seams), lit amber from below by a clay oil lamp on a small stool at the foot of the
+ * back wall (bottom centre, mostly below y 1800); faint corner posts at the frame edges.
+ * Grains at the end: ~40% stars and moonlight between the fronds (chosen in the gaps of the
+ * schach), ~25% moonlight flecks on the leaflets, ~35% warm dust motes in the lamplight.
  */
 (function () {
   'use strict';
@@ -159,6 +162,14 @@
     ctx.lineTo(L1x + ey * w1, L1y - ex * w1); ctx.lineTo(L0x + ey * w0, L0y - ex * w0); ctx.closePath();
   }
 
+  // Re-home a canvas that was painted with canvas ops into a plain pixel copy: in the headless
+  // exporter this makes it several times cheaper to draw from.
+  function freeze(c) {
+    const n = fx.canvas(c.width, c.height);
+    n.getContext('2d').putImageData(c.getContext('2d').getImageData(0, 0, c.width, c.height), 0, 0);
+    return n;
+  }
+
   // ---------------------------------------------------------------- scene data
   function build(env) {
     const R = fx.rng(3303);
@@ -175,7 +186,7 @@
       const d = Math.hypot(t.x - mcx, t.y - mcy) / dmax;
       const s = {
         i, x: t.x, y: t.y, ax, ay, bx, by, w2: t.w / 2, h2: t.h / 2, hero: isHero,
-        Hs: isHero ? 7.0 : Math.min(t.w, t.h) * 0.8,
+        Hs: isHero ? 7.2 : Math.min(t.w, t.h) * 0.8,
         t0: isHero ? 2.2 : 1.25 + 2.7 * d + (R() - 0.5) * 0.35,
         dur: isHero ? 2.9 : 1.7 + R() * 0.4,
         str: [],
@@ -198,7 +209,7 @@
     // hero fronds: palm fronds laid across the roof (along x, left-right as seen from the door),
     // resting on lathes; stems alternate sides, some lie at an angle.
     const fronds = [];
-    const NF = 20;
+    const NF = 18;
     for (let k = 0; k < NF; k++) {
       const along = -h.h2 + 0.1 + (2 * h.h2 - 0.2) * ((k + 0.5) / NF) + (R() - 0.5) * 0.35;
       const flip = R() < 0.5 ? 1 : -1; // which end is the stem
@@ -218,13 +229,14 @@
         spine.push(p[0], p[1], zz);
       }
       const leaves = [];
-      const NL = 30;
+      const NL = 50;
       for (let j = 0; j < NL; j++) {
-        const s = 0.08 + 0.9 * (j / (NL - 1)) + (R() - 0.5) * 0.01;
+        const s = 0.06 + 0.92 * (j / (NL - 1)) + (R() - 0.5) * 0.006;
         for (const side of [-1, 1]) {
-          const len = (1.55 - 0.95 * s) * (0.85 + R() * 0.3);
-          const ang = (22 + R() * 16) * DEG;
-          leaves.push({ s, side, len, ang, droop: 0.1 + R() * 0.35 + (j % 2) * 0.12, wid: 0.018 + R() * 0.014, tw: (R() - 0.5) * 0.25 });
+          const len = (0.95 - 0.45 * s) * (0.85 + R() * 0.3);
+          const ang = (38 + R() * 14) * DEG;
+          // palm leaflets stand in a shallow V along the rib: alternate ones lift, the rest droop
+          leaves.push({ k: j, s, side, len, ang, lift: (j % 2) * 0.12, droop: 0.12 + R() * 0.2, tw: (R() - 0.5) * 0.16 });
         }
       }
       fronds.push({ spine, NS, leaves, start: 0.46 + 0.4 * (k / NF) + (R() - 0.5) * 0.06, tone: R() });
@@ -251,19 +263,22 @@
       stars.push([Math.cos(az) * ce, Math.sin(az) * ce, Math.sin(el), 0.25 + R() * R() * 0.75, R() * 6.28]);
     }
     // the full moon of the 15th of Tishrei: east, a little south, high
-    const mAz = 0.2, mEl = 57 * DEG;
-    const moon = [Math.sin(mAz) * Math.cos(mEl), -Math.cos(mAz) * Math.cos(mEl), Math.sin(mEl)];
+    // placed where beat 4 shows it (x 714, y 375) at the end of the shot
+    setCam(10);
+    const mvx = (714 - CX) / F, mvy = -(375 - CY) / F;
+    const moon = [C.fx + mvx * C.rx + mvy * C.ux, C.fy + mvx * C.ry + mvy * C.uy, C.fz + mvy * C.uz];
+    { const l = Math.hypot(moon[0], moon[1], moon[2]); moon[0] /= l; moon[1] /= l; moon[2] /= l; }
 
     // clouds of glory: a ring around the camp and a thin luminous roof
     const puffs = [];
-    for (let i = 0; i < 110; i++) {
-      const a = (i / 110) * Math.PI * 2 + (R() - 0.5) * 0.08;
+    for (let i = 0; i < 90; i++) {
+      const a = (i / 90) * Math.PI * 2 + (R() - 0.5) * 0.08;
       const rad = 305 + R() * 50;
-      puffs.push({ x: Math.cos(a) * rad * 0.95, y: Math.sin(a) * rad * 1.02, z: 20 + R() * 150, r: 30 + R() * 28, a: 0.45 + R() * 0.3, spr: i % 10, ring: 1, ph: R() * 6.28 });
+      puffs.push({ x: Math.cos(a) * rad * 0.95, y: Math.sin(a) * rad * 1.02, z: 20 + R() * 150, r: 24 + R() * 22, a: 0.4 + R() * 0.3, spr: i % 10, ring: 1, ph: R() * 6.28, rot: a + Math.PI / 2 + (R() - 0.5) * 0.3 });
     }
-    for (let i = 0; i < 46; i++) {
-      const a = R() * Math.PI * 2, rad = Math.sqrt(R()) * 330;
-      puffs.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad, z: 115 + R() * 90, r: 55 + R() * 40, a: 0.16 + R() * 0.16, spr: i % 10, ring: 0, ph: R() * 6.28 });
+    for (let i = 0; i < 52; i++) {
+      const a = R() * Math.PI * 2, rad = Math.sqrt(R()) * 340;
+      puffs.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad, z: 115 + R() * 90, r: 26 + R() * 22, a: 0.2 + R() * 0.2, spr: i % 10, ring: 0, ph: R() * 6.28, rot: a + Math.PI / 2 + (R() - 0.5) * 0.7 });
     }
 
     // sprites
@@ -279,9 +294,9 @@
       g.drawImage(glow, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = rgb(col); g.fillRect(0, 0, 128, 128);
       return c;
     };
-    const amberGlow = tintSprite([255, 170, 80]);
-    const pearlGlow = tintSprite([220, 226, 255]);
-    const goldGlow = tintSprite([255, 214, 150]);
+    const amberGlow = freeze(tintSprite([255, 170, 80]));
+    const pearlGlow = freeze(tintSprite([220, 226, 255]));
+    const goldGlow = freeze(tintSprite([255, 214, 150]));
     const cloudSpr = [];
     for (let v = 0; v < 4; v++) {
       const c = fx.canvas(256, 256), g = c.getContext('2d');
@@ -295,21 +310,25 @@
         gr.addColorStop(0, rgb(col, 0.5)); gr.addColorStop(0.55, rgb(col, 0.22)); gr.addColorStop(1, rgb(col, 0));
         g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
       }
-      cloudSpr.push(c);
+      cloudSpr.push(freeze(c));
     }
     // prefer beat 2's lit cloud sprites so the Clouds of Glory keep one look
-    try { const b2s = S.beats[2] && S.beats[2]._dbg && S.beats[2]._dbg(); if (b2s && b2s.length >= 4) { cloudSpr.length = 0; cloudSpr.push(...b2s); } } catch (e) { /* keep ours */ }
+    try { const b2s = S.beats[2] && S.beats[2]._dbg && S.beats[2]._dbg(); if (b2s && b2s.length >= 4) { cloudSpr.length = 0; cloudSpr.push(...b2s.map(freeze)); } } catch (e) { /* keep ours */ }
 
     // beat 2's night sand (world space, its own resolution) and its end-state clouds, baked once
     let sand = null, b2clouds = null, puffLayer = fx.canvas(540, 960);
     const B2 = S.beats[2] && S.beats[2].scene;
     if (B2) {
       try {
-        sand = fx.canvas(1584, 2772);
-        B2.ground(sand.getContext('2d'), { x: 0, y: 0, zoom: 1.8 }, { W: 1584, H: 2772 }, 1);
+        // at the overview zoom (1 texel per screen px at t = 0): cheaper to sample than beat 2's 1.8/unit
+        const zs = WD.CAM_CAMP.zoom;
+        sand = fx.canvas(Math.round(880 * zs), Math.round(1540 * zs));
+        B2.ground(sand.getContext('2d'), { x: 0, y: 0, zoom: zs }, { W: sand.width, H: sand.height }, 1);
+        sand = freeze(sand);
         b2clouds = fx.canvas(540, 960);
         const g2 = b2clouds.getContext('2d'); g2.scale(0.5, 0.5);
         B2.clouds(g2, 12, { W, H }, 1);
+        b2clouds = freeze(b2clouds);
       } catch (e) { sand = null; b2clouds = null; }
     }
     G = { sand, b2clouds, puffLayer, SK, hero, h, L, fronds, lathes, lamp, stars, moon, puffs, glow, amberGlow, pearlGlow, goldGlow, cloudSpr, mcx, mcy };
@@ -352,7 +371,11 @@
     }
     if (yh >= H) return;
     const y0 = Math.max(0, yh);
-    if (!sandOK) { ctx.fillStyle = rgb(GROUND); ctx.fillRect(0, y0, W, H - y0); return; }
+    if (!sandOK && G.sand) { ctx.fillStyle = rgb(GROUND); ctx.fillRect(0, y0, W, H - y0); return; } // inside: walls cover it
+    // beat 2's sand only while we look down on it; at a glancing angle at night it reads as flat ground
+    const sandA = sandOK ? 1 - sm(14 * DEG, 26 * DEG, th) : 0;
+    if (sandA < 1) { ctx.fillStyle = rgb(GROUND); ctx.fillRect(0, y0, W, H - y0); }
+    if (sandA <= 0.01) { hazeBand(ctx, yh, y0); return; }
     if (yh > -420) {
       // far desert beyond the sand texture, hazy toward the horizon
       const gg = ctx.createLinearGradient(0, yh, 0, yh + 420);
@@ -360,23 +383,28 @@
       ctx.fillStyle = gg; ctx.fillRect(0, y0, W, Math.min(H, yh + 420) - y0);
     }
     // beat 2's moonlit sand, laid on the ground plane in perspective (piecewise-affine strips)
-    drawSandPersp(ctx, base, yh);
+    ctx.globalAlpha = sandA;
+    tm(ctx, 'bg.sand', () => drawSandPersp(ctx, base, yh));
+    ctx.globalAlpha = 1;
     const B2 = S.beats[2] && S.beats[2].scene;
-    const la = (1 - sm(3 * DEG, 26 * DEG, th)) * (1 - sm(1.6, 3.2, t));
+    const la = 1 - sm(1.0, 1.9, t);
     if (B2 && la > 0.01) {
       const z0 = WD.CAM_CAMP.zoom;
       ctx.save(); ctx.globalAlpha = la;
       planeTransform(ctx, base, 0); ctx.scale(1 / z0, 1 / z0); ctx.translate(-CX, -CY);
-      try { B2.lights(ctx, { x: 0, y: 0, zoom: z0 }, { W, H }, 11 + t, 1); } catch (e) { /* optional */ }
+      tm(ctx, 'bg.lights', () => { try { B2.lights(ctx, { x: 0, y: 0, zoom: z0 }, { W, H }, 11 + t, 1); } catch (e) { /* optional */ } });
       ctx.restore();
     }
+    hazeBand(ctx, yh, y0);
+  }
+  function hazeBand(ctx, yh, y0) {
     if (yh > -380) {
-      // haze toward the horizon over the sand
       const gg = ctx.createLinearGradient(0, yh, 0, yh + 380);
       gg.addColorStop(0, 'rgba(78,70,106,1)'); gg.addColorStop(0.35, 'rgba(66,60,94,0.55)'); gg.addColorStop(1, 'rgba(60,54,86,0)');
       ctx.fillStyle = gg; ctx.fillRect(0, y0, W, Math.min(H, yh + 380) - y0);
     }
   }
+
 
 
   // screen point -> ground (z = 0); returns false above the horizon
@@ -394,7 +422,9 @@
     const y0 = Math.max(0, yh + 1);
     if (y0 >= H) return;
     const nearTop = yh < -H * 3; // effectively top-down: one affine piece is exact enough
-    const N = nearTop ? 1 : 18;
+    const N = nearTop ? 1 : 24;
+    // one sampling mode for the whole floor (mixed modes show as seams): nearest while it minifies
+    const smooth = F / Math.max(1, C.pz) * Math.sqrt(base.a * base.d) / WD.CAM_CAMP.zoom > 2.2;
     let ya = y0;
     for (let k = 1; k <= N; k++) {
       const yb = k === N ? H : y0 + (H - y0) * Math.pow(k / N, 1.7);
@@ -416,8 +446,10 @@
       const e = 0 - (ma * g1x + mc * g1y), f = ym - (mb * g1x + md * g1y);
       ctx.save();
       ctx.setTransform(base);
-      ctx.beginPath(); ctx.rect(0, ya - 0.5, W, yb - ya + 1); ctx.clip();
+      ctx.beginPath(); ctx.rect(0, Math.floor(ya), W, Math.ceil(yb) - Math.floor(ya) + 1); ctx.clip();
       ctx.transform(ma, mb, mc, md, e, f);
+      // dest px per sand texel: nearest sampling is 4x cheaper and invisible while minifying
+      ctx.imageSmoothingEnabled = smooth;
       ctx.drawImage(G.sand, -440, -770, 880, 1540);
       ctx.restore();
       ya = yb;
@@ -426,26 +458,8 @@
 
   // beat 2's Clouds of Glory, treated as a layer at height ZL (so we descend through it)
   const ZL = 150;
-  function b2CloudMap(t) {
-    // t0 screen point p -> world point on the plane at ZL
-    const k = (Z0 - ZL) / F, c0 = WD.CAM_CAMP;
-    return (px, py) => [c0.x + (px - CX) * k, c0.y + (py - CY) * k];
-  }
-  function drawB2Clouds(ctx, t, base) {
-    const B2 = S.beats[2] && S.beats[2].scene;
-    const a = 1 - sm(2.2, 3.0, t);
-    if (!G.b2clouds || a <= 0.01 || C.pz < ZL + 20) return;
-    const m = b2CloudMap(t);
-    const p0 = m(0, 0), p1 = m(100, 0), p2 = m(0, 100);
-    pr(p0[0], p0[1], ZL); const ox = SX, oy = SY;
-    pr(p1[0], p1[1], ZL); const ax = (SX - ox) / 100, ay = (SY - oy) / 100;
-    pr(p2[0], p2[1], ZL); const bx = (SX - ox) / 100, by = (SY - oy) / 100;
-    ctx.save();
-    ctx.setTransform(base); ctx.transform(ax, ay, bx, by, ox, oy);
-    ctx.globalAlpha = a;
-    ctx.drawImage(G.b2clouds, 0, 0, W, H);
-    ctx.restore();
-  }
+
+
 
   function drawSky(ctx, t) {
     const vis = sm(48 * DEG, 95 * DEG, C.th);
@@ -495,15 +509,29 @@
     return [x, y, p.z];
   }
   // clouds are soft: draw them into a half-resolution layer, then composite once
-  function drawPuffs(ctx, t, which, heroDepth) {
-    const lum = sm(2.0, 3.2, t);
-    if (lum <= 0.01) return;
-    const L = G.puffLayer, g = L.getContext('2d');
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, L.width, L.height);
-    g.setTransform(0.5, 0, 0, 0.5, 0, 0);
+  function drawPuffs(ctx, t, which, heroDepth, withB2) {
+    const lum = sm(2.5, 3.4, t);
+    const b2a = withB2 && G.b2clouds && C.pz > ZL + 20 ? 1 - sm(1.8, 2.7, t) : 0;
+    if (lum <= 0.01 && b2a <= 0.01) return;
+    const L = G.puffLayer, direct = false;
+    let g = ctx;
+    if (direct) ctx.save();
+    else { g = L.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, L.width, L.height); }
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for (const p of G.puffs) {
+    if (b2a > 0.01) {
+      // beat 2's cloud ring as a layer at height ZL: it swells past the frame as we descend
+      const k = (Z0 - ZL) / F, c0 = WD.CAM_CAMP;
+      pr(c0.x, c0.y, ZL); const ox = SX, oy = SY;
+      pr(c0.x + 100 * k, c0.y, ZL); const ax = (SX - ox) / 100, ay = (SY - oy) / 100;
+      pr(c0.x, c0.y + 100 * k, ZL); const bx = (SX - ox) / 100, by = (SY - oy) / 100;
+      g.setTransform(0.5 * ax, 0.5 * ay, 0.5 * bx, 0.5 * by, 0.5 * (ox - ax * CX - bx * CY), 0.5 * (oy - ay * CX - by * CY));
+      g.globalAlpha = b2a;
+      g.drawImage(G.b2clouds, 0, 0, W, H);
+      g.globalAlpha = 1;
+      x0 = 0; y0 = 0; x1 = W; y1 = H;
+    }
+    if (!direct) g.setTransform(0.5, 0, 0, 0.5, 0, 0);
+    if (lum > 0.01) for (const p of G.puffs) {
       const [x, y, z] = puffPos(p, t);
       const d = pr(x, y, z);
       if (d < 4) continue;
@@ -515,13 +543,26 @@
       const a = p.a * lum * sm(4, 40, d) * (1 - sm(900, 1700, r));
       if (a <= 0.01) continue;
       g.globalAlpha = a;
-      g.drawImage(G.cloudSpr[p.spr % G.cloudSpr.length], SX - r, SY - r * 0.66, 2 * r, 1.32 * r);
-      g.globalCompositeOperation = 'lighter';
-      g.globalAlpha = a * 0.25;
-      g.drawImage(G.goldGlow, SX - r * 0.8, SY - r * 0.6, 1.6 * r, 1.2 * r);
-      g.globalCompositeOperation = 'source-over';
+      {
+        // the clouds are long luminous wisps circling the camp
+        const cx0 = SX, cy0 = SY, L = p.r * (p.ring ? 1.8 : 2.2);
+        const d2 = pr(x + Math.cos(p.rot) * L, y + Math.sin(p.rot) * L, z);
+        if (d2 < 4) continue;
+        const ang = Math.atan2(SY - cy0, SX - cx0), len = Math.min(3400, Math.hypot(SX - cx0, SY - cy0));
+        g.save(); g.translate(cx0, cy0); g.rotate(ang);
+        g.drawImage(G.cloudSpr[p.spr % G.cloudSpr.length], -len, -r * 0.55, 2 * len, 1.1 * r);
+        g.restore();
+        SX = cx0; SY = cy0;
+      }
+      if (!direct) {
+        g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = a * 0.25;
+        g.drawImage(G.goldGlow, SX - r * 0.8, SY - r * 0.6, 1.6 * r, 1.2 * r);
+        g.globalCompositeOperation = 'source-over';
+      }
       x0 = Math.min(x0, SX - r); x1 = Math.max(x1, SX + r); y0 = Math.min(y0, SY - r * 0.66); y1 = Math.max(y1, SY + r * 0.66);
     }
+    if (direct) { ctx.restore(); return; }
     if (x1 < x0) return;
     const bx0 = Math.max(0, Math.floor(x0 / 2)), by0 = Math.max(0, Math.floor(y0 / 2));
     const bx1 = Math.min(L.width, Math.ceil(x1 / 2)), by1 = Math.min(L.height, Math.ceil(y1 / 2));
@@ -549,13 +590,13 @@
     // a soft shaft of cloud-light through the parted roof onto the hero sukkah
     const sh = sm(2.8, 5.0, t) * (1 - sm(7.6, 8.8, t));
     if (sh > 0.01) {
-      for (let k = 0; k < 6; k++) {
-        const z = 9 + k * k * 6;
+      for (let k = 1; k < 5; k++) {
+        const z = 9 + k * k * 7;
         const d = pr(HC.x, HC.y, z);
         if (d < 3) continue;
         const r = F * (6 + k * 4) / d;
-        if (r > 1200) continue;
-        ctx.globalAlpha = sh * 0.12 * (1 - sm(700, 1200, r));
+        if (r > 700) continue;
+        ctx.globalAlpha = sh * 0.14 * (1 - sm(400, 700, r));
         ctx.drawImage(G.pearlGlow, SX - r, SY - r, 2 * r, 2 * r);
       }
     }
@@ -693,8 +734,11 @@
     const bRim = new Batch(ctx, false, RIM, Math.max(0.6, lw * 0.7));
     for (let k = 0; k < n; k++) {
       const s = list[k], fold = fo[k], phi = fold * Math.PI / 2;
+      if (fold < 0.35) { // the lying flaps still cover the whole footprint: one quad
+        quad(bFlat, cx_(s, -1, -1), cy_(s, -1, -1), 0, cx_(s, 1, -1), cy_(s, 1, -1), 0, cx_(s, 1, 1), cy_(s, 1, 1), 0, cx_(s, -1, 1), cy_(s, -1, 1), 0);
+        continue;
+      }
       eachWall(s, (a0, b0, a1, b1, ni, nj) => {
-        if (fold < 0.35) { wallPath(bFlat, s, phi, a0, b0, a1, b1, ni, nj); return; }
         const out = wallFacing(s, a0, b0, a1, b1, ni, nj);
         wallPath(out ? bOut : bIn, s, phi, a0, b0, a1, b1, ni, nj);
         if (fold > 0.9) seg(bRim, cx_(s, a0, b0), cy_(s, a0, b0), s.Hs, cx_(s, a1, b1), cy_(s, a1, b1), s.Hs);
@@ -730,27 +774,42 @@
     const above = C.pz > s.Hs;
     ctx.beginPath();
     quad(ctx, cx_(s, -1, -1), cy_(s, -1, -1), 0, cx_(s, 1, -1), cy_(s, 1, -1), 0, cx_(s, 1, 1), cy_(s, 1, 1), 0, cx_(s, -1, 1), cy_(s, -1, 1), 0);
-    ctx.fillStyle = m > 0.22 ? FLOOR : rgb(CLOTH); ctx.fill();
+    ctx.fillStyle = m > 0.22 ? FLOOR : FLAT; ctx.fill();
     const inner = [], outer = [];
     eachWall(s, (a0, b0, a1, b1, ni, nj) => {
       (wallFacing(s, a0, b0, a1, b1, ni, nj) && phi > 0.5 ? outer : inner).push([a0, b0, a1, b1, ni, nj]);
     });
     ctx.beginPath(); for (const w of inner) wallPath(ctx, s, phi, ...w);
-    ctx.fillStyle = phi > 0.5 ? INT : rgb(CLOTH); ctx.fill();
+    ctx.fillStyle = phi > 0.5 ? INT : FLAT; ctx.fill();
+    const wood = sm(0.45, 0.75, m);
+    const posts = () => {
+      if (wood <= 0) return;
+      ctx.beginPath();
+      for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const x = cx_(s, a, b), y = cy_(s, a, b); strip(ctx, x, y, 0, x, y, s.Hs + 0.25, 0.28, 0.7); }
+      ctx.fillStyle = rgb([96, 66, 42], wood); ctx.fill();
+    };
     const sch = () => {
       if (m < 1) { ctx.beginPath(); linesPath(ctx, s, st.line); ctx.strokeStyle = INK + (0.8 * (1 - sm(0.6, 1, m))) + ')'; ctx.lineWidth = 1.4; ctx.stroke(); }
-      if (st.sch > 0) { ctx.beginPath(); schachPath(ctx, s, st.sch, true); ctx.strokeStyle = SCH; ctx.lineWidth = 2; ctx.stroke(); }
+      if (st.sch > 0) {
+        ctx.beginPath(); schachPath(ctx, s, st.sch, true); ctx.strokeStyle = 'rgba(96,120,62,0.95)'; ctx.lineWidth = 2.6; ctx.stroke();
+        ctx.beginPath(); schachPath(ctx, s, st.sch * 0.97, true); ctx.strokeStyle = 'rgba(176,184,110,0.8)'; ctx.lineWidth = 1.1; ctx.stroke();
+      }
     };
     if (!above) sch();
-    ctx.beginPath(); for (const w of outer) wallPath(ctx, s, phi, ...w);
-    ctx.fillStyle = EXT; ctx.fill();
-    if (phi > 1.4) {
-      ctx.beginPath();
-      for (const w of outer) seg(ctx, cx_(s, w[0], w[1]), cy_(s, w[0], w[1]), s.Hs, cx_(s, w[2], w[3]), cy_(s, w[2], w[3]), s.Hs);
-      ctx.strokeStyle = RIM; ctx.lineWidth = 1.2; ctx.stroke();
+    if (outer.length) {
+      ctx.beginPath(); for (const w of outer) wallPath(ctx, s, phi, ...w);
+      ctx.fillStyle = EXT; ctx.fill();
+      if (pr(s.x, s.y, 3) > 0 && F * s.w2 / Math.max(1, depth(s.x, s.y, 3)) > 60) for (const w of outer) wallSeams(ctx, s, phi, w, 'rgba(104,84,78,0.5)');
+      if (phi > 1.4) {
+        ctx.beginPath();
+        for (const w of outer) seg(ctx, cx_(s, w[0], w[1]), cy_(s, w[0], w[1]), s.Hs, cx_(s, w[2], w[3]), cy_(s, w[2], w[3]), s.Hs);
+        ctx.strokeStyle = RIM; ctx.lineWidth = 1.2; ctx.stroke();
+      }
     }
+    posts();
     if (above) sch();
   }
+
 
   function lampGlows(ctx, list, t) {
     ctx.save();
@@ -762,9 +821,10 @@
       const d = pr(s.x, s.y, s.Hs * 0.6);
       if (d < 2) continue;
       const r = F * 7 / d;
-      if (r < 1.5) continue;
-      if (a > 0.01) { ctx.globalAlpha = 0.42 * a; ctx.drawImage(G.amberGlow, SX - r, SY - r, 2 * r, 2 * r); }
-      if (pulse > 0.01) { const q = r * 1.7; ctx.globalAlpha = 0.34 * pulse; ctx.drawImage(G.goldGlow, SX - q, SY - q, 2 * q, 2 * q); }
+      if (r < 1.5 || (r < 10 && pulse < 0.05)) continue;
+      const q = r * (1 + 1.2 * pulse), al = Math.min(0.75, 0.42 * a + 0.55 * pulse);
+      ctx.globalAlpha = al;
+      ctx.drawImage(pulse > a ? G.goldGlow : G.amberGlow, SX - q, SY - q, 2 * q, 2 * q);
     }
     ctx.restore();
   }
@@ -825,12 +885,12 @@
       (facing && phi > 0.5 ? outer : inner).push([a0, b0, a1, b1, ni, nj, depth(mx, my, 3)]);
     });
     inner.sort((a, b) => b[6] - a[6]);
-    const interiorFill = K || (phi > 0.5 ? warm([176, 108, 56], [104, 60, 36], [36, 26, 34]) : rgb(CLOTH));
-    for (const w of inner) {
+    const interiorFill = K || (phi > 0.5 ? warm([168, 106, 60], [98, 60, 40], [34, 25, 32]) : rgb(CLOTH));
+    tm(ctx, 'h.inner', () => { for (const w of inner) {
       ctx.beginPath(); wallPath(ctx, s, phi, w[0], w[1], w[2], w[3], w[4], w[5]);
       ctx.fillStyle = interiorFill; ctx.fill();
       if (!mask) wallSeams(ctx, s, phi, w, phi > 0.5 ? 'rgba(40,22,14,0.5)' : rgb(RIDGE, 0.25));
-    }
+    } });
     // tent ridge
     const rk = 1 - clamp(st.fold / 0.4);
     if (rk > 0 && !mask) {
@@ -927,29 +987,30 @@
   }
 
   // palm fronds: spine strips + leaflet quads in world space, coloured by light buckets
-  const NB = 4;
+  // leaflets are stroked lines (base -> bent middle -> tip), bucketed by perspective width and lamp light
+  const LW = [1.2, 2.2, 3.6, 5.6];
   function drawFronds(ctx, t, m, mask) {
     const below = sm(G.h.Hs + 1.5, G.h.Hs - 0.5, C.pz); // 1 when seen from below
     const l = G.lamp;
-    const aboveCols = [[92, 116, 62], [116, 138, 74], [140, 158, 90], [172, 180, 112]];
-    const belowCols = [[50, 44, 30], [90, 76, 42], [138, 112, 58], [188, 150, 82]];
-    const paths = [];
-    for (let b = 0; b < NB; b++) paths.push(new Batch(ctx, true, mask ? '#000' : rgb(mix(aboveCols[b], belowCols[b], below))));
-    const spines = new Batch(ctx, true, mask ? '#000' : rgb(mix([120, 132, 76], [96, 72, 40], below)));
-    const sway = 0.04 * Math.sin(t * 0.9);
+    const aboveCols = [[92, 116, 62], [124, 144, 78], [160, 172, 104]];
+    const belowCols = [[50, 56, 32], [106, 108, 58], [176, 158, 86]];
+    const bat = [];
+    for (let c = 0; c < 3; c++) for (let w = 0; w < 4; w++) {
+      bat.push(new Batch(ctx, false, mask ? '#000' : rgb(mix(aboveCols[c], belowCols[c], below)), LW[w]));
+    }
+    const spines = new Batch(ctx, true, mask ? '#000' : rgb(mix([120, 132, 76], [92, 74, 42], below)));
+    const sway = 0.035 * Math.sin(t * 0.9);
     for (const fr of G.fronds) {
       const g = clamp((m - fr.start) / 0.22);
       if (g <= 0) continue;
       const sp = fr.spine, NS = fr.NS;
       const gl = g * NS;
-      // spine
       for (let j = 0; j < NS; j++) {
         if (j >= gl) break;
         const k = Math.min(1, gl - j);
         const a = 3 * j, c = 3 * (j + 1);
-        strip(spines, sp[a], sp[a + 1], sp[a + 2], lerp(sp[a], sp[c], k), lerp(sp[a + 1], sp[c + 1], k), lerp(sp[a + 2], sp[c + 2], k), 0.07 * (1 - j / NS * 0.6), 0.5);
+        strip(spines, sp[a], sp[a + 1], sp[a + 2], lerp(sp[a], sp[c], k), lerp(sp[a + 1], sp[c + 1], k), lerp(sp[a + 2], sp[c + 2], k), 0.06 * (1 - j / NS * 0.6), 0.6);
       }
-      // leaflets
       for (const lf of fr.leaves) {
         const grow = clamp((g - lf.s) * 4 + 0.3);
         if (grow <= 0) continue;
@@ -962,23 +1023,26 @@
         const ca = Math.cos(ang), sa = Math.sin(ang) * lf.side;
         const dx = tx * ca - ty * sa, dy = tx * sa + ty * ca;
         const len = lf.len * grow;
-        const ex = bx + dx * len, ey = by + dy * len, ez = bz - lf.droop * grow;
-        const mx = bx + dx * len * 0.35, my = by + dy * len * 0.35, mz = bz - lf.droop * 0.3 * grow;
-        const wx = -dy * lf.wid, wy = dx * lf.wid;
-        // light bucket: from below, lamp distance; from above, frond tone
-        let bk;
-        if (below > 0.5) {
-          const dl = Math.hypot(bx - l[0], by - l[1], bz - l[2]);
-          bk = dl < 5.6 ? 3 : dl < 6.6 ? 2 : dl < 7.8 ? 1 : 0;
-        } else bk = (fr.tone * NB) | 0;
-        Q[0] = bx; Q[1] = by; Q[2] = bz; Q[3] = mx + wx; Q[4] = my + wy; Q[5] = mz;
-        Q[6] = ex; Q[7] = ey; Q[8] = ez; Q[9] = mx - wx; Q[10] = my - wy; Q[11] = mz;
-        poly(paths[bk], Q, 4);
+        const mx = bx + dx * len * 0.5, my = by + dy * len * 0.5, mz = bz + lf.lift * grow - lf.droop * 0.25 * grow;
+        const ex = bx + dx * len, ey = by + dy * len, ez = bz + lf.lift * grow - lf.droop * grow;
+        const dm = depth(mx, my, mz);
+        if (dm < NEAR || (dm > 8 && (lf.k & 1))) continue;
+        const wpx = F * 0.03 / dm;
+        const wb = wpx > 4.6 ? 3 : wpx > 2.9 ? 2 : wpx > 1.7 ? 1 : 0;
+        let cb;
+        if (below > 0.5) { const dl = Math.hypot(bx - l[0], by - l[1], bz - l[2]); cb = dl < 5.9 ? 2 : dl < 7.4 ? 1 : 0; }
+        else cb = (fr.tone * 3) | 0;
+        const B = bat[cb * 4 + wb];
+        if (dm < 6.5) {
+          if (clipSeg(bx, by, bz, mx, my, mz)) { B.moveTo(L0x, L0y); B.lineTo(L1x, L1y); }
+          if (clipSeg(mx, my, mz, ex, ey, ez)) { B.moveTo(L0x, L0y); B.lineTo(L1x, L1y); }
+        } else if (clipSeg(bx, by, bz, ex, ey, ez)) { B.moveTo(L0x, L0y); B.lineTo(L1x, L1y); }
       }
     }
-    for (let b = 0; b < NB; b++) paths[b].flush();
+    for (const B of bat) B.flush();
     spines.flush();
   }
+
 
   function drawLamp(ctx, t, on) {
     const s = G.SK[G.hero];
@@ -1009,7 +1073,7 @@
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = on;
-    const R1 = F * 3.2 / d;
+    const R1 = Math.min(700, F * 2.2 / d);
     ctx.drawImage(G.amberGlow, fx_ - R1, fy - R1, 2 * R1, 2 * R1);
     const R2 = F * 0.8 / d;
     ctx.drawImage(G.goldGlow, fx_ - R2, fy - R2 * 1.2, 2 * R2, 2 * R2);
@@ -1020,13 +1084,8 @@
   }
 
   // ---------------------------------------------------------------- frame
-  // optional profiling hook (window.B3PROF = {}): flushes and times each stage; never affects the image
-  function tm(ctx, k, f) {
-    const P = window.B3PROF;
-    if (!P) return f();
-    ctx.getImageData(0, 0, 1, 1); const a = performance.now(); const r = f(); ctx.getImageData(0, 0, 1, 1);
-    P[k] = (P[k] || 0) + performance.now() - a; return r;
-  }
+  // stage wrapper (kept as a seam for profiling; it never changes the image)
+  function tm(ctx, k, f) { return f(); }
   function draw(ctx, t) {
     setCam(t);
     const base = ctx.getTransform();
@@ -1036,14 +1095,14 @@
     const hs = G.SK[G.hero];
     const heroDepth = depth(hs.x, hs.y, 3);
     tm(ctx, 'puffs', () => drawPuffs(ctx, t, false, heroDepth));
-    tm(ctx, 'pillar', () => drawPillar(ctx, t));
+    const inside = insideHero();
+    if (!inside) tm(ctx, 'pillar', () => drawPillar(ctx, t));
     // the seam with beat 2: until the wave of change begins, the camp is exactly WORLD.drawCamp
     if (t < 1.2) {
       ctx.save(); planeTransform(ctx, base, 0); ctx.scale(1 / zoomPx, 1 / zoomPx); ctx.translate(-CX, -CY);
       WD.drawCamp(ctx, { x: 0, y: 0, zoom: zoomPx }, { night: 1, glow: 0.5 }, { W, H });
       ctx.restore();
-      tm(ctx, 'b2c', () => drawB2Clouds(ctx, t, base));
-      tm(ctx, 'puffs2', () => drawPuffs(ctx, t, true, heroDepth));
+      tm(ctx, 'puffs2', () => drawPuffs(ctx, t, true, heroDepth, true));
       return;
     }
     tm(ctx, 'mish', () => drawMishkan(ctx));
@@ -1051,28 +1110,28 @@
     // cull & sort
     const vis = [];
     for (const s of G.SK) {
-      if (s.hero) continue;
+      if (s.hero || inside) continue;
       const d = pr(s.x, s.y, s.Hs * 0.5);
       if (d < 0.5) continue;
       const r = F * 8 / d;
       if (SX < -r || SX > W + r || SY < -r || SY > H + r) continue;
-      vis.push([d, s]);
+      vis.push([d, s, r]);
     }
     vis.sort((a, b) => b[0] - a[0]);
-    const nearN = C.pz < 120 ? 36 : 0;
+    let nearN = 0;
+    if (C.pz < 120) for (let i = vis.length - 1; i >= 0 && nearN < 14 && vis[i][2] > 80; i--) nearN++;
     const far = vis.slice(0, Math.max(0, vis.length - nearN)).map((v) => v[1]);
     const near = vis.slice(Math.max(0, vis.length - nearN));
     tm(ctx, 'batch', () => drawSukkotBatched(ctx, far, t, zoomPx));
     tm(ctx, 'glowsFar', () => lampGlows(ctx, far, t));
     let heroDone = false;
-    for (const [d, s] of near) {
+    for (const [d, s, rr] of near) {
       if (!heroDone && d < heroDepth) { tm(ctx, 'hero', () => drawHero(ctx, t, false)); heroDone = true; }
       tm(ctx, 'near', () => drawSukkahNear(ctx, s, t));
       lampGlows(ctx, [s], t);
     }
     if (!heroDone) tm(ctx, 'hero', () => drawHero(ctx, t, false));
-    tm(ctx, 'b2c', () => drawB2Clouds(ctx, t, base));
-    tm(ctx, 'puffs2', () => drawPuffs(ctx, t, true, heroDepth));
+    tm(ctx, 'puffs2', () => drawPuffs(ctx, t, true, heroDepth, true));
   }
 
   // ---------------------------------------------------------------- grains
@@ -1089,17 +1148,24 @@
     const Dp = new Float32Array(N * 3);  // end data
     const Tf = new Float32Array(N);
     const Ph = new Float32Array(N);
-    const Pu = new Uint16Array(N);
     const heroPts = heroPoints(R, 1400);
     const NH = 800;
     const others = SK.filter((s) => !s.hero);
     for (let i = 0; i < N; i++) {
       Ph[i] = R() * 6.28;
       // start in a cloud puff
-      const pi = (R() * G.puffs.length) | 0;
-      Pu[i] = pi;
-      const p = G.puffs[pi], a = R() * 6.28, rr = Math.sqrt(R()) * p.r * 0.7;
-      A[3 * i] = Math.cos(a) * rr; A[3 * i + 1] = Math.sin(a) * rr; A[3 * i + 2] = (R() - 0.5) * p.r * 0.4;
+      // start where beat 2 leaves them: sparkling in its cloud ring, canopy and pillar vortex
+      // (t0 screen coords), lifted onto the cloud plane at height ZL so they swell away with it
+      let px, py;
+      const q = R();
+      if (q < 0.72) {
+        const a = R() * Math.PI * 2, c = Math.abs(Math.cos(a)), sn = Math.abs(Math.sin(a));
+        const rr = (1 / Math.pow(Math.pow(c, 3.2) + Math.pow(sn, 3.2), 1 / 3.2)) * (0.93 + R() * 0.12);
+        px = CX + Math.cos(a) * rr * 560 + (R() - 0.5) * 50; py = CY + Math.sin(a) * rr * 600 + (R() - 0.5) * 50;
+      } else if (q < 0.86) { const a = R() * 6.28, rr = 8 + Math.pow(R(), 0.9) * 130; px = CX + Math.cos(a) * rr; py = CY + Math.sin(a) * rr; }
+      else { const a = R() * 6.28, rr = 120 + Math.sqrt(R()) * 300; px = CX + Math.cos(a) * rr; py = CY + Math.sin(a) * rr * 1.1; }
+      const kk = (Z0 - ZL) / F;
+      A[3 * i] = WD.CAM_CAMP.x + (px - CX) * kk; A[3 * i + 1] = WD.CAM_CAMP.y + (py - CY) * kk; A[3 * i + 2] = ZL + (R() - 0.5) * 6;
       let s;
       if (i < NH) s = h; else s = others[(R() * others.length) | 0];
       // element on that sukkah
@@ -1142,7 +1208,7 @@
         Dp[3 * i] = q[0]; Dp[3 * i + 1] = q[1]; Dp[3 * i + 2] = 1.2 + R() * 5.0;
       }
     }
-    GR = { A, Bp, Ta, Cp, Tg, Dk, Dp, Tf, Ph, Pu, starDir: new Float32Array(N * 3) };
+    GR = { A, Bp, Ta, Cp, Tg, Dk, Dp, Tf, Ph, starDir: new Float32Array(N * 3) };
   }
 
   // points along the hero structure (with the morph time at which each is drawn) and frond flecks
@@ -1151,9 +1217,10 @@
     const cs = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
     for (let i = 0; i < n; i++) {
       const e = R(), u = R(), c = cs[(R() * 4) | 0], c2 = cs[(cs.indexOf(c) + 1) % 4];
-      if (e < 0.14) pts.push([lerp(cx_(s, c[0], c[1]), cx_(s, c2[0], c2[1]), u), lerp(cy_(s, c[0], c[1]), cy_(s, c2[0], c2[1]), u), 0, 0.45 * 0.35 * u]);
-      else if (e < 0.3) pts.push([cx_(s, c[0], c[1]), cy_(s, c[0], c[1]), s.Hs * u, 0.45 * (0.2 + 0.45 * u)]);
-      else if (e < 0.44) pts.push([lerp(cx_(s, c[0], c[1]), cx_(s, c2[0], c2[1]), u), lerp(cy_(s, c[0], c[1]), cy_(s, c2[0], c2[1]), u), s.Hs, 0.45 * (0.5 + 0.5 * u)]);
+      const fc = R() < 0.5 ? -1 : 1; // front corners only: the grains trace what the eye can see
+      if (e < 0.08) pts.push([lerp(cx_(s, -1, 1), cx_(s, 1, 1), u), lerp(cy_(s, -1, 1), cy_(s, 1, 1), u), 0, 0.45 * 0.35 * u]);
+      else if (e < 0.2) pts.push([cx_(s, fc, 1), cy_(s, fc, 1), s.Hs * u, 0.45 * (0.2 + 0.45 * u)]);
+      else if (e < 0.34) pts.push([lerp(cx_(s, c[0], c[1]), cx_(s, c2[0], c2[1]), u), lerp(cy_(s, c[0], c[1]), cy_(s, c2[0], c2[1]), u), s.Hs, 0.45 * (0.5 + 0.5 * u)]);
       else {
         const fr = G.fronds[(R() * G.fronds.length) | 0], sp = fr.spine;
         const f = u * fr.NS, j = Math.min(fr.NS - 1, Math.floor(f)), v = f - j;
@@ -1227,17 +1294,19 @@
       const o = 3 * i, ph = g.Ph[i];
       let x = 0, y = 0, w = 0;
       // stage A: sparkle in the clouds
-      const p = G.puffs[g.Pu[i]];
-      const pp = puffPos(p, t);
       const ta = g.Ta[i], tg = g.Tg[i], tf = g.Tf[i];
-      const ax = pp[0] + g.A[o] + 4 * Math.sin(t * 0.7 + ph), ay = pp[1] + g.A[o + 1] + 4 * Math.cos(t * 0.6 + ph), az = pp[2] + g.A[o + 2];
+      const ax = g.A[o] + 2.5 * Math.sin(t * 0.7 + ph), ay = g.A[o + 1] + 2.5 * Math.cos(t * 0.6 + ph), az = g.A[o + 2];
       const tw = 0.5 + 0.5 * Math.sin(t * 3.1 + ph * 3);
       if (t < ta - 0.9) {
         const ok = gp(ax, ay, az); x = SX; y = SY; w = ok ? 0.3 + 0.35 * tw : 0;
       } else if (t < ta) {
         const k = fx.ease.inOut((t - (ta - 0.9)) / 0.9);
-        const ok1 = gp(ax, ay, az), x1 = SX, y1 = SY;
+        let ok1 = gp(ax, ay, az), x1 = SX, y1 = SY;
         const ok2 = gp(g.Bp[o], g.Bp[o + 1], g.Bp[o + 2]), x2 = SX, y2 = SY;
+        if (!ok1 || Math.abs(x1 - CX) > 1400 || Math.abs(y1 - CY) > 1800) {
+          // the cloud plane is behind us by now: let the grain drift down from just above its mark
+          ok1 = gp(g.Bp[o] + 3 * Math.sin(ph), g.Bp[o + 1] + 3 * Math.cos(ph), g.Bp[o + 2] + 18); x1 = SX; y1 = SY;
+        }
         const arc = Math.sin(Math.PI * k) * 60 * Math.sin(ph);
         const dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1;
         x = lerp(x1, x2, k) - dy / l * arc; y = lerp(y1, y2, k) + dx / l * arc;
@@ -1246,16 +1315,16 @@
         // on the structure, glinting
         const ok = gp(g.Bp[o], g.Bp[o + 1], g.Bp[o + 2]); x = SX; y = SY;
         const flash = Math.exp(-(t - ta) * 2.2);
-        w = ok ? 0.45 + 0.45 * flash + 0.08 * tw : 0;
+        w = ok ? 0.34 + 0.5 * flash + 0.1 * tw : 0;
         if (t >= tf) { /* hero grains go on to the end state below */ }
       } else if (t < tg + 1.1) {
         const k = fx.ease.inOut((t - tg) / 1.1);
         const ok1 = gp(g.Bp[o], g.Bp[o + 1], g.Bp[o + 2]), x1 = SX, y1 = SY, d1 = ok1;
         const ok2 = gp(g.Cp[o], g.Cp[o + 1], g.Cp[o + 2]), x2 = SX, y2 = SY;
         x = d1 ? lerp(x1, x2, k) : x2; y = d1 ? lerp(y1, y2, k) : y2;
-        w = ok2 ? (d1 ? 0.5 + 0.2 * k : 0.7 * k) : 0;
+        w = ok2 ? (d1 ? 0.5 - 0.1 * k : 0.45 * k) : 0;
       } else {
-        const ok = gp(g.Cp[o], g.Cp[o + 1], g.Cp[o + 2]); x = SX; y = SY; w = ok ? 0.55 + 0.15 * tw : 0;
+        const ok = gp(g.Cp[o], g.Cp[o + 1], g.Cp[o + 2]); x = SX; y = SY; w = ok ? 0.34 + 0.2 * tw : 0;
       }
       // stage D: the end state
       if (t > tf) {
@@ -1287,18 +1356,18 @@
       fx = env.fx; WD = env.world;
       const hero = WD.TENTS[WD.HERO];
       Z0 = F / WD.CAM_CAMP.zoom;
-      ZEND = 4.15;
+      ZEND = 3.75;
       HC = { x: hero.x, y: hero.y };
-      kZ = pchip([[0, Math.log(Z0)], [1.0, Math.log(Z0 * 0.99)], [2.2, Math.log(470)], [3.2, Math.log(230)], [4.3, Math.log(92)], [5.4, Math.log(36)], [6.5, Math.log(14)], [7.4, Math.log(7.2)], [8.2, Math.log(5.0)], [9.0, Math.log(4.35)], [10, Math.log(ZEND)]]);
-      kTH = pchip([[0, 0], [3.0, 0], [4.0, 8], [5.0, 30], [6.0, 55], [7.0, 77], [7.8, 93], [8.6, 108], [9.3, 114], [10, 116]]);
-      kPS = pchip([[0, 0], [1.1, 0], [4.8, 0.3], [7.5, hero.rot + 0.1], [10, hero.rot + 0.08]]);
+      kZ = pchip([[0, Math.log(Z0)], [1.4, Math.log(Z0 * 0.992)], [2.4, Math.log(480)], [3.3, Math.log(230)], [4.3, Math.log(92)], [5.4, Math.log(36)], [6.5, Math.log(14)], [7.4, Math.log(7.2)], [8.2, Math.log(4.7)], [9.0, Math.log(3.95)], [10, Math.log(ZEND)]]);
+      kTH = pchip([[0, 0], [3.0, 0], [4.0, 8], [5.0, 30], [6.0, 55], [7.0, 77], [7.8, 95], [8.6, 115], [9.3, 125], [10, 129]]);
+      kPS = pchip([[0, 0], [1.5, 0], [4.8, 0.3], [7.5, hero.rot + 0.1], [10, hero.rot + 0.08]]);
       // back offset: aim the view at the hero (height ~3) while we swing down, then dolly in through the door
       const bk = [[0, 0]];
       for (let t = 3.0; t <= 6.41; t += 0.35) {
         const z = Math.exp(kZ(t)), th = kTH(t) * DEG;
-        bk.push([t, Math.max(0, (z - 3.2) * Math.tan(th))]);
+        bk.push([t, Math.max(0, (z - 3.2) * Math.tan(th) - 14 * Math.sin(th))]);
       }
-      bk.push([7.3, 11.5], [8.0, 3.4], [8.7, 2.3], [9.4, 1.85], [10, 1.7]);
+      bk.push([7.3, 11.5], [8.0, 3.6], [8.7, 2.6], [9.4, 2.25], [10, 2.15]);
       kB = pchip(bk);
       build(env);
     },
