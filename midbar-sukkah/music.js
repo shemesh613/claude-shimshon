@@ -72,11 +72,12 @@
     // ---------- master chain ----------
     const keep = (n) => { allNodes.push(n); return n; };
     const out = keep(ctx.createGain()); out.gain.value = 1; out.connect(dest);
+    const post = keep(ctx.createGain()); post.gain.value = 0.84; post.connect(out); // the limiter adds makeup gain
     const limiter = keep(ctx.createDynamicsCompressor());
     limiter.threshold.value = -4; limiter.knee.value = 0; limiter.ratio.value = 20;
     limiter.attack.value = 0.001; limiter.release.value = 0.1;
-    limiter.connect(out);
-    const trim = keep(ctx.createGain()); trim.gain.value = 0.9; trim.connect(limiter);
+    limiter.connect(post);
+    const trim = keep(ctx.createGain()); trim.gain.value = 0.72; trim.connect(limiter);
     const comp = keep(ctx.createDynamicsCompressor());
     comp.threshold.value = -22; comp.knee.value = 14; comp.ratio.value = 2.2;
     comp.attack.value = 0.03; comp.release.value = 0.35;
@@ -84,7 +85,7 @@
     const tone = keep(ctx.createBiquadFilter());
     tone.type = 'highshelf'; tone.frequency.value = 7000; tone.gain.value = -4;
     tone.connect(comp);
-    const hp = keep(ctx.createBiquadFilter()); hp.type = 'highpass'; hp.frequency.value = 30; hp.Q.value = 0.6;
+    const hp = keep(ctx.createBiquadFilter()); hp.type = 'highpass'; hp.frequency.value = 38; hp.Q.value = 0.6;
     hp.connect(tone);
     const mix = keep(ctx.createGain()); mix.gain.value = 1; mix.connect(hp);
     const verb = keep(ctx.createConvolver()); verb.normalize = true; verb.buffer = cache.ir;
@@ -331,7 +332,7 @@
       ev(t0, t1 - t0, (s) => {
         const v = new V(), f = mtof(m);
         const o1 = v.osc('sawtooth', f, -6), o2 = v.osc('sawtooth', f, 7), o3 = v.osc('sine', f), o4 = v.osc('sine', f / 2);
-        const lp = v.f('lowpass', cut || 220, 1.2), amp = v.g(0), g3 = v.g(1.2), g4 = v.g(0.5);
+        const lp = v.f('lowpass', cut || 220, 1.2), amp = v.g(0), g3 = v.g(0.55), g4 = v.g(0.18);
         o1.connect(lp); o2.connect(lp); o3.connect(g3); o4.connect(g4); g3.connect(amp); g4.connect(amp); lp.connect(amp); amp.connect(dst);
         const sStart = T(Math.max(t0, offset));
         lfo(v, 0.09 + hr(m) * 0.05, (cut || 220) * 0.5, [lp.frequency], sStart, 3);
@@ -449,23 +450,23 @@
     air(windA.map(([t, g]) => [t + 0.3, g * 0.8]), walk(12, 1.7, 20.3, 220, 1100, 1.1), mix,
       { q: 2, q2: 1.4, seed: 4, panPts: [[1.7, 0.5], [7, -0.3], [12, 0.35], [17, -0.4], [20.3, 0]] });
     // the drone: D2 + A2, holds through the camp, dissolves into the transformation
-    drone(1.8, 27, 38, 0.2, at(0, 0.2), [[1.8, 0], [5, 1], [14, 0.9], [22, 0.85], [25, 0.5], [27, 0]], 230);
-    drone(3.5, 26, 45, 0.1, at(0.15, 0.25), [[3.5, 0], [7, 1], [21, 0.9], [26, 0]], 260);
+    drone(1.8, 27, 38, 0.08, at(0, 0.2), [[1.8, 0], [5, 1], [14, 0.9], [22, 0.85], [25, 0.5], [27, 0]], 230);
+    drone(3.5, 26, 45, 0.055, at(0.15, 0.25), [[3.5, 0], [7, 1], [21, 0.9], [26, 0]], 260);
     // a faint sustained ring of the grain's D over the fifth, fading into the journey
     pad(2.5, 12, [62, 69], 0.035, at(-0.2, 0.5), { type: 'sine', det: 3, env: [[2.5, 0], [5, 1], [9, 0.7], [12, 0]] });
 
     // --- 5-14: solo ney in D freygish (Ahava Rabbah); frame drum joins with the journey ---
     const neyOut = at(-0.08, 0.42);
     const ney1 = [[69, 2, 1], [70, 0.5], [69, 0.5], [66, 1], [67, 0.5], [66, 0.5], [63, 1, 1], [62, 2.5]];
-    seq(ney1, 5.2, B70, (t, d, m, orn) => flute(t, d * 0.97, m, 0.13, neyOut, { orn, breath: 0.16, vib: 16, cut: 2600, bright: 0.08 }));
+    seq(ney1, 5.2, B70, (t, d, m, orn) => flute(t, d * 0.97, m, 0.11, neyOut, { orn, breath: 0.16, vib: 16, cut: 2600, bright: 0.08 }));
     const ney2 = [[62, 0.5], [63, 0.5], [66, 0.5], [67, 0.5], [69, 1.5, 1], [72, 0.5], [70, 0.5], [69, 0.5], [67, 1], [66, 0.5], [67, 0.5], [69, 2.5]];
-    seq(ney2, 13.0, B70, (t, d, m, orn) => flute(t, d * 0.97, m, 0.12, neyOut, { orn, breath: 0.14, vib: 15, cut: 2800, bright: 0.09 }));
+    seq(ney2, 13.0, B70, (t, d, m, orn) => flute(t, d * 0.97, m, 0.1, neyOut, { orn, breath: 0.14, vib: 15, cut: 2800, bright: 0.09 }));
     const drum = at(0, 0.18);
     for (let t = 8.6, i = 0; t < 23.4; t += 4 * B70, i++) {
       const lv = Math.min(1, 0.45 + i * 0.12) * (t > 20 ? 0.7 : 1);
-      dum(t, 0.26 * lv, drum);
+      dum(t, 0.2 * lv, drum);
       tek(t + 1.5 * B70, 0.035 * lv, at(0.25, 0.2));
-      dum(t + 2 * B70, 0.15 * lv, drum, 1.1);
+      dum(t + 2 * B70, 0.12 * lv, drum, 1.1);
       tek(t + 3 * B70, 0.05 * lv, at(-0.2, 0.2));
       if (i >= 2) tek(t + 3.5 * B70, 0.025 * lv, at(0.3, 0.2));
     }
@@ -481,13 +482,13 @@
         if (i === 0 && j % 2) continue;
         const tt = tb + j * e8 + hr(tb * 3 + j) * 0.01;
         if (tt > 24.2) continue;
-        pluck(tt, ch[pat[j]], 0.075 * (j % 2 ? 0.7 : 1) * (0.8 + i * 0.1), at(-0.35, 0.3), { decay: 1.0 });
+        pluck(tt, ch[pat[j]], 0.062 * (j % 2 ? 0.7 : 1) * (0.8 + i * 0.1), at(-0.35, 0.3), { decay: 1.0 });
       }
       if (i >= 1) for (const j of [1, 4, 6]) {
         const tt = tb + j * e8 + 0.02;
         if (tt < 24) pluck(tt, ch[(j + i) % 5] + 12, 0.035, at(0.4, 0.4), { decay: 0.6, bright: 5, saw: 0.15, q: 3 });
       }
-      bass(tb, barC * 0.9, ch[0] - 12, 0.1, at(0, 0.15), { a: 0.03, rel: 0.8 });
+      bass(tb, barC * 0.9, ch[0] - 12, 0.06, at(0, 0.15), { a: 0.03, rel: 0.8 });
     }
     // kanun tremolo shimmer as the tents rise
     for (let t = 19.4, k = 0; t < 22.6; t += 0.107, k++) pluck(t, [74, 75, 74, 72][k % 4] + (k > 18 ? 5 : 0), 0.018 + 0.012 * (k / 30), at(0.5, 0.45), { decay: 0.35, bright: 6, saw: 0.1 });
@@ -508,7 +509,7 @@
     trans.forEach(([a, b, ms], i) => {
       pad(a, b + 0.4, ms, 0.18 + i * 0.02, at(i % 2 ? 0.2 : -0.2, 0.5),
         { a: 0.9, r: 0.6, cut: 700, cutPts: [[a, 600 + i * 350], [b + 0.4, 1000 + i * 450]], det: 9 });
-      bass(a, b - a, ms[0] - 12, 0.11, at(0, 0.2), { a: 0.3, rel: 0.6, cut: 260 });
+      bass(a, b - a, ms[0] - 12, 0.06, at(0, 0.2), { a: 0.3, rel: 0.6, cut: 260 });
     });
     const shimmer = at(0.3, 0.55);
     {
@@ -546,7 +547,7 @@
     ];
     home.forEach(([a, b, ms], i) => {
       pad(a, b + 0.3, ms, 0.2, at(i % 2 ? 0.15 : -0.15, 0.45), { cut: 850, a: i ? 0.6 : 0.25, r: 0.6, det: 7 });
-      bass(a, b - a, ms[0] - 12, 0.12, at(0, 0.2), { a: 0.1, rel: 0.7, cut: 280 });
+      bass(a, b - a, ms[0] - 12, 0.065, at(0, 0.2), { a: 0.1, rel: 0.7, cut: 280 });
     });
     const neyWarm = at(0.05, 0.45);
     const tender = [[66, 1], [69, 1], [74, 1.5], [73, 0.5], [71, 1], [69, 0.5], [71, 0.5], [69, 2.2]];
@@ -563,7 +564,7 @@
     ];
     sp.forEach(([a, b, ms], i) => {
       pad(a, b + 0.35, ms, 0.14 + i * 0.015, at(i % 2 ? -0.1 : 0.1, 0.5), { cut: 900 + i * 150, a: 0.5, r: 0.5, det: 7 });
-      bass(a, b - a, ms[0] - 12, 0.1, at(0, 0.2), { a: 0.15, rel: 0.5, cut: 260 });
+      bass(a, b - a, ms[0] - 12, 0.06, at(0, 0.2), { a: 0.15, rel: 0.5, cut: 260 });
     });
     pad(42.5, 43.3, [61, 64, 69], 0.05, at(0.1, 0.5), { cut: 1200, a: 0.3, r: 0.3 }); // sus resolves to the third
     // 37.5 lulav: a tall rising motif
@@ -597,10 +598,10 @@
       [49.6, 50.35, [45, 55, 57, 61, 64, 69]],    // A7
     ];
     res.forEach(([a, b, ms], i) => {
-      pad(a, b + 0.4, ms, 0.26 - i * 0.012, at(i % 2 ? 0.15 : -0.15, 0.45), { cut: 1500 - i * 80, a: i ? 0.4 : 0.9, r: 0.5, det: 8 });
-      bass(a, b - a, ms[0] < 45 ? ms[0] : ms[0] - 12, 0.14, at(0, 0.2), { a: 0.06, rel: 0.6, cut: 300 });
+      pad(a, b + 0.4, ms, 0.44 - i * 0.02, at(i % 2 ? 0.15 : -0.15, 0.45), { cut: 1500 - i * 80, a: i ? 0.4 : 0.9, r: 0.5, det: 8 });
+      bass(a, b - a, ms[0] < 45 ? ms[0] : ms[0] - 12, 0.08, at(0, 0.2), { a: 0.06, rel: 0.6, cut: 300 });
     });
-    choir(43.0, 50.6, [57, 62, 66, 69, 74], 0.17, at(0, 0.6), { env: [[43, 0], [44.2, 1], [46.5, 0.85], [49.5, 0.75], [50.6, 0]] });
+    choir(43.0, 50.6, [57, 62, 66, 69, 74], 0.32, at(0, 0.6), { env: [[43, 0], [44.2, 1], [46.5, 0.85], [49.5, 0.75], [50.6, 0]] });
     pad(43.3, 50.6, [78, 81, 86], 0.03, at(0.4, 0.6), { type: 'sine', det: 4, trem: 5, tremDepth: 0.006, env: [[43.3, 0], [45, 1], [49.6, 0.8], [50.6, 0]] });
     // light festive rhythm (maqsum on a hand drum, ~100 bpm), hinting at simcha, receding under the text
     for (let t = 43.0, i = 0; t < 49.3; t += 4 * B100, i++) {
@@ -617,11 +618,11 @@
     // the final statement: the opening phrase, now in D major, an octave higher, landing on the grain's D5
     const finale = [[81, 2], [83, 1], [81, 1], [78, 1.5], [79, 0.5], [78, 1], [76, 1]];
     const fOut = at(0.05, 0.45);
-    const tLand = seq(finale, 45.4, B100, (t, d, m) => flute(t, d * 0.98, m, 0.14, fOut, { breath: 0.09, vib: 13, cut: 3600, a: 0.1, rel: 0.4, bright: 0.12 }));
-    flute(tLand, 51.9 - tLand, GLASS_M, 0.13, fOut, { breath: 0.08, vib: 11, cut: 3000, a: 0.12, rel: 1.4, swell: 0.7, bright: 0.06 });
+    const tLand = seq(finale, 45.4, B100, (t, d, m) => flute(t, d * 0.98, m, 0.18, fOut, { breath: 0.09, vib: 13, cut: 3600, a: 0.1, rel: 0.4, bright: 0.12 }));
+    flute(tLand, 51.9 - tLand, GLASS_M, 0.15, fOut, { breath: 0.08, vib: 11, cut: 3000, a: 0.12, rel: 1.4, swell: 0.7, bright: 0.06 });
     // the home chord under the landing, dissolving into the single tone
     pad(tLand, 53.4, [38, 50, 57, 62, 66, 69], 0.22, at(0, 0.4), { cut: 1100, cutPts: [[tLand, 1300], [53.4, 380]], env: [[tLand, 0], [tLand + 0.3, 1], [51.2, 0.7], [52.5, 0.25], [53.4, 0]] });
-    drone(tLand, 53.6, 38, 0.14, at(0, 0.2), [[tLand, 0], [tLand + 0.6, 1], [52, 0.6], [53.6, 0]], 200);
+    drone(tLand, 53.6, 38, 0.07, at(0, 0.2), [[tLand, 0], [tLand + 0.6, 1], [52, 0.6], [53.6, 0]], 200);
 
     // --- 51-54: back to the single grain: glass tone and a low wind that settles to nothing ---
     air([[50.6, 0], [51.8, 0.04], [52.8, 0.03], [53.7, 0.006], [END, 0]], walk(21, 50.6, END, 250, 800, 0.9), mix,

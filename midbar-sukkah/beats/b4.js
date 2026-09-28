@@ -28,7 +28,7 @@
       tableTop: 910 + 1250 * u,          // top of the table canvas
       nearTop: -620 + 1520 * u,
       roomOff: -1180 * c,                // for dust motes (room space)
-      zoom: 1 + 0.035 * fx.smooth(fx.range(t, 3.5, 7)),
+      zoom: 1,
     };
   }
   const flick = (fx, t, k) =>
@@ -562,6 +562,7 @@
         tableGlints.push(x - 28, y - 190, x - 28, y - 160, x + 30, y - 198, x - 20, y - 4);
       }
       C.table = tb; C.flames = flames; C.tableGlints = tableGlints;
+      C.lampY = flames.reduce((a, f) => a + f[1], 0) / flames.length;
     }
 
     // ---- near decorations (pre-blurred for depth of field) ----
@@ -619,9 +620,20 @@
         id.data[p] = 205; id.data[p + 1] = 215; id.data[p + 2] = 255; id.data[p + 3] = a * 255;
       }
       g.putImageData(id, 0, 0);
-      const d2 = fx.canvas(dw * 2, dh * 2), g2 = d2.getContext('2d');
-      g2.filter = 'blur(1.5px)'; g2.drawImage(dp, 0, 0, dw * 2, dh * 2); g2.filter = 'none';
-      C.dapple = d2;
+      const d2 = fx.canvas(W + 80, 2300), g2 = d2.getContext('2d');
+      g2.filter = 'blur(3px)'; g2.drawImage(dp, 0, 0, W + 80, 2300); g2.filter = 'none';
+      // bake the moonlight dapple into the wall and the table (world-locked, like the schach above)
+      const wgc = C.wall.getContext('2d');
+      wgc.globalCompositeOperation = 'lighter'; wgc.globalAlpha = 0.085;
+      wgc.drawImage(d2, -40, 60); wgc.globalAlpha = 1; wgc.globalCompositeOperation = 'source-over';
+      const tgc = C.table.getContext('2d');
+      tgc.globalCompositeOperation = 'source-atop'; tgc.globalAlpha = 0.07;
+      tgc.drawImage(d2, -40, 60 - 870); tgc.globalAlpha = 1; tgc.globalCompositeOperation = 'source-over';
+      // keep the lower UI band quiet (baked at the table's final position)
+      const bgr2 = tgc.createLinearGradient(0, 1480 - 910, 0, TABLE_H);
+      bgr2.addColorStop(0, 'rgba(12,7,4,0)'); bgr2.addColorStop(1, 'rgba(12,7,4,0.55)');
+      tgc.globalCompositeOperation = 'source-atop'; tgc.fillStyle = bgr2; tgc.fillRect(0, 1480 - 910, W, TABLE_H);
+      tgc.globalCompositeOperation = 'source-over';
 
       const sh = fx.canvas(128, 512), sg = sh.getContext('2d');
       const hg = sg.createLinearGradient(0, 0, 128, 0);
@@ -635,7 +647,7 @@
       // shafts: anchor x in schach canvas, angle, width
       const rs = fx.rng(4606);
       C.shafts = [];
-      for (let i = 0; i < 6; i++) C.shafts.push([180 + i * 150 + (rs() - 0.5) * 80, 0.16 + (rs() - 0.5) * 0.08, 50 + rs() * 70, 0.5 + rs() * 0.5, rs() * TAU]);
+      for (let i = 0; i < 5; i++) C.shafts.push([200 + i * 180 + (rs() - 0.5) * 80, 0.16 + (rs() - 0.5) * 0.08, 50 + rs() * 70, 0.5 + rs() * 0.5, rs() * TAU]);
 
       const bk = fx.canvas(128, 128), bg = bk.getContext('2d');
       const bgr = bg.createRadialGradient(64, 64, 0, 64, 64, 62);
@@ -654,11 +666,6 @@
       fg.filter = 'none';
       C.flame = fl;
 
-      const vc = fx.canvas(270, 480), vgc = vc.getContext('2d');
-      const vr = vgc.createRadialGradient(135, 250, 90, 135, 250, 330);
-      vr.addColorStop(0, 'rgba(8,5,12,0)'); vr.addColorStop(0.7, 'rgba(8,5,12,0.25)'); vr.addColorStop(1, 'rgba(8,5,12,0.7)');
-      vgc.fillStyle = vr; vgc.fillRect(0, 0, 270, 480);
-      C.vignette = vc;
     }
 
     // ---- per-grain parameters ----
@@ -717,14 +724,14 @@
   function draw(ctx, t, env) {
     const fx = env.fx;
     const Lc = layout(fx, t), c = Lc.c;
-    ctx.fillStyle = '#0b0d1f'; ctx.fillRect(0, 0, W, H);
+    // (sky, wall and table layers always cover the whole frame between them)
     ctx.save();
-    ctx.translate(CX, CY); ctx.scale(Lc.zoom, Lc.zoom); ctx.translate(-CX, -CY);
 
     // sky + luminous drifting clouds
     const skyVisible = Lc.schAnchor > 0;
     if (skyVisible) {
-      ctx.drawImage(C.sky, 0, Lc.skyOff - 40);
+      const sy0 = Lc.skyOff - 40, vis = Math.min(SKY_H, Math.ceil(Lc.schAnchor - sy0));
+      if (vis > 0) ctx.drawImage(C.sky, 0, 0, W, vis, 0, sy0, W, vis);
       ctx.globalCompositeOperation = 'lighter';
       for (let k = 0; k < 3; k++) {
         const x = ((k * 430 + t * (14 + k * 5)) % 1500) - 450, y = Lc.skyOff + 120 + k * 260;
@@ -745,7 +752,11 @@
     // schach: anchored at the beam, foreshortening as the camera tilts down
     const sh = SCH_H * Lc.schSy, sTop = Lc.schAnchor - sh;
     if (Lc.schAnchor > 0) {
-      ctx.drawImage(C.sch, -60, sTop, SCH_W, sh);
+      if (sTop >= 0) ctx.drawImage(C.sch, -60, sTop, SCH_W, sh);
+      else { // only the visible rows
+        const cut = -sTop / Lc.schSy;
+        ctx.drawImage(C.sch, 0, cut, SCH_W, SCH_H - cut, -60, 0, SCH_W, Lc.schAnchor);
+      }
       // warm uplight on the schach
       const ug = ctx.createLinearGradient(0, Lc.schAnchor, 0, Math.max(sTop, Lc.schAnchor - 900));
       ug.addColorStop(0, `rgba(255,160,80,${0.2 * lampF})`); ug.addColorStop(1, 'rgba(255,160,80,0)');
@@ -763,30 +774,42 @@
       ctx.globalCompositeOperation = 'source-over';
     }
 
-    // dapple of moonlight through the schach on the wall and table
-    ctx.globalCompositeOperation = 'lighter';
     const cloudLight = 0.75 + 0.25 * Math.sin(t * 0.8 + 1.2) * Math.sin(t * 0.33);
-    ctx.globalAlpha = 0.09 * cloudLight;
-    ctx.drawImage(C.dapple, -40 + Math.sin(t * 0.35) * 16 + t * 5, wt + 60, W + 80, 2300);
-    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 
     // table
     const tt = Lc.tableTop;
     if (tt < H) ctx.drawImage(C.table, 0, tt);
 
+    // light shafts from schach gaps (moonlight)
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [ax, ang, wdt, str, ph] of C.shafts) {
+      const x = ax - 60, y = Lc.schAnchor - 380 * Lc.schSy;
+      const a = (0.07 + 0.035 * Math.sin(t * 0.6 + ph)) * str * cloudLight;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      ctx.globalAlpha = a;
+      ctx.drawImage(C.shaft, -wdt / 2, 0, wdt, 1700);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.globalCompositeOperation = 'source-over';
+
     // lamplight: big warm glows (reach up from below when looking up)
     ctx.globalCompositeOperation = 'lighter';
+    {
+      const y = tt + C.lampY;
+      if (y < H + 1100) {
+        const big = fx.glow(700, [255, 150, 70]);
+        ctx.globalAlpha = Math.min(1, 0.5 * lampF);
+        ctx.drawImage(big, CX - 700, y - 700);
+      }
+    }
     for (let k = 0; k < C.flames.length; k++) {
       const [fxp, fyp, s] = C.flames[k];
       const x = fxp, y = tt + fyp, f = fl[k];
-      if (y < H + 1300) {
-        const big = fx.glow(900, [255, 150, 70]);
-        ctx.globalAlpha = 0.16 * f * s;
-        ctx.drawImage(big, x - 900, y - 900);
-      }
       if (y < H + 200) {
         const g2 = fx.glow(170 * s, [255, 190, 110]);
-        ctx.globalAlpha = 0.5 * f;
+        ctx.globalAlpha = (s > 1.2 ? 0.3 : 0.5) * f;
         ctx.drawImage(g2, x - 170 * s, y - 170 * s + 6);
         const g3 = fx.glow(40 * s, [255, 200, 120]);
         ctx.globalAlpha = 0.45 * f;
@@ -807,18 +830,6 @@
       ctx.restore();
     }
     ctx.globalCompositeOperation = 'source-over';
-
-    // light shafts from schach gaps (moonlight)
-    ctx.globalCompositeOperation = 'lighter';
-    for (const [ax, ang, wdt, str, ph] of C.shafts) {
-      const x = ax - 60, y = Lc.schAnchor - 380 * Lc.schSy;
-      const a = (0.05 + 0.035 * Math.sin(t * 0.6 + ph)) * str * cloudLight;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-      ctx.globalAlpha = a;
-      ctx.drawImage(C.shaft, -wdt / 2, 0, wdt, 1700);
-      ctx.restore();
-    }
-    ctx.globalAlpha = 1;
 
     // near decorations (blurred, depth of field) and their bokeh
     const nt = Lc.nearTop;
@@ -851,13 +862,7 @@
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
 
-    // keep the lower UI band quiet
-    const bg = ctx.createLinearGradient(0, 1480, 0, H);
-    bg.addColorStop(0, 'rgba(12,7,4,0)'); bg.addColorStop(1, 'rgba(12,7,4,0.55)');
-    ctx.fillStyle = bg; ctx.fillRect(0, 1480, W, H - 1480);
 
-    // vignette
-    ctx.drawImage(C.vignette, 0, 0, W, H);
   }
 
   // ---------- grains ----------

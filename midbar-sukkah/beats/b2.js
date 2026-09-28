@@ -23,23 +23,25 @@
   let fx, WD, W, H, N;
   // sand texture in world space
   const SX0 = -440, SY0 = -770, SK = 1.8;
-  let sand = null;
+  let sand = null, sandNight = null;
   // clouds
   let sprites = [], blobs = [], cloudLayer = null, cctx = null;
   const CL = 0.5; // cloud layer resolution factor
   // camp
-  let tStart, blocks, fires, inkItems, tentPoly;
+  let tStart, blocks, fires, inkItems, tentPoly, shQ, blockOf;
+  const SHV = [3.4, -15.5]; // shadow vector in world units (toward the east = up)
   // grains
   let G = null;
   // cached night camp (only when everything is static)
-  const campCache = { key: '', c: null };
+  const campCache = {};
+  const END_OPTS = { appear: () => 1, night: 1, glow: 0.5 };
 
   const CX = 540, CY = 960;
   const RX = 560, RY = 600, SP = 3.2;
 
   // ---------------- timing ----------------
   const nightK = (t) => fx.smooth(fx.range(t, 6.4, 10.9));
-  const glowK = (t) => 0.5 * fx.smooth(fx.range(t, 8.0, 10.9));
+  const glowK = (t) => 0.5 * nightK(t);
 
   function camAt(t) {
     const C = WD.CAM_CAMP;
@@ -54,26 +56,6 @@
   }
 
   const lerp3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-  function keyed(keys, t) {
-    if (t <= keys[0][0]) return keys[0][1];
-    for (let i = 1; i < keys.length; i++) {
-      if (t <= keys[i][0]) {
-        const k = fx.smooth((t - keys[i - 1][0]) / (keys[i][0] - keys[i - 1][0]));
-        return lerp3(keys[i - 1][1], keys[i][1], k);
-      }
-    }
-    return keys[keys.length - 1][1];
-  }
-  // ground multiply colour through the afternoon -> night
-  const GROUND_MUL = [
-    [0, [255, 252, 244]], [3.5, [255, 246, 228]], [6.4, [250, 226, 200]],
-    [8.4, [170, 144, 186]], [10.9, [88, 98, 172]],
-  ];
-  // grade over everything (camp included); identity again by t = 10.9
-  const GRADE = [
-    [0, [255, 255, 255]], [3.5, [255, 250, 240]], [6.4, [255, 234, 214]],
-    [8.2, [214, 184, 214]], [9.6, [222, 214, 240]], [10.9, [255, 255, 255]],
-  ];
 
   // ---------------- init helpers ----------------
   function makeSand() {
@@ -186,23 +168,22 @@
     for (let k = 0; k < 16; k++) {
       const a = (k / 16) * Math.PI * 2 + (r() - 0.5) * 0.3;
       blobs.push({ kind: 0, a, rf: 1.3 + r() * 0.25, size: 230 + r() * 100, spr: 6 + ((r() * 4) | 0),
-        rot: a - Math.PI / 2 + (r() - 0.5) * 0.5, alpha: 0.34 + r() * 0.14, d: r() * 1.0, drift: 0.006 + r() * 0.004, ph: r() * 6.28 });
+        rot: a - Math.PI / 2 + (r() - 0.5) * 0.5, alpha: 0.34 + r() * 0.14, grp: 0 });
     }
     // the ring itself: a deeper back layer, then the bright front layer
     const nB = 24;
     for (let k = 0; k < nB; k++) {
       const a = ((k + 0.5) / nB) * Math.PI * 2 + (r() - 0.5) * 0.1;
       blobs.push({ kind: 1, a, rf: 1.06 + (r() - 0.5) * 0.08, size: 150 + r() * 70, spr: 6 + ((r() * 4) | 0),
-        rot: a - Math.PI / 2 + (r() - 0.5) * 0.4, alpha: 0.7 + r() * 0.2, d: r() * 1.1,
-        drift: 0.008 + r() * 0.003, ph: r() * 6.28, inner: false });
+        rot: a - Math.PI / 2 + (r() - 0.5) * 0.4, alpha: 0.7 + r() * 0.2, grp: 1, inner: false });
     }
     const nR = 34;
     for (let k = 0; k < nR; k++) {
       const a = (k / nR) * Math.PI * 2 + (r() - 0.5) * 0.1;
       const inner = r() < 0.7;
       blobs.push({ kind: 1, a, rf: 0.97 + (r() - 0.5) * 0.08, size: 115 + r() * 65, spr: (r() * 6) | 0,
-        rot: (inner ? a + Math.PI / 2 : a - Math.PI / 2) + (r() - 0.5) * 0.35, alpha: 0.78 + r() * 0.2, d: r() * 1.3,
-        drift: 0.009 + r() * 0.004, ph: r() * 6.28, inner });
+        rot: (inner ? a + Math.PI / 2 : a - Math.PI / 2) + (r() - 0.5) * 0.35, alpha: 0.78 + r() * 0.2,
+        grp: r() < 0.5 ? 2 : 3, inner });
     }
     // canopy over the camp: luminous veils
     for (let k = 0; k < 7; k++) {
@@ -222,18 +203,59 @@
   const RING_IDX = () => blobs.map((b, i) => (b.kind === 1 ? i : -1)).filter((i) => i >= 0);
   let ringIdx = [], canopyIdx = [];
 
+  // ring cloud groups: 0 outer, 1 deep back ring, 2-3 bright front ring
+  const GROUP_D = [0.0, 0.3, 0.6, 1.2], OMEGA = 0.01;
+  function groupT(k, t) {
+    const g = fx.ease.inOut(fx.range(t, 5.7 + GROUP_D[k], 9.4 + GROUP_D[k]));
+    const th = OMEGA * (t - 11) - (1 - g) * 0.2;
+    const s = (1 + (1 - g) * 0.14) * (1 + 0.006 * Math.sin(0.5 * t));
+    return { g, th, s, c: Math.cos(th), sn: Math.sin(th) };
+  }
+  const LM = 240; // ring layer margin (logical px)
+  let ringLayers = [], ringAll = null;
+  function makeRingLayers() {
+    const w = Math.round((W + 2 * LM) * CL), h = Math.round((H + 2 * LM) * CL);
+    const lg = fx.glow(160, [220, 214, 255]);
+    const gg = fx.glow(120, [255, 206, 140]);
+    const paint = (c, k) => {
+      c.setTransform(CL, 0, 0, CL, LM * CL, LM * CL);
+      for (const b of blobs) {
+        if ((b.kind !== 0 && b.kind !== 1) || b.grp !== k) continue;
+        const rad = ringR(b.a) * b.rf;
+        const x = CX + Math.cos(b.a) * rad * RX, y = CY + Math.sin(b.a) * rad * RY, s = b.size;
+        if (b.kind === 1) {
+          c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = b.inner ? 0.22 * b.alpha : 0.14 * b.alpha;
+          const sp = b.inner ? gg : lg, e = b.inner ? 0.9 : 1;
+          c.drawImage(sp, x - s * e, y - s * e, 2 * s * e, 2 * s * e);
+        }
+        c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = b.alpha;
+        c.save();
+        c.translate(x, y); c.rotate(b.rot);
+        c.drawImage(sprites[b.spr], -s, -s * 0.66, 2 * s, 1.32 * s);
+        c.restore();
+      }
+      c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    };
+    ringLayers = GROUP_D.map((_, k) => { const cv = fx.canvas(w, h); paint(cv.getContext('2d'), k); return cv; });
+    ringAll = fx.canvas(w, h);
+    const g = ringAll.getContext('2d');
+    ringLayers.forEach((cv) => g.drawImage(cv, 0, 0));
+  }
+
   // position of blob b at local time t in screen coords: [x, y, size, alpha, rot]
   function blobAt(b, t, out) {
     if (b.kind === 0 || b.kind === 1) {
-      // clouds condense in place, drifting gently inward as they gather
-      const g = fx.ease.inOut(fx.range(t, 5.7 + b.d, 9.4 + b.d));
-      const a = b.a + b.drift * (t - 11) + 0.015 * Math.sin(0.35 * t + b.ph) - (1 - g) * 0.18;
-      const rad = ringR(a) * b.rf * (1 + (1 - g) * 0.16) * (1 + 0.012 * Math.sin(0.5 * t + b.ph));
-      out[0] = CX + Math.cos(a) * rad * RX;
-      out[1] = CY + Math.sin(a) * rad * RY;
-      out[2] = b.size * (0.55 + 0.45 * g);
-      out[3] = b.alpha * g;
-      out[4] = b.rot + b.drift * (t - 11) - (1 - g) * 0.18;
+      // clouds condense in place in four groups, swirling gently inward as they gather
+      const gt = groupT(b.grp, t);
+      const rad = ringR(b.a) * b.rf;
+      const x0 = Math.cos(b.a) * rad * RX * gt.s, y0 = Math.sin(b.a) * rad * RY * gt.s;
+      out[0] = CX + x0 * gt.c - y0 * gt.sn;
+      out[1] = CY + x0 * gt.sn + y0 * gt.c;
+      out[2] = b.size * gt.s;
+      out[3] = b.alpha * gt.g;
+      out[4] = b.rot + gt.th;
     } else if (b.kind === 2) {
       const g = fx.ease.inOut(fx.range(t, 7.8 + b.d, 10.6 + b.d * 0.3));
       out[0] = b.x + b.vx * (t - 11);
@@ -319,6 +341,35 @@
       const P = [[-t.w / 2, -t.h / 2], [t.w / 2, -t.h / 2], [t.w / 2, t.h / 2], [-t.w / 2, t.h / 2]];
       P.forEach(([x, y], k) => { tentPoly[i * 8 + 2 * k] = t.x + x * c - y * s; tentPoly[i * 8 + 2 * k + 1] = t.y + x * s + y * c; });
     });
+    // long shadows (low western sun, at the bottom of the frame): the footprint edge facing the
+    // shadow direction, extruded to the projected ridge line
+    shQ = new Float32Array(N * 8);
+    const vl = Math.hypot(SHV[0], SHV[1]), ux = SHV[0] / vl, uy = SHV[1] / vl;
+    T.forEach((t, i) => {
+      const o = i * 8;
+      let best = -1e9, e1 = 0;
+      for (let k = 0; k < 4; k++) {
+        const ax = tentPoly[o + 2 * k], ay = tentPoly[o + 2 * k + 1];
+        const bx = tentPoly[o + ((2 * k + 2) % 8)], by = tentPoly[o + ((2 * k + 3) % 8)];
+        const sc = ((ax + bx) / 2 - t.x) * ux + ((ay + by) / 2 - t.y) * uy;
+        if (sc > best) { best = sc; e1 = k; }
+      }
+      const E1x = tentPoly[o + 2 * e1], E1y = tentPoly[o + 2 * e1 + 1];
+      const E2x = tentPoly[o + ((2 * e1 + 2) % 8)], E2y = tentPoly[o + ((2 * e1 + 3) % 8)];
+      const c = Math.cos(t.rot), s = Math.sin(t.rot);
+      let R1x = t.x - (t.w / 2) * c, R1y = t.y - (t.w / 2) * s, R2x = t.x + (t.w / 2) * c, R2y = t.y + (t.w / 2) * s;
+      const dx = E2x - E1x, dy = E2y - E1y;
+      if ((R1x - R2x) * dx + (R1y - R2y) * dy > 0) { [R1x, R2x] = [R2x, R1x]; [R1y, R2y] = [R2y, R1y]; }
+      shQ.set([E1x, E1y, E2x, E2y, R1x, R1y, R2x, R2y], o);
+    });
+    blockOf = new Uint8Array(N);
+    blocks.forEach((b) => { b.end = -1e9; b.tents = []; });
+    T.forEach((t, i) => {
+      const k = blocks.findIndex((b) => b.tribe === t.tribe);
+      blockOf[i] = k; blocks[k].tents.push(i);
+      blocks[k].end = Math.max(blocks[k].end, tStart[i] + 0.6);
+    });
+    blocks.forEach((b) => { b.shadow = new Path2D(); for (const i of b.tents) addShadow(b.shadow, i, 1); });
   }
 
   function buildGrains(env) {
@@ -360,19 +411,13 @@
 
   // ---------------- drawing pieces ----------------
   function drawGround(ctx, cam, env, t, nightOverride) {
+    const n = nightOverride != null ? nightOverride : nightK(t);
     ctx.save();
     WD.applyCam(ctx, cam, env);
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(sand, SX0, SY0, sand.width / SK, sand.height / SK);
-    ctx.restore();
-    const mul = nightOverride != null ? lerp3([255, 255, 255], [88, 98, 172], nightOverride) : keyed(GROUND_MUL, t);
-    const ind = nightOverride != null ? 0.36 * nightOverride : 0.36 * nightK(t);
-    ctx.save();
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = fx.rgba(mul, 1);
-    ctx.fillRect(0, 0, env.W, env.H);
-    ctx.globalCompositeOperation = 'source-over';
-    if (ind > 0.002) { ctx.fillStyle = `rgba(18,20,58,${ind})`; ctx.fillRect(0, 0, env.W, env.H); }
+    const x = SX0, y = SY0, w = sand.width / SK, h = sand.height / SK;
+    if (n < 0.999) ctx.drawImage(sand, x, y, w, h);
+    if (n > 0.001) { ctx.globalAlpha = n; ctx.drawImage(sandNight, x, y, w, h); }
     ctx.restore();
   }
 
@@ -424,44 +469,35 @@
     ctx.restore();
   }
 
+  function addShadow(P, i, k) {
+    const o = i * 8, vx = SHV[0] * k, vy = SHV[1] * k;
+    P.moveTo(shQ[o], shQ[o + 1]);
+    P.lineTo(shQ[o + 2], shQ[o + 3]);
+    P.lineTo(shQ[o + 6] + vx, shQ[o + 7] + vy);
+    P.lineTo(shQ[o + 4] + vx, shQ[o + 5] + vy);
+    P.closePath();
+  }
   function drawShadows(ctx, cam, env, t, appear) {
     const sun = 1 - fx.smooth(fx.range(t, 6.0, 8.6));
     if (sun <= 0.01) return;
-    // low western sun (bottom of frame): shadows reach east (up), lengthening toward sunset
-    const L = 7 + 13 * fx.smooth(fx.range(t, 0, 7.5));
-    const vx = 0.22 * L, vy = -L;
-    const P = new Path2D();
-    for (let i = 0; i < N; i++) {
-      const a = appear(i);
-      if (a < 0.05) continue;
-      const o = i * 8, k = a * a;
-      const T = WD.TENTS[i];
-      // ridge (tent top) projected; hull approx: rect + projected ridge ends
-      const mx1 = (tentPoly[o] + tentPoly[o + 6]) / 2, my1 = (tentPoly[o + 1] + tentPoly[o + 7]) / 2;
-      const mx2 = (tentPoly[o + 2] + tentPoly[o + 4]) / 2, my2 = (tentPoly[o + 3] + tentPoly[o + 5]) / 2;
-      P.moveTo(tentPoly[o], tentPoly[o + 1]);
-      P.lineTo(tentPoly[o + 2], tentPoly[o + 3]);
-      P.lineTo(mx2 + vx * k, my2 + vy * k);
-      P.lineTo(mx1 + vx * k, my1 + vy * k);
-      P.closePath();
-      P.moveTo(tentPoly[o + 6], tentPoly[o + 7]);
-      P.lineTo(tentPoly[o + 4], tentPoly[o + 5]);
-      P.lineTo(mx2 + vx * k, my2 + vy * k);
-      P.lineTo(mx1 + vx * k, my1 + vy * k);
-      P.closePath();
-      void T;
-    }
-    // Mishkan hangings
-    const M = WD.MISHKAN, ms = fx.smooth(fx.range(t, 2.2, 3.0)) * 0.55;
     ctx.save();
     WD.applyCam(ctx, cam, env);
     ctx.fillStyle = `rgba(92,52,40,${0.26 * sun})`;
-    ctx.fill(P, 'nonzero');
+    for (const b of blocks) {
+      if (t < b.s) continue;
+      if (t >= b.end) { ctx.fill(b.shadow); continue; }
+      const P = new Path2D();
+      for (const i of b.tents) { const a = appear(i); if (a > 0.05) addShadow(P, i, a * a); }
+      ctx.fill(P);
+    }
+    // Mishkan hangings
+    const M = WD.MISHKAN, ms = fx.smooth(fx.range(t, 2.2, 3.0)) * 0.55;
     if (ms > 0) {
+      const vx = SHV[0] * 0.4, vy = SHV[1] * 0.4;
       ctx.fillStyle = `rgba(92,52,40,${0.22 * sun * ms})`;
       ctx.beginPath();
-      ctx.moveTo(M.x, M.y); ctx.lineTo(M.x + vx * 0.5, M.y + vy * 0.5);
-      ctx.lineTo(M.x + M.w + vx * 0.5, M.y + vy * 0.5); ctx.lineTo(M.x + M.w, M.y);
+      ctx.moveTo(M.x, M.y); ctx.lineTo(M.x + vx, M.y + vy);
+      ctx.lineTo(M.x + M.w + vx, M.y + vy); ctx.lineTo(M.x + M.w, M.y);
       ctx.lineTo(M.x + M.w, M.y + M.h); ctx.lineTo(M.x, M.y + M.h); ctx.closePath();
       ctx.fill();
     }
@@ -478,9 +514,6 @@
     ctx.beginPath(); ctx.rect(M.x - 1, M.y - 1, M.w + 2, M.h + 2); ctx.clip();
     ctx.globalAlpha = 1 - fill;
     ctx.drawImage(sand, SX0, SY0, sand.width / SK, sand.height / SK);
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = fx.rgba(keyed(GROUND_MUL, t), 1);
-    ctx.fillRect(M.x - 2, M.y - 2, M.w + 4, M.h + 4);
     ctx.restore();
   }
 
@@ -526,29 +559,29 @@
     ctx.restore();
   }
 
+  // light veil over everything (camp included): gold afternoon -> rose sunset -> violet dusk -> none at night
+  const VEIL = [
+    // t, bottom (west) rgb, top (east) rgb, alpha
+    [0, [255, 206, 130], [255, 214, 150], 0.0],
+    [3.5, [255, 196, 110], [255, 214, 150], 0.08],
+    [6.4, [255, 142, 60], [230, 130, 120], 0.24],
+    [8.2, [120, 70, 130], [70, 56, 120], 0.3],
+    [9.6, [50, 46, 110], [36, 36, 96], 0.18],
+    [10.9, [30, 32, 90], [30, 32, 90], 0.0],
+  ];
   function drawGrade(ctx, env, t) {
-    const g = keyed(GRADE, t);
-    if (g[0] > 254.5 && g[1] > 254.5 && g[2] > 254.5) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'multiply';
-    // warm from the west (bottom), cooler toward the east (top)
+    let i = 1;
+    while (i < VEIL.length - 1 && t > VEIL[i][0]) i++;
+    const A = VEIL[i - 1], B = VEIL[i];
+    const k = fx.smooth((t - A[0]) / (B[0] - A[0]));
+    const al = fx.lerp(A[3], B[3], k);
+    if (al <= 0.003) return;
+    const bot = lerp3(A[1], B[1], k), top = lerp3(A[2], B[2], k);
     const gr = ctx.createLinearGradient(0, env.H, 0, 0);
-    gr.addColorStop(0, fx.rgba(g, 1));
-    gr.addColorStop(1, fx.rgba(lerp3(g, [255, 255, 255], 0.25), 1));
+    gr.addColorStop(0, fx.rgba(bot, al));
+    gr.addColorStop(1, fx.rgba(top, al * 0.7));
     ctx.fillStyle = gr;
     ctx.fillRect(0, 0, env.W, env.H);
-    ctx.restore();
-    // a soft golden sun wash from the west during the golden hour
-    const sw = fx.smooth(fx.range(t, 2.5, 6.0)) * (1 - fx.smooth(fx.range(t, 6.8, 8.8)));
-    if (sw > 0.01) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const gr2 = ctx.createLinearGradient(0, env.H, 0, env.H * 0.35);
-      gr2.addColorStop(0, `rgba(255,186,100,${0.12 * sw})`);
-      gr2.addColorStop(1, 'rgba(255,186,100,0)');
-      ctx.fillStyle = gr2; ctx.fillRect(0, 0, env.W, env.H);
-      ctx.restore();
-    }
   }
 
   function drawLights(ctx, cam, env, t, alphaMul) {
@@ -586,6 +619,12 @@
   }
 
   const tmp = [0, 0, 0, 0, 0];
+  function drawRingLayer(c, cv, gt) {
+    c.save();
+    c.translate(CX, CY); c.rotate(gt.th); c.scale(gt.s, gt.s); c.translate(-CX, -CY);
+    c.drawImage(cv, -LM, -LM, W + 2 * LM, H + 2 * LM);
+    c.restore();
+  }
   function drawClouds(ctx, t, env, alphaMul) {
     alphaMul = alphaMul == null ? 1 : alphaMul;
     if (t < 5.75) return;
@@ -596,32 +635,24 @@
     c.clearRect(0, 0, cloudLayer.width, cloudLayer.height);
     c.setTransform(CL, 0, 0, CL, 0, 0);
     const night = nightK(t);
-    // light pool beneath the ring (clouds lighting the ground and each other from within)
-    const lg = fx.glow(160, [220, 214, 255]);
-    const gg = fx.glow(120, [255, 206, 140]);
+    const gts = GROUP_D.map((_, k) => groupT(k, t));
+    if (gts.every((q) => q.g >= 0.9999)) { c.globalAlpha = 1; drawRingLayer(c, ringAll, gts[0]); }
+    else gts.forEach((gt, k) => { if (gt.g > 0.002) { c.globalAlpha = gt.g; drawRingLayer(c, ringLayers[k], gt); } });
+    c.globalAlpha = 1;
+    // canopy veils and the pillar vortex
     for (const b of blobs) {
+      if (b.kind < 2) continue;
       blobAt(b, t, tmp);
       const [x, y, s, a, rot] = tmp;
-      if (a <= 0.01) continue;
-      if (x < -s || x > env.W + s || y < -s || y > env.H + s) continue;
-      if (b.kind === 1 && b.inner) {
-        c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = 0.22 * a * (0.4 + 0.6 * night);
-        c.drawImage(gg, x - s * 0.9, y - s * 0.9, s * 1.8, s * 1.8);
-      } else if (b.kind === 1) {
-        c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = 0.14 * a * night;
-        c.drawImage(lg, x - s, y - s, s * 2, s * 2);
-      }
-      c.globalCompositeOperation = b.kind >= 2 ? 'lighter' : 'source-over';
+      if (a <= 0.004) continue;
+      c.globalCompositeOperation = 'lighter';
       c.globalAlpha = a;
       c.save();
       c.translate(x, y); c.rotate(rot);
-      const spr = sprites[b.spr];
-      c.drawImage(spr, -s, -s * 0.66, 2 * s, 1.32 * s);
+      c.drawImage(sprites[b.spr], -s, -s * 0.66, 2 * s, 1.32 * s);
       c.restore();
     }
-    // pillar core: a bright soft eye at the heart of the vortex
+    // pillar core: a soft bright eye at the heart of the vortex
     const pg = fx.ease.inOut(fx.range(t, 7.0, 10.4));
     if (pg > 0.01) {
       c.globalCompositeOperation = 'lighter';
@@ -649,10 +680,6 @@
     ctx.globalAlpha = alphaMul;
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(cloudLayer, 0, 0, env.W, env.H);
-    // soft bloom: the clouds glow from within
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.12 * alphaMul * (0.3 + 0.7 * night);
-    ctx.drawImage(cloudLayer, 0, 0, env.W, env.H);
     ctx.restore();
   }
 
@@ -664,27 +691,28 @@
     };
   }
 
+  // From t = 7 the camera is static and every tent is up; only night/glow change (linearly, glow = night/2).
+  // So the camp is a blend of two cached renders: A = day (night 0) and B = the exact end state
+  // drawCamp(CAM_CAMP, {appear:1, night:1, glow:0.5}). For t >= 10.9 only B is drawn: pixel-identical.
+  function campLayer(which, tr, env) {
+    const pw = Math.round(env.W * tr.a), ph = Math.round(env.H * tr.d);
+    const key = which + '|' + pw + 'x' + ph;
+    if (campCache[which] && campCache[which].key === key) return campCache[which].c;
+    const c = fx.canvas(pw, ph);
+    const g = c.getContext('2d');
+    g.setTransform(tr.a, 0, 0, tr.d, 0, 0);
+    WD.drawCamp(g, WD.CAM_CAMP, which === 'A' ? { appear: () => 1, night: 0, glow: 0 } : END_OPTS, env);
+    campCache[which] = { key, c };
+    return c;
+  }
   function drawCampCached(ctx, cam, opts, env, t) {
-    // Static end state: reuse one rendering of the camp (pixel-identical to drawCamp).
     const tr = ctx.getTransform();
-    const staticCam = cam.x === WD.CAM_CAMP.x && cam.y === WD.CAM_CAMP.y && cam.zoom === WD.CAM_CAMP.zoom;
-    if (!staticCam || t < 7.4) { WD.drawCamp(ctx, cam, opts, env); return; }
-    const key = [tr.a, tr.d, opts.night.toFixed(4), opts.glow.toFixed(4)].join('|');
-    // only cache when night/glow have settled (t >= 10.9); otherwise draw live
-    if (t < 10.9) { WD.drawCamp(ctx, cam, opts, env); return; }
-    if (campCache.key !== key) {
-      const pw = Math.round(env.W * tr.a), ph = Math.round(env.H * tr.d);
-      if (!campCache.c || campCache.c.width !== pw || campCache.c.height !== ph) campCache.c = fx.canvas(pw, ph);
-      const g = campCache.c.getContext('2d');
-      g.setTransform(1, 0, 0, 1, 0, 0);
-      g.clearRect(0, 0, pw, ph);
-      g.setTransform(tr.a, 0, 0, tr.d, 0, 0);
-      WD.drawCamp(g, cam, opts, env);
-      campCache.key = key;
-    }
+    if (t < 7.0 || tr.b !== 0 || tr.c !== 0) { WD.drawCamp(ctx, cam, opts, env); return; }
+    const m = opts.night;
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(campCache.c, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, tr.e, tr.f);
+    if (m < 0.9995) ctx.drawImage(campLayer('A', tr, env), 0, 0);
+    if (m > 0.0005) { ctx.globalAlpha = m; ctx.drawImage(campLayer('B', tr, env), 0, 0); }
     ctx.restore();
   }
 
@@ -692,6 +720,15 @@
     init(env) {
       fx = env.fx; WD = env.world; W = env.W; H = env.H;
       sand = makeSand();
+      sandNight = fx.canvas(sand.width, sand.height);
+      {
+        const g = sandNight.getContext('2d');
+        g.drawImage(sand, 0, 0);
+        g.globalCompositeOperation = 'multiply';
+        g.fillStyle = 'rgb(88,98,172)'; g.fillRect(0, 0, sand.width, sand.height);
+        g.globalCompositeOperation = 'source-over';
+        g.fillStyle = 'rgba(18,20,58,0.36)'; g.fillRect(0, 0, sand.width, sand.height);
+      }
       const bright = { lit: [252, 250, 255], shade: [170, 168, 210], gold: [255, 224, 172], g: 0.5, a: 0.94 };
       const deep = { lit: [236, 222, 236], shade: [104, 100, 150], gold: [255, 200, 140], g: 0.3, a: 0.8 };
       sprites = [0, 1, 2, 3, 4, 5].map((k) => makeCloudSprite(k + 1, 192, bright))
@@ -700,6 +737,7 @@
       ringIdx = RING_IDX();
       canopyIdx = blobs.map((b, i) => (b.kind === 2 ? i : -1)).filter((i) => i >= 0);
       cloudLayer = fx.canvas(Math.round(W * CL), Math.round(H * CL));
+      makeRingLayers();
       cctx = cloudLayer.getContext('2d');
       buildCamp();
       buildGrains(env);
@@ -708,8 +746,6 @@
     draw(ctx, t, env) {
       const cam = camAt(t);
       const opts = camOpts(t);
-      const late = t >= 10.9;
-      const endOpts = late ? { appear: () => 1, night: 1, glow: 0.5 } : opts;
       const SK_ = window.B2SKIP || {}, TM_ = window.B2TIME || {};
       const tm = (k, f) => { if (SK_[k]) return; const a = performance.now(); f(); TM_[k] = (TM_[k] || 0) + performance.now() - a; };
       ctx.fillStyle = '#16193a';
@@ -717,7 +753,7 @@
       tm('ground', () => drawGround(ctx, cam, env, t));
       tm('ink', () => drawInk(ctx, cam, env, t, opts.night));
       tm('shadows', () => drawShadows(ctx, cam, env, t, opts.appear));
-      tm('camp', () => drawCampCached(ctx, cam, endOpts, env, t));
+      tm('camp', () => drawCampCached(ctx, cam, opts, env, t));
       tm('cover', () => coverMishkan(ctx, cam, env, t));
       tm('ink2', () => drawInk(ctx, cam, env, t, opts.night, true));
       tm('banners', () => drawBanners(ctx, cam, env, t, opts.night));

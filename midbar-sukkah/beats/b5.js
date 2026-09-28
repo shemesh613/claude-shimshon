@@ -58,9 +58,9 @@
     const piv = [540, 1440];
     const lul = { x: 540, y: 1440 + 170 * (1 - ease.out(range(t, 1.2, 3.6))), r: 0, a: smooth(range(t, 1.25, 1.9)) };
     const aIn = ease.out(range(t, T_A0 - 0.4, T_A0 + 1.5));
-    const ara = { x: lerp(372, 514, u) - 90 * (1 - aIn), y: lerp(1370, 1374, u) + 40 * (1 - aIn), r: lerp(-0.09, -0.028, u) - 0.12 * (1 - aIn), a: smooth(range(t, T_A0 - 0.4, T_A0 + 0.5)) };
-    const had = { x: lerp(708, 566, u), y: lerp(1370, 1374, u), r: lerp(0.08, 0.028, u), a: smooth(range(t, T_H0 - 0.3, T_H0 + 0.25)) };
-    const et = { x: lerp(858, 712, u), y: lerp(1115, 1210, u) - 40 * Math.sin(Math.PI * u), r: lerp(0, -0.12, u) };
+    const ara = { x: lerp(372, 494, u) - 90 * (1 - aIn), y: lerp(1370, 1374, u) + 40 * (1 - aIn), r: lerp(-0.09, -0.065, u) - 0.12 * (1 - aIn), a: smooth(range(t, T_A0 - 0.4, T_A0 + 0.5)) };
+    const had = { x: lerp(708, 586, u), y: lerp(1370, 1374, u), r: lerp(0.08, 0.055, u), a: smooth(range(t, T_H0 - 0.3, T_H0 + 0.25)) };
+    const et = { x: lerp(858, 728, u), y: lerp(1115, 1210, u) - 40 * Math.sin(Math.PI * u), r: lerp(0, -0.12, u) };
     for (const p of [lul, ara, had, et]) rot(p, piv, sw);
     const z = 1 + 0.045 * ease.inOut(range(t, 0, 9));
     memo = { u, lul, ara, had, et, z, sw, ara_geom: araGeom(t, u) };
@@ -167,7 +167,7 @@
     for (let k = 0; k < nodes.length; k++) {
       const nd = nodes[k]; const q = open(nd); if (q <= 0) break;
       hadNode(b, nd, NP);
-      const e = 0.62 * fx.ease.out(q), sc = fx.ease.out(Math.min(1, q * 1.4));
+      const e = 0.58 * fx.ease.out(q), sc = fx.ease.out(Math.min(1, q * 1.4));
       for (let j = 0; j < 3; j++) { const az = nd.az + j * TAU / 3; if (Math.cos(az) < 0) drawHLeaf(c, NP[0], NP[1], az, e, nd.len * sc, nd.wid * sc, b.phi); }
     }
     // stem
@@ -182,7 +182,7 @@
     for (let k = nodes.length - 1; k >= 0; k--) {
       const nd = nodes[k]; const q = open(nd); if (q <= 0) continue;
       hadNode(b, nd, NP);
-      const e = 0.62 * fx.ease.out(q), sc = fx.ease.out(Math.min(1, q * 1.4));
+      const e = 0.58 * fx.ease.out(q), sc = fx.ease.out(Math.min(1, q * 1.4));
       for (let j = 0; j < 3; j++) { const az = nd.az + j * TAU / 3; if (Math.cos(az) >= 0) drawHLeaf(c, NP[0], NP[1], az, e, nd.len * sc, nd.wid * sc, b.phi); }
     }
   }
@@ -250,9 +250,9 @@
   }
 
   // ---------------------------------------------------------------- etrog
-  const ET_A = 64, ET_H = 92;
-  function etHW(v) { return ET_A * Math.pow(Math.max(0, 1 - v * v), 0.56) * (1 + 0.13 * v); }
-  function etBump(v, side) { return 1 + 0.018 * fx.noise(v * 9 + (side > 0 ? 0 : 40), 3.3); }
+  const ET_A = 62, ET_H = 96;
+  function etHW(v) { return ET_A * Math.pow(Math.max(0, 1 - v * v), 0.6) * (1 + 0.15 * v - 0.06 * v * v); }
+  function etBump(v, side) { return 1 + 0.03 * fx.noise(v * 11 + (side > 0 ? 0 : 40), 3.3) + 0.012 * fx.noise(v * 37 + (side > 0 ? 7 : 70), 1.1); }
   function etrogPath(g, grow = 0) {
     g.beginPath();
     const n = 60;
@@ -268,19 +268,32 @@
     // body
     etrogPath(g);
     const gr = g.createRadialGradient(-22, -34, 6, 0, 8, 118);
-    gr.addColorStop(0, '#fff6c4'); gr.addColorStop(0.3, '#f6dc6a'); gr.addColorStop(0.62, '#e8c547');
-    gr.addColorStop(0.86, '#c6961f'); gr.addColorStop(1, '#8a5f14');
+    gr.addColorStop(0, '#fff3b0'); gr.addColorStop(0.28, '#f7dc4e'); gr.addColorStop(0.6, '#e8c02e');
+    gr.addColorStop(0.85, '#c49014'); gr.addColorStop(1, '#7e5a0c');
     g.fillStyle = gr; g.fill();
     g.save(); etrogPath(g); g.clip();
     // bumpy skin: embossed dimples (shadow + highlight pairs) and fine oil-gland stipple
-    for (let i = 0; i < 1400; i++) {
+    // large soft lumps
+    for (let i = 0; i < 60; i++) {
+      const v = R() * 2 - 1, x = (R() * 2 - 1) * etHW(v) * 0.9, y = v * ET_H, r = 8 + R() * 14;
+      const lg = g.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+      lg.addColorStop(0, 'rgba(255,248,200,0.22)'); lg.addColorStop(0.6, 'rgba(255,240,170,0.05)'); lg.addColorStop(1, 'rgba(140,90,0,0.12)');
+      g.fillStyle = lg; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    }
+    for (let i = 0; i < 1500; i++) {
       const v = R() * 2 - 1, x = (R() * 2 - 1) * etHW(v), y = v * ET_H;
-      const nx = x / ET_A, lit = 0.5 - 0.35 * nx - 0.35 * v;
-      const r = 0.9 + R() * 1.6;
-      g.fillStyle = `rgba(120,78,10,${(0.1 + 0.16 * (1 - lit)).toFixed(3)})`;
-      g.beginPath(); g.arc(x + 0.7, y + 0.8, r, 0, TAU); g.fill();
-      g.fillStyle = `rgba(255,250,215,${(0.08 + 0.25 * lit * R()).toFixed(3)})`;
-      g.beginPath(); g.arc(x - 0.5, y - 0.6, r * 0.6, 0, TAU); g.fill();
+      const nx = x / ET_A, lit = cl(0.5 - 0.4 * nx - 0.35 * v);
+      const r = 1.1 + R() * 1.8;
+      g.fillStyle = `rgba(125,78,0,${(0.14 + 0.22 * (1 - lit)).toFixed(3)})`;
+      g.beginPath(); g.arc(x + 0.8, y + 0.9, r, 0, TAU); g.fill();
+      g.fillStyle = `rgba(255,252,220,${(0.1 + 0.4 * lit * R()).toFixed(3)})`;
+      g.beginPath(); g.arc(x - 0.6, y - 0.7, r * 0.55, 0, TAU); g.fill();
+    }
+    // a touch of green near the pitam and the stem end
+    for (const [yy, rr] of [[-ET_H + 10, 26], [ET_H - 6, 22]]) {
+      const gg = g.createRadialGradient(0, yy, 0, 0, yy, rr);
+      gg.addColorStop(0, 'rgba(150,160,40,0.35)'); gg.addColorStop(1, 'rgba(150,160,40,0)');
+      g.fillStyle = gg; g.fillRect(-rr, yy - rr, rr * 2, rr * 2);
     }
     for (let i = 0; i < 1600; i++) {
       const v = R() * 2 - 1, x = (R() * 2 - 1) * etHW(v), y = v * ET_H;
@@ -296,7 +309,7 @@
     }
     // shade on the lower right, warm rim on the left
     const sh = g.createLinearGradient(-60, -80, 70, 90);
-    sh.addColorStop(0, 'rgba(255,240,190,0.18)'); sh.addColorStop(0.55, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(70,40,5,0.35)');
+    sh.addColorStop(0, 'rgba(255,240,190,0.12)'); sh.addColorStop(0.6, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(90,50,0,0.22)');
     g.fillStyle = sh; g.fillRect(-100, -120, 200, 240);
     g.restore();
     etrogPath(g); g.strokeStyle = 'rgba(90,55,10,0.8)'; g.lineWidth = 1.1; g.stroke();
@@ -317,8 +330,8 @@
   // ---------------------------------------------------------------- binding (koishikel holder + rings)
   function holderShape(g) {
     g.beginPath();
-    g.moveTo(-35, -52); g.lineTo(-47, -196); g.quadraticCurveTo(0, -203, 47, -196); g.lineTo(35, -52);
-    g.quadraticCurveTo(0, -46, -35, -52); g.closePath();
+    g.moveTo(-40, -52); g.lineTo(-50, -196); g.quadraticCurveTo(0, -203, 50, -196); g.lineTo(40, -52);
+    g.quadraticCurveTo(0, -46, -40, -52); g.closePath();
   }
   function makeHolder() {
     const w = 140, h = 240, ox = 70, oy = 225;
@@ -326,10 +339,10 @@
     g.scale(SS, SS); g.translate(ox, oy);
     g.save(); holderShape(g); g.fillStyle = '#8a6a36'; g.fill(); g.clip();
     const d = 8.5;
-    for (let i = -14; i <= 14; i++) for (let j = 0; j <= 20; j++) {
-      const cx = (i - j) * d * 0.5 + (j % 2 ? 0 : 0), cy = -(46 + (i + j) * d * 0.5);
-      if (cy < -210 || cy > -40 || Math.abs(cx) > 55) continue;
-      const lightA = (i + j) % 2 === 0;
+    for (let row = 0; row <= 42; row++) for (let colI = -8; colI <= 8; colI++) {
+      const cy = -(44 + row * d * 0.5), cx = colI * d + (row % 2 ? d * 0.5 : 0);
+      if (cy < -212 || Math.abs(cx) > 56) continue;
+      const lightA = ((row + (row % 2 ? 1 : 0)) / 2 + colI) % 2 === 0;
       g.beginPath(); g.moveTo(cx, cy - d * 0.5); g.lineTo(cx + d * 0.5, cy); g.lineTo(cx, cy + d * 0.5); g.lineTo(cx - d * 0.5, cy); g.closePath();
       const gg = g.createLinearGradient(cx - d * 0.5, cy - d * 0.5, cx + d * 0.5, cy + d * 0.5);
       if (lightA) { gg.addColorStop(0, '#e2c98a'); gg.addColorStop(1, '#a8874c'); }
@@ -343,7 +356,7 @@
     g.restore();
     holderShape(g); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
     // rolled rim at the top
-    g.beginPath(); g.ellipse(0, -197, 47, 5, 0, 0, TAU);
+    g.beginPath(); g.ellipse(0, -197, 50, 5, 0, 0, TAU);
     g.fillStyle = '#c9a868'; g.fill(); g.strokeStyle = INK; g.lineWidth = 0.8; g.stroke();
     SPR.holder = { cv, w, h, ox, oy };
   }
@@ -396,6 +409,29 @@
     return cv;
   }
 
+  // The room behind the species: beat 4's final frame, thrown out of focus (a rack focus onto the
+  // species). Falls back to a painted interior if beat 4 is missing or fails.
+  function bgFromB4(env) {
+    const b4 = S.beats[4];
+    if (!b4 || !b4.draw) return null;
+    try {
+      const A = fx.canvas(540, 960), g = A.getContext('2d');
+      g.setTransform(0.5, 0, 0, 0.5, 0, 0);
+      b4.draw(g, 7, env);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.filter = 'none';
+      const B = fx.canvas(540, 960), gb = B.getContext('2d');
+      gb.drawImage(A, 0, 0);
+      gb.filter = 'blur(7px)'; gb.drawImage(A, 0, 0); gb.filter = 'none';
+      // settle it back so the species read in front of it
+      gb.globalCompositeOperation = 'multiply';
+      const gr = gb.createRadialGradient(270, 450, 60, 270, 480, 620);
+      gr.addColorStop(0, 'rgb(200,170,140)'); gr.addColorStop(1, 'rgb(150,120,100)');
+      gb.fillStyle = gr; gb.fillRect(0, 0, 540, 960);
+      gb.globalCompositeOperation = 'source-over';
+      return B;
+    } catch (err) { console.warn('b5: b4 background unavailable', err); return null; }
+  }
   function makeBG() {
     const R = fx.rng(5511);
     const A = fx.canvas(540, 960), g = A.getContext('2d');
@@ -499,18 +535,18 @@
     // lulav leaflets
     LEAVES.length = 0;
     for (const side of [-1, 1]) {
-      for (let s = 150 + (side > 0 ? 10 : 0); s < 1000; s += 20 + R() * 3) {
-        let len = 170 + R() * 80;
+      for (let s = 150 + (side > 0 ? 10 : 0); s < 1010; s += 19 + R() * 3) {
+        let len = 125 + R() * 55;
         const tipS = Math.min(s + len, 1108 - R() * 22);
         len = Math.max(50, tipS - s);
-        const ow = Math.max(5, lulHW(s + 0.45 * len) * (0.72 + 0.32 * R()));
-        const c0 = fx.mixRGB(greens[(R() * 4) | 0], [230, 190, 110], 0.08 + R() * 0.12);
-        const lum = 0.85 + 0.3 * R();
+        const ow = Math.max(5, lulHW(s + 0.4 * len) * (0.85 + 0.22 * R()));
+        const c0 = fx.mixRGB(greens[(R() * 4) | 0], [230, 190, 110], 0.06 + R() * 0.14);
+        const lum = 0.78 + 0.42 * R();
         LEAVES.push({
-          s, side, len, ow, tipx: Math.max(1, lulHW(s + len) * (0.2 + 0.5 * R())), th: (s > 900 ? 5 : 6.5) + R() * 3,
+          s, side, len, ow, tipx: Math.max(1, lulHW(s + len) * (0.72 + 0.26 * R())), th: (s > 900 ? 6 : 8) + R() * 3,
           col: col([c0[0] * lum, c0[1] * lum, c0[2] * lum]),
-          fold: `rgba(225,225,160,${(0.25 + 0.25 * R()).toFixed(2)})`,
-          rim: side < 0 && ow > 20 && R() < 0.7 ? 'rgba(255,205,130,0.45)' : null,
+          fold: `rgba(235,230,170,${(0.3 + 0.3 * R()).toFixed(2)})`,
+          rim: side < 0 && R() < 0.6 ? 'rgba(255,205,130,0.5)' : null,
         });
       }
     }
@@ -526,8 +562,8 @@
       let k = 0;
       for (let s = 26; s < len - 6; s += 20 + R() * 2.5, k++) {
         const f = s / len;
-        const l = 36 * (1 - 0.5 * fx.smooth((f - 0.72) / 0.28)) * (f < 0.1 ? 0.88 : 1) * (0.93 + 0.12 * R());
-        nodes.push({ s, len: l, wid: l * 0.46, az: k * Math.PI / 3 + ph + (R() - 0.5) * 0.25 });
+        const l = 40 * (1 - 0.5 * fx.smooth((f - 0.72) / 0.28)) * (f < 0.1 ? 0.88 : 1) * (0.93 + 0.12 * R());
+        nodes.push({ s, len: l, wid: l * 0.5, az: k * Math.PI / 3 + ph + (R() - 0.5) * 0.25 });
       }
       HB.push({ x, phi, len, bend, nodes });
     });
@@ -535,7 +571,7 @@
 
     // aravot: two branches, alternate narrow leaves on reddish stems
     AB.length = 0;
-    [[-9, -0.035, 748, 0.0, -0.05], [9, 0.045, 705, 1.9, 0.06]].forEach(([x, th, len, ph, curv]) => {
+    [[-6, -0.035, 748, 0.0, -0.05], [6, 0.045, 705, 1.9, 0.06]].forEach(([x, th, len, ph, curv]) => {
       const step = 21, nodes = [];
       const n = Math.floor(len / step);
       for (let k = 0; k < n; k++) {
@@ -577,7 +613,7 @@
     }
     makeEtrog();
     makeHolder();
-    SPR.bg = makeBG();
+    SPR.bg = bgFromB4(env) || makeBG();
     SPR.bokeh = [bokehSprite([255, 190, 110]), bokehSprite([255, 225, 170]), bokehSprite([240, 160, 90])];
     BOKEH.length = 0;
     const RB = fx.rng(5513);
@@ -660,7 +696,7 @@
         } else if (g.grp === 1) {
           const b = HB[g.b], nd = b.nodes[g.k];
           hadNode(b, nd, NP2);
-          const q = cl((hFront - nd.s) / 90), e = 0.62 * ease.out(q), az = nd.az + g.j * TAU / 3;
+          const q = cl((hFront - nd.s) / 90), e = 0.58 * ease.out(q), az = nd.az + g.j * TAU / 3;
           const L = nd.len * g.f * ease.out(Math.min(1, q * 1.4));
           const lx = NP2[0] + (Math.sin(e) * Math.sin(az) * Math.cos(b.phi) + Math.cos(e) * Math.sin(b.phi)) * L;
           const ly = NP2[1] + (Math.sin(e) * Math.sin(az) * Math.sin(b.phi) - Math.cos(e) * Math.cos(b.phi)) * L;
@@ -740,10 +776,11 @@
     const gold = smooth(range(t, 7.5, 9));
     if (gold > 0) {
       c.save();
-      c.translate(WC[0], WC[1]); c.scale(1, 1.6);
-      const gg = c.createRadialGradient(0, 0, 0, 0, 0, 900);
-      gg.addColorStop(0, '#fff0c8'); gg.addColorStop(0.4, '#ffd98e'); gg.addColorStop(1, '#e0a24e');
-      c.globalAlpha = gold * 0.9; c.fillStyle = gg; c.fillRect(-700, -700, 1400, 1400);
+      // same light as beat 6's opening frame (H5)
+      const gg = c.createRadialGradient(540, 930, 0, 540, 930, 1250);
+      gg.addColorStop(0, 'rgb(255,240,200)'); gg.addColorStop(0.3, 'rgb(255,208,130)');
+      gg.addColorStop(0.7, 'rgb(226,150,66)'); gg.addColorStop(1, 'rgb(150,84,40)');
+      c.globalAlpha = gold * 0.92; c.fillStyle = gg; c.fillRect(-100, -100, W + 200, H + 200);
       c.restore();
       c.globalAlpha = 1;
     }
@@ -806,7 +843,7 @@
     }
 
     // ---- glow of the species: a luminous engraving, rising into the final light
-    const gl = 0.12 * smooth(range(t, 3.2, 5)) + 0.7 * smooth(range(t, 7.2, 9));
+    const gl = 0.12 * smooth(range(t, 3.2, 5)) + 0.4 * smooth(range(t, 7.2, 9));
     if (gl > 0) {
       c.save(); c.globalCompositeOperation = 'lighter';
       if (lF > LUL_LEN) place(c, st.lul, SPR.lulavGlow, gl);
@@ -822,10 +859,10 @@
       c.save(); c.globalCompositeOperation = 'lighter';
       c.translate(WC[0], WC[1]); c.scale(1, 1.55);
       const wg = c.createRadialGradient(0, 0, 0, 0, 0, Rw);
-      const a = 0.55 * Math.min(1, kw * 3);
-      wg.addColorStop(0, `rgba(255,225,160,${a * 0.9})`);
-      wg.addColorStop(0.72, `rgba(255,200,120,${a * 0.45})`);
-      wg.addColorStop(0.9, `rgba(255,220,150,${a * 0.8 * (1 - kw * 0.6)})`);
+      const a = 0.5 * fx.smooth(kw * 1.6) * (1 - 0.55 * fx.smooth(fx.range(kw, 0.55, 1)));
+      wg.addColorStop(0, `rgba(255,215,140,${a * 0.5})`);
+      wg.addColorStop(0.72, `rgba(255,190,110,${a * 0.3})`);
+      wg.addColorStop(0.9, `rgba(255,215,140,${a * 0.9})`);
       wg.addColorStop(1, 'rgba(255,200,120,0)');
       c.fillStyle = wg; c.fillRect(-Rw, -Rw, Rw * 2, Rw * 2);
       c.restore();

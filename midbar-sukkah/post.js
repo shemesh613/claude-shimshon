@@ -71,7 +71,7 @@
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const cloud = fx.fbm(x * 0.011, y * 0.011, 3) * 7 + fx.noise(x * 0.06 + 9, y * 0.06) * 3;
-          const v = 249 + cloud + (rnd() - 0.5) * 6;
+          const v = 251 + cloud + (rnd() - 0.5) * 5;
           const i = 4 * (y * w + x);
           d[i] = v; d[i + 1] = v - 0.5; d[i + 2] = v - 2; d[i + 3] = 255;
         }
@@ -79,13 +79,13 @@
       g.putImageData(img, 0, 0);
       // fibres: thin curved strokes, mostly near-horizontal like laid paper
       g.lineCap = 'round';
-      for (let f = 0; f < 1600; f++) {
+      for (let f = 0; f < 1100; f++) {
         const x = rnd() * w, y = rnd() * h;
         const len = 5 + rnd() * 30;
         const ang = (rnd() - 0.5) * 1.3 + (rnd() < 0.3 ? Math.PI / 2 : 0);
         const bend = (rnd() - 0.5) * 9;
         const light = rnd() < 0.5;
-        g.strokeStyle = light ? `rgba(255,255,252,${0.25 + rnd() * 0.4})` : `rgba(150,120,90,${0.03 + rnd() * 0.06})`;
+        g.strokeStyle = light ? `rgba(255,255,252,${0.1 + rnd() * 0.2})` : `rgba(150,120,90,${0.03 + rnd() * 0.05})`;
         g.lineWidth = 0.4 + rnd() * 0.7;
         const cx = Math.cos(ang), cy = Math.sin(ang);
         g.beginPath();
@@ -95,7 +95,7 @@
       }
       // laid lines: very faint horizontal banding
       for (let y = 0; y < h; y += 7) {
-        g.fillStyle = `rgba(90,70,50,${0.02 + 0.02 * rnd()})`;
+        g.fillStyle = `rgba(90,70,50,${0.006 + 0.008 * rnd()})`;
         g.fillRect(0, y, w, 1);
       }
       paperHalf = c;

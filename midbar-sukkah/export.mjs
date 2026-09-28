@@ -74,7 +74,7 @@ if (process.env.STILLS) {
 const wavB64 = await page.evaluate(async ({ cues, duration }) => {
   const sr = 48000;
   const ctx = new OfflineAudioContext(2, Math.ceil(sr * (duration + 0.5)), sr);
-  window.SUKKOT.music.build(ctx, ctx.destination, cues, 0, 0);
+  window.MIDBAR.music.build(ctx, ctx.destination, cues, 0, 0);
   const buf = await ctx.startRendering();
   const n = buf.length, L = buf.getChannelData(0), R = buf.getChannelData(1);
   const dv = new DataView(new ArrayBuffer(44 + n * 4));
