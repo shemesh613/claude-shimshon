@@ -691,17 +691,18 @@
   function buildGlows() {
     const warm = [[0, 'rgba(255,190,105,1)'], [0.3, 'rgba(255,140,55,0.33)'], [1, 'rgba(255,110,40,0)']];
     return {
-      big: glowSprite(560, [[0, 'rgba(255,160,75,1)'], [0.25, 'rgba(255,120,45,0.34)'], [0.6, 'rgba(230,95,35,0.08)'], [1, 'rgba(200,80,30,0)']]),
+      big: glowSprite(470, [[0, 'rgba(255,160,75,1)'], [0.25, 'rgba(255,120,45,0.34)'], [0.6, 'rgba(230,95,35,0.08)'], [1, 'rgba(200,80,30,0)']]),
       lan: glowSprite(170, warm),
       core: glowSprite(95, warm),
       halo: glowSprite(200, warm),
       band: glowSprite(200, warm, 4.6, 0.9),
     };
   }
-  function blit(ctx, img, dy) {
+  function blit(ctx, img, dy, dx) {
+    dx = dx || 0;
     const s0 = Math.max(0, Math.floor(-80 - dy)), s1 = Math.min(img.height, Math.ceil(H + 80 - dy));
     if (s1 - s0 <= 0) return;
-    ctx.drawImage(img, 0, s0, img.width, s1 - s0, 0, dy + s0, img.width, s1 - s0);
+    ctx.drawImage(img, 0, s0, img.width, s1 - s0, dx, dy + s0, img.width, s1 - s0);
   }
 
   // name sprites are rendered lazily (the web font may arrive after init)
@@ -880,7 +881,7 @@
 
       // ---- schach
       const schY = SCH_TOP - cy;
-      if (schY < H && schY + SCH_H > 0) ctx.drawImage(R.schach, Math.round(4 * Math.sin(t * 0.35)), schY);
+      if (schY < H && schY + SCH_H > 0) blit(ctx, R.schach, schY, Math.round(4 * Math.sin(t * 0.35)));
 
       // ---- paper chains
       drawChains(ctx, R.decor.chains, t, -cy);
@@ -945,11 +946,11 @@
       // warm uplight on the schach from the lamps below
       const up = smooth(-500, -1500, cy);
       if (up > 0) {
-        const ug = ctx.createLinearGradient(0, H + 20, 0, H * 0.3);
+        const ug = ctx.createLinearGradient(0, H + 20, 0, H * 0.45);
         ug.addColorStop(0, 'rgba(255,135,55,' + (0.17 * up).toFixed(3) + ')');
         ug.addColorStop(0.5, 'rgba(255,135,55,' + (0.05 * up).toFixed(3) + ')');
         ug.addColorStop(1, 'rgba(255,135,55,0)');
-        ctx.fillStyle = ug; ctx.fillRect(0, H * 0.3, W, H * 0.72);
+        ctx.fillStyle = ug; ctx.fillRect(0, H * 0.45, W, H * 0.57);
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
