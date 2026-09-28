@@ -664,37 +664,44 @@
     const bg = g.createLinearGradient(0, H * 0.7, 0, H);
     bg.addColorStop(0, 'rgba(3,2,6,0)'); bg.addColorStop(0.45, 'rgba(3,2,6,0.38)'); bg.addColorStop(1, 'rgba(3,2,6,0.7)');
     g.fillStyle = bg; g.fillRect(0, H * 0.7, W, H * 0.3);
-    const grain = [];
-    for (let f = 0; f < 3; f++) {
-      const n = mk(256, 256), q = n.getContext('2d');
-      const id = q.createImageData(256, 256);
-      for (let i = 0; i < 256 * 256; i++) {
-        const v2 = rnd() < 0.5 ? 255 : 0;
-        id.data[i * 4] = v2; id.data[i * 4 + 1] = v2; id.data[i * 4 + 2] = v2;
-        id.data[i * 4 + 3] = (rnd() * 26) | 0;
-      }
-      q.putImageData(id, 0, 0);
-      grain.push(n);
+    // one grain plate larger than the frame; each frame blits it at a different offset
+    const grain = mk(W + 256, H + 256), q = grain.getContext('2d');
+    const id = q.createImageData(grain.width, grain.height);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v2 = rnd() < 0.5 ? 255 : 0;
+      d[i] = v2; d[i + 1] = v2; d[i + 2] = v2;
+      d[i + 3] = (rnd() * 22) | 0;
     }
+    q.putImageData(id, 0, 0);
     return { v, grain };
   }
 
   // ---------------------------------------------------------------- glow sprites
-  function glowSprite(stops) {
-    const c = mk(256, 256), g = c.getContext('2d');
-    const rg = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  // glow sprites are pre-rendered at the exact size they are drawn (unscaled blits are cheap)
+  function glowSprite(r, stops, sx, sy) {
+    sx = sx || 1; sy = sy || 1;
+    const c = mk(Math.ceil(2 * r * sx), Math.ceil(2 * r * sy)), g = c.getContext('2d');
+    g.translate(c.width / 2, c.height / 2); g.scale(sx, sy);
+    const rg = g.createRadialGradient(0, 0, 0, 0, 0, r);
     for (const [o, col] of stops) rg.addColorStop(o, col);
-    g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+    g.fillStyle = rg; g.fillRect(-r, -r, 2 * r, 2 * r);
     return c;
   }
   function buildGlows() {
-    const big = glowSprite([[0, 'rgba(255,160,75,1)'], [0.25, 'rgba(255,120,45,0.34)'], [0.6, 'rgba(230,95,35,0.08)'], [1, 'rgba(200,80,30,0)']]);
-    const small = glowSprite([[0, 'rgba(255,190,105,1)'], [0.3, 'rgba(255,140,55,0.33)'], [1, 'rgba(255,110,40,0)']]);
-    const up = mk(4, 256), g = up.getContext('2d');
-    const lg = g.createLinearGradient(0, 256, 0, 0);
-    lg.addColorStop(0, 'rgba(255,135,55,1)'); lg.addColorStop(0.5, 'rgba(255,135,55,0.3)'); lg.addColorStop(1, 'rgba(255,135,55,0)');
-    g.fillStyle = lg; g.fillRect(0, 0, 4, 256);
-    return { big, small, up };
+    const warm = [[0, 'rgba(255,190,105,1)'], [0.3, 'rgba(255,140,55,0.33)'], [1, 'rgba(255,110,40,0)']];
+    return {
+      big: glowSprite(560, [[0, 'rgba(255,160,75,1)'], [0.25, 'rgba(255,120,45,0.34)'], [0.6, 'rgba(230,95,35,0.08)'], [1, 'rgba(200,80,30,0)']]),
+      lan: glowSprite(170, warm),
+      core: glowSprite(95, warm),
+      halo: glowSprite(200, warm),
+      band: glowSprite(200, warm, 4.6, 0.9),
+    };
+  }
+  function blit(ctx, img, dy) {
+    const s0 = Math.max(0, Math.floor(-80 - dy)), s1 = Math.min(img.height, Math.ceil(H + 80 - dy));
+    if (s1 - s0 <= 0) return;
+    ctx.drawImage(img, 0, s0, img.width, s1 - s0, 0, dy + s0, img.width, s1 - s0);
   }
 
   // name sprites are rendered lazily (the web font may arrive after init)
@@ -773,10 +780,10 @@
     ctx.lineCap = 'butt';
   }
 
-  function glow(ctx, spr, x, y, r, a) {
+  function glow(ctx, spr, x, y, a) {
     if (a <= 0.004) return;
     ctx.globalAlpha = a > 1 ? 1 : a;
-    ctx.drawImage(spr, x - r, y - r, r * 2, r * 2);
+    ctx.drawImage(spr, Math.round(x - spr.width / 2), Math.round(y - spr.height / 2));
   }
 
   S.scenes[4] = {
@@ -814,7 +821,7 @@
       // ---- sky (only once the wall no longer covers the frame)
       const sy = skyShift(cy);
       if (WALL_TOP - cy > -60) {
-        ctx.drawImage(R.sky.c, 0, sy - 20);
+        blit(ctx, R.sky.c, Math.round(sy - 20));
         ctx.fillStyle = '#fff';
         for (const s of R.sky.tw) {
           const yy = s.y + sy - 20;
@@ -832,11 +839,7 @@
           const reveal = smooth(nameT0, nameT0 + 6 * step + 1.5, t);
           ctx.globalCompositeOperation = 'lighter';
           // soft golden haze band behind the arc
-          glow(ctx, G.small, 960, 250 + sy, 900, 0);
-          ctx.save();
-          ctx.translate(960, 262 + sy); ctx.scale(4.6, 0.9);
-          glow(ctx, G.small, 0, 0, 200, 0.16 * reveal);
-          ctx.restore();
+          glow(ctx, G.band, 960, 262 + sy, 0.16 * reveal);
           // drifting golden motes
           ctx.fillStyle = 'rgb(255,210,130)';
           for (const m of R.motes) {
@@ -856,15 +859,15 @@
             const nx = 960 + (3 - i) * 238;          // Avraham on the right, David on the left
             const ny = 215 + 88 * k * k + sy + (1 - a) * 18;
             const alpha = a * (0.84 * breathe + 0.16 * flash);
-            glow(ctx, G.small, nx, ny, 190 + 40 * flash, 0.20 * alpha);
+            glow(ctx, G.halo, nx, ny, (0.2 + 0.08 * flash) * alpha);
             ctx.globalCompositeOperation = 'source-over';
             const sp = sprites[i];
-            const sc = 0.96 + 0.04 * a;
+            const px = Math.round(nx - sp.width / 2), py = Math.round(ny - sp.height / 2);
             ctx.globalAlpha = alpha;
-            ctx.drawImage(sp, nx - sp.width * sc / 2, ny - sp.height * sc / 2, sp.width * sc, sp.height * sc);
+            ctx.drawImage(sp, px, py);
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.45 * a * flash;
-            if (ctx.globalAlpha > 0.01) ctx.drawImage(sp, nx - sp.width * sc / 2, ny - sp.height * sc / 2, sp.width * sc, sp.height * sc);
+            if (ctx.globalAlpha > 0.01) ctx.drawImage(sp, px, py);
           }
           ctx.globalAlpha = 1;
           ctx.globalCompositeOperation = 'source-over';
@@ -873,11 +876,11 @@
 
       // ---- walls
       const wy = WALL_TOP - cy;
-      if (wy < H) ctx.drawImage(R.wall, 0, wy);
+      if (wy < H) blit(ctx, R.wall, wy);
 
       // ---- schach
       const schY = SCH_TOP - cy;
-      if (schY < H && schY + SCH_H > 0) ctx.drawImage(R.schach, 4 * Math.sin(t * 0.35), schY);
+      if (schY < H && schY + SCH_H > 0) ctx.drawImage(R.schach, Math.round(4 * Math.sin(t * 0.35)), schY);
 
       // ---- paper chains
       drawChains(ctx, R.decor.chains, t, -cy);
@@ -894,22 +897,23 @@
         if (ay > H || ay + it.L + sh < 0) continue;
         const th = it.a1 * Math.sin(t * it.w1 + it.p1) + it.a2 * Math.sin(t * it.w2 + it.p2);
         const c = Math.cos(th), s = Math.sin(th);
-        ctx.setTransform(ctx.getTransform().multiply(new DOMMatrix([c, s, -s, c, it.x, ay])));
+        ctx.save();
+        ctx.translate(it.x, ay); ctx.rotate(th);
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, it.L + 4); ctx.stroke();
         ctx.drawImage(sp, -sw / 2, it.L, sw, sh);
-        ctx.setTransform(ctx.getTransform().multiply(new DOMMatrix([c, s, -s, c, it.x, ay]).inverse()));
+        ctx.restore();
         if (it.type === 'lan') lanterns.push({ x: it.x - s * (it.L + sh * 0.55), y: ay + c * (it.L + sh * 0.55), s: it.s, i });
       }
 
       // ---- table (nearer: moves faster)
       const ty = TBL_TOP - cy * 1.25;
-      if (ty < H + 40) ctx.drawImage(R.table.c, 0, ty);
+      if (ty < H + 40) blit(ctx, R.table.c, ty);
 
       // ---- light (additive)
       ctx.globalCompositeOperation = 'lighter';
       for (const L of lanterns) {
         const f = 0.92 + 0.08 * flick(t, L.i + 7);
-        glow(ctx, G.small, L.x, L.y, 160 * L.s, 0.42 * f);
+        glow(ctx, G.lan, L.x, L.y, 0.42 * f * L.s);
       }
       if (ty < H + 700) {
         for (let i = 0; i < R.table.candles.length; i++) {
@@ -917,7 +921,7 @@
           const f = flick(t, i);
           const lean = 2.4 * Math.sin(t * 2.1 + i * 1.3) + 1.3 * Math.sin(t * 5.3 + i * 2.2) + 0.6 * Math.sin(t * 11.7 + i);
           const fx = cd.x, fy = cd.y + ty - TBL_TOP;
-          glow(ctx, G.big, fx, fy - 20, 560 * (0.95 + 0.05 * f), 0.34 * f);
+          glow(ctx, G.big, fx, fy - 20, 0.34 * f);
           // flame
           ctx.globalAlpha = 1;
           const h = 46 * f, w = 9.5 + 12 * (f - 1);
@@ -935,14 +939,17 @@
           ctx.fill();
           ctx.fillStyle = 'rgba(90,110,255,0.3)';
           ctx.beginPath(); ctx.ellipse(fx, fy - 3, 3.5, 6, 0, 0, 6.283); ctx.fill();
-          glow(ctx, G.small, fx + lean * 0.3, fy - h * 0.4, 95, 0.5 * f);
+          glow(ctx, G.core, fx + lean * 0.3, fy - h * 0.4, 0.5 * f);
         }
       }
       // warm uplight on the schach from the lamps below
       const up = smooth(-500, -1500, cy);
       if (up > 0) {
-        ctx.globalAlpha = 0.17 * up;
-        ctx.drawImage(G.up, 0, H * 0.3, W, H * 0.72);
+        const ug = ctx.createLinearGradient(0, H + 20, 0, H * 0.3);
+        ug.addColorStop(0, 'rgba(255,135,55,' + (0.17 * up).toFixed(3) + ')');
+        ug.addColorStop(0.5, 'rgba(255,135,55,' + (0.05 * up).toFixed(3) + ')');
+        ug.addColorStop(1, 'rgba(255,135,55,0)');
+        ctx.fillStyle = ug; ctx.fillRect(0, H * 0.3, W, H * 0.72);
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
@@ -954,10 +961,8 @@
       ctx.globalAlpha = 1;
       ctx.drawImage(R.post.v, 0, 0);
       const fi = Math.floor(t * 24);
-      const gtile = R.post.grain[fi % 3];
       const ox = (fi * 97) % 256, oy = (fi * 57) % 256;
-      ctx.globalAlpha = 0.8;
-      for (let gx = -ox; gx < W; gx += 256) for (let gy = -oy; gy < H; gy += 256) ctx.drawImage(gtile, gx, gy);
+      ctx.drawImage(R.post.grain, ox, oy, W, H, 0, 0, W, H);
       ctx.restore();
     },
   };

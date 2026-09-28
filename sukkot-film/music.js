@@ -714,8 +714,24 @@
       }
       if (idx >= events.length && timer) { clearInterval(timer); timer = null; }
     }
-    if (isOffline) pump(Infinity);
-    else {
+    if (isOffline) {
+      // Offline: create voices just ahead of the render position with suspend/resume, so the
+      // graph only holds a few seconds of pending voices. Falls back to scheduling everything.
+      const q = 128 / sr, step = 2, ahead = 3;
+      pump(when + ahead);
+      let ok = typeof ctx.suspend === 'function';
+      const endT = idx < events.length ? T(events[events.length - 1].t) : 0;
+      if (ok) {
+        try {
+          for (let t = when + step; t < endT; t += step) {
+            const ts = Math.round(t / q) * q;
+            if (ts <= 0 || ts >= ctx.length / sr) break;
+            ctx.suspend(ts).then(() => { if (!stopped) pump(ts + ahead); ctx.resume(); });
+          }
+        } catch (_) { ok = false; }
+      }
+      if (!ok) pump(Infinity);
+    } else {
       pump(ctx.currentTime + 2.5);
       if (idx < events.length) timer = setInterval(() => { if (!stopped) pump(ctx.currentTime + 2.5); }, 200);
     }

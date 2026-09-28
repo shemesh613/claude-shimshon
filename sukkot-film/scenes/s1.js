@@ -106,6 +106,13 @@
       gr.addColorStop(Y(700), '#5e3858');
       gr.addColorStop(1, '#3a2240');
       g.fillStyle = gr; g.fillRect(K.x, K.y, K.w, K.h);
+      // horizon glow from the clouds of glory
+      g.save(); g.translate(960, 620); g.scale(1, 0.5);
+      g.globalCompositeOperation = 'lighter';
+      const hg = g.createRadialGradient(0, 0, 0, 0, 0, 1050);
+      hg.addColorStop(0, 'rgba(120,80,135,0.42)'); hg.addColorStop(0.5, 'rgba(120,80,135,0.13)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = hg; g.fillRect(-1200, -1500, 2400, 2400);
+      g.restore();
       // milky way band (lower-left to upper-right)
       const ax = -80, ay = 520, bx = 2000, by = -280;
       const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
@@ -386,7 +393,8 @@
       });
     }
     r.CB = { x: -160, y: 160, w: 2240, h: 860 };
-    r.cbuf = [0, 1, 2, 3].map(() => mk(r.CB.w / 2, r.CB.h / 2));
+    r.CQ = 0.35; // cloud buffer resolution
+    r.cbuf = [0, 1, 2, 3].map(() => mk(Math.ceil(r.CB.w * r.CQ), Math.ceil(r.CB.h * r.CQ)));
     r.canopy = [];
     for (let k = 0; k < 24; k++) {
       const q = k / 23;
@@ -486,7 +494,8 @@
       ctx.fillStyle = '#05061a'; ctx.fillRect(0, 0, W, H);
 
       // --- sky ---
-      layer(ctx, 0.18, c);
+      // (sky is translated only: its parallax zoom would be imperceptible)
+      ctx.save(); ctx.translate(c.panX * 0.18, c.camY * 0.18);
       ctx.drawImage(R.sky, R.SKY.x, R.SKY.y);
       ctx.globalCompositeOperation = 'lighter';
       for (const s of R.tw) {
@@ -506,18 +515,18 @@
       ctx.restore();
 
       // --- horizon glow from the clouds of glory (sky only) ---
-      layer(ctx, 0.4, c);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.translate(960, 600); ctx.scale(1, 0.5);
-      {
+      // (the cool base glow is baked into the sky; the golden part grows live)
+      if (w > 0.001) {
+        layer(ctx, 0.4, c);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(960, 600); ctx.scale(1, 0.5);
         const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, 1050);
-        const cr = lerp(120, 235, w) | 0, cg = lerp(80, 150, w) | 0, cb = lerp(135, 80, w) | 0;
-        gr.addColorStop(0, `rgba(${cr},${cg},${cb},${0.4 + 0.2 * w})`);
-        gr.addColorStop(0.5, `rgba(${cr},${cg},${cb},${0.12 + 0.08 * w})`);
+        gr.addColorStop(0, `rgba(235,150,80,${0.32 * w})`);
+        gr.addColorStop(0.5, `rgba(220,130,80,${0.1 * w})`);
         gr.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = gr; ctx.fillRect(-1100, -1100, 2200, 2200);
+        ctx.fillStyle = gr; ctx.fillRect(-1100, -1300, 2200, 1700);
+        ctx.restore();
       }
-      ctx.restore();
 
       // --- far mountains ---
       layer(ctx, 0.4, c);
@@ -554,7 +563,7 @@
         const g = b.getContext('2d');
         g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
         g.clearRect(0, 0, b.width, b.height);
-        g.setTransform(0.5, 0, 0, 0.5, -CB.x * 0.5, -CB.y * 0.5);
+        g.setTransform(R.CQ, 0, 0, R.CQ, -CB.x * R.CQ, -CB.y * R.CQ);
         return g;
       });
       bufs[1].globalCompositeOperation = 'lighter'; bufs[3].globalCompositeOperation = 'lighter';
