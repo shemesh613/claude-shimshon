@@ -559,21 +559,46 @@
     g.fillStyle = gr; g.fillRect(0, 0, size, size);
     return c;
   }
-  function buildVignette() {
-    const c = mk(W, H), g = c.getContext('2d');
+  // Vignette + bottom calm band + film grain, pre-composited into a few full-frame
+  // overlays (one cheap drawImage per frame; the grain variant is picked from t).
+  function buildFinish(rng, count) {
+    const base = mk(W, H), g = base.getContext('2d');
     const vg = g.createRadialGradient(W / 2, H * 0.45, H * 0.35, W / 2, H * 0.5, H * 1.05);
     vg.addColorStop(0, 'rgba(6,3,1,0)'); vg.addColorStop(0.6, 'rgba(6,3,1,0.35)'); vg.addColorStop(1, 'rgba(6,3,1,0.85)');
     g.fillStyle = vg; g.fillRect(0, 0, W, H);
-    return c;
-  }
-  function buildGrain(rng) {
-    const n = 512, c = mk(n, n), g = c.getContext('2d');
-    const id = g.createImageData(n, n), d = id.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const v = rng(), on = v > 0.5 ? 255 : 0;
-      d[i] = d[i + 1] = d[i + 2] = on; d[i + 3] = (Math.abs(v - 0.5) * 2) * 255;
+    const bb = g.createLinearGradient(0, H * 0.7, 0, H);
+    bb.addColorStop(0, 'rgba(6,3,1,0)'); bb.addColorStop(1, 'rgba(6,3,1,0.55)');
+    g.fillStyle = bb; g.fillRect(0, H * 0.7, W, H * 0.3);
+    const src = g.getImageData(0, 0, W, H).data;
+    const out = [];
+    for (let k = 0; k < count; k++) {
+      const c = mk(W, H), cg = c.getContext('2d');
+      const id = cg.createImageData(W, H), d = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const av = src[i + 3] / 255, v = rng();
+        const ag = Math.abs(v - 0.5) * 2 * 0.075, G = v > 0.5 ? 255 : 0;
+        const A = 1 - (1 - av) * (1 - ag);
+        if (A <= 0) continue;
+        const inv = 1 / A;
+        d[i] = (G * ag + (1 - ag) * av * src[i]) * inv;
+        d[i + 1] = (G * ag + (1 - ag) * av * src[i + 1]) * inv;
+        d[i + 2] = (G * ag + (1 - ag) * av * src[i + 2]) * inv;
+        d[i + 3] = A * 255;
+      }
+      cg.putImageData(id, 0, 0);
+      out.push(c);
     }
-    g.putImageData(id, 0, 0);
+    return out;
+  }
+  // Final-title backdrop: dims the room so the gold letters read, warm in the middle.
+  function buildVeil() {
+    const c = mk(W, H), g = c.getContext('2d');
+    const vg = g.createRadialGradient(960, 500, 100, 960, 520, 1150);
+    vg.addColorStop(0, 'rgba(46,20,6,0.42)'); vg.addColorStop(0.55, 'rgba(26,11,3,0.55)'); vg.addColorStop(1, 'rgba(12,5,2,0.78)');
+    g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    const band = g.createLinearGradient(0, 220, 0, 820);
+    band.addColorStop(0, 'rgba(30,12,3,0)'); band.addColorStop(0.5, 'rgba(30,12,3,0.3)'); band.addColorStop(1, 'rgba(30,12,3,0)');
+    g.fillStyle = band; g.fillRect(0, 220, W, 600);
     return c;
   }
 
