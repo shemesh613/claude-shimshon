@@ -608,25 +608,25 @@
     const l1 = Math.max(0, sp) * 0.09, l2 = Math.max(0, -sp) * 0.09;
     g.lineCap = 'round'; g.lineJoin = 'round';
     // legs
-    g.lineWidth = 0.058;
+    g.lineWidth = 0.044;
     g.beginPath();
-    g.moveTo(-0.04, -0.34); g.lineTo(-0.05 + sp * 0.03, -0.17 - l1 * 0.7); g.lineTo(-0.065 + sp * 0.05, -0.02 - l1);
-    g.moveTo(0.04, -0.34); g.lineTo(0.05 - sp * 0.03, -0.17 - l2 * 0.7); g.lineTo(0.065 - sp * 0.05, -0.02 - l2);
+    g.moveTo(-0.035, -0.3); g.lineTo(-0.045 + sp * 0.025, -0.15 - l1 * 0.7); g.lineTo(-0.055 + sp * 0.04, -0.02 - l1);
+    g.moveTo(0.035, -0.3); g.lineTo(0.045 - sp * 0.025, -0.15 - l2 * 0.7); g.lineTo(0.055 - sp * 0.04, -0.02 - l2);
     g.stroke();
     g.beginPath();
-    g.ellipse(-0.05 + sp * 0.05, -0.012 - l1, 0.045, 0.018, 0, 0, TAU);
-    g.moveTo(0.125 - sp * 0.05, -0.012 - l2);
-    g.ellipse(0.08 - sp * 0.05, -0.012 - l2, 0.045, 0.018, 0, 0, TAU);
+    g.ellipse(-0.045 + sp * 0.04, -0.012 - l1, 0.04, 0.016, 0, 0, TAU);
+    g.moveTo(0.105 - sp * 0.04, -0.012 - l2);
+    g.ellipse(0.065 - sp * 0.04, -0.012 - l2, 0.04, 0.016, 0, 0, TAU);
     g.fill();
-    // long coat
-    const sw = cp * 0.025;
+    // long black coat (kapote), swinging with the step
+    const sw = cp * 0.03;
     g.beginPath();
     g.moveTo(-0.118, -0.79);
-    g.quadraticCurveTo(-0.132, -0.62, -0.108, -0.53);
-    g.lineTo(-0.155 + sw, -0.27);
-    g.quadraticCurveTo(sw, -0.245, 0.155 + sw, -0.27);
-    g.lineTo(0.108, -0.53);
-    g.quadraticCurveTo(0.132, -0.62, 0.118, -0.79);
+    g.quadraticCurveTo(-0.134, -0.62, -0.112, -0.52);
+    g.quadraticCurveTo(-0.14 + sw * 0.5, -0.36, -0.158 + sw, -0.2);
+    g.quadraticCurveTo(sw, -0.18, 0.158 + sw, -0.2);
+    g.quadraticCurveTo(0.14 + sw * 0.5, -0.36, 0.112, -0.52);
+    g.quadraticCurveTo(0.134, -0.62, 0.118, -0.79);
     g.quadraticCurveTo(0, -0.835, -0.118, -0.79);
     g.fill();
     // neck, head, beard
@@ -684,13 +684,18 @@
       for (let k = n; k >= 0; k--) g.lineTo(lerp(a[k][0], b[k][0], f1), lerp(a[k][1], b[k][1], f1));
       g.closePath(); g.fill();
     };
-    g.fillStyle = rgb([248 * light, 236 * light, 210 * light]); poly(top, bot, 0, 1);
-    g.fillStyle = rgb([40 * light, 70 * light, 160 * light]); poly(top, bot, 0.1, 0.22); poly(top, bot, 0.78, 0.9);
+    // a Simchat Torah flag: cream field, gold and crimson borders, a little Torah scroll
+    g.fillStyle = rgb([176 * light, 30 * light, 44 * light]); poly(top, bot, 0, 1);
+    g.fillStyle = rgb([236 * light, 186 * light, 88 * light]); poly(top, bot, 0.08, 0.92);
+    g.fillStyle = rgb([250 * light, 238 * light, 212 * light]); poly(top, bot, 0.16, 0.84);
     const mx = lerp(top[4][0], bot[4][0], 0.5), my = lerp(top[4][1], bot[4][1], 0.5);
-    g.strokeStyle = rgb([40 * light, 70 * light, 160 * light]); g.lineWidth = 0.007;
-    g.beginPath(); star(g, mx, my, 0.03); g.stroke();
+    g.fillStyle = rgb([30 * light, 52 * light, 140 * light]);
+    g.fillRect(mx - 0.018, my - 0.03, 0.036, 0.058);
+    g.fillStyle = rgb([200 * light, 150 * light, 60 * light]);
+    g.fillRect(mx - 0.014, my - 0.043, 0.006, 0.014); g.fillRect(mx + 0.008, my - 0.043, 0.006, 0.014);
+    g.fillRect(mx - 0.018, my - 0.012, 0.036, 0.006);
     // shading across the wave
-    g.fillStyle = 'rgba(80,40,10,0.18)'; poly(top, bot, 0, 1);
+    g.fillStyle = 'rgba(80,40,10,0.15)'; poly(top, bot, 0, 1);
   }
 
   // ---------- scene state (static caches only) ----------
@@ -705,17 +710,30 @@
       glints,
       parochet: buildParochet(),
       valance: buildValance(),
-      chand: buildChandelier(cands),
-      cands,
       glow: buildGlow(128, [[0, 'rgba(255,240,200,1)'], [0.2, 'rgba(255,200,120,0.55)'], [0.55, 'rgba(255,160,70,0.12)'], [1, 'rgba(255,140,50,0)']]),
       spark: buildGlow(48, [[0, 'rgba(255,255,235,1)'], [0.15, 'rgba(255,225,150,0.8)'], [0.45, 'rgba(255,180,80,0.18)'], [1, 'rgba(255,160,60,0)']]),
-      vignette: buildVignette(),
-      grain: [buildGrain(rng), buildGrain(rng)],
+      finish: buildFinish(rng, 4),
+      veil: buildVeil(),
       torah: null,
       dancers: [],
       parts: [],
       torahGlints: [],
+      candles: [],
     };
+    // brass chandeliers are baked into the background (static); only candle glints animate
+    const chand = buildChandelier(cands);
+    const bgc = L.bg.getContext('2d');
+    for (const [x, y, s, dim] of [[160, 470, 0.62, 0.7], [1760, 470, 0.62, 0.7], [420, 330, 0.95, 1], [1500, 330, 0.95, 1]]) {
+      bgc.strokeStyle = 'rgba(60,40,20,0.9)'; bgc.lineWidth = 3;
+      bgc.beginPath(); bgc.moveTo(x, 0); bgc.lineTo(x, y); bgc.stroke();
+      bgc.drawImage(chand, x - 220 * s, y, 440 * s, 340 * s);
+      bgc.globalCompositeOperation = 'lighter';
+      bgc.globalAlpha = 0.3 * dim;
+      bgc.drawImage(L.glow, x - 420 * s, y + 150 * s - 420 * s, 840 * s, 840 * s);
+      bgc.globalAlpha = 1;
+      bgc.globalCompositeOperation = 'source-over';
+      for (const cd of cands) L.candles.push([x + cd[0] * s, y + cd[1] * s, cd[2] * dim, s]);
+    }
     // carried Torah sprite (px space, 140 x 330)
     L.torah = mk(140, 330);
     drawScroll(L.torah.getContext('2d'), 70, 90, 210, 74, [26, 50, 138], true, L.torahGlints);
@@ -746,12 +764,12 @@
   const REFY = 948;
   function camera(t) {
     const a = eio(seg(t, 0, 4.8));
-    let z = lerp(1.22, 1.29, a), fy = lerp(872, 884, a);
+    let z = lerp(1.22, 1.29, a), fy = lerp(862, 874, a);
     const b = eio(seg(t, 4.3, 7.8));
-    z = lerp(z, 1.035, b); fy = lerp(fy, REFY, b);
+    z = lerp(z, 1.035, b); fy = lerp(fy, 985, b);
     z += 0.035 * seg(t, 7.8, 13.5);
-    const d = eio(seg(t, 12.8, 16.4));
-    z = lerp(z, 1.12, d); fy = lerp(fy, 505, d);
+    const d = eio(seg(t, 12.8, 16.6));
+    z = lerp(z, 1.34, d); fy = lerp(fy, 424, d);
     const fx = 960 + 16 * Math.sin(t * 0.33) * (1 - d);
     return { z, fx, fy, d };
   }
@@ -858,7 +876,7 @@
     // ----- hakafot: circle of dancers around the Torah -----
     const danceIn = seg(t, 4.2, 8.2);
     if (danceIn > 0) {
-      const CX = 960, CY = 1330, RA = 440, RB = 62;
+      const CX = 960, CY = 1345, RA = 430, RB = 82;
       const rot = 0.4 * t;
       const beat = t * TAU * 1.05;
       const list = [];
@@ -871,11 +889,11 @@
         const e = eo(seg(t, 4.3 + (i % 6) * 0.22, 7.3 + (i % 6) * 0.22));
         const sx = Math.cos(th) < 0 ? -260 : 2180;
         x = lerp(sx, x, e);
-        list.push({ v, i, x, y, depth, s: 272 * v.size * (0.86 + 0.14 * (depth + 1) / 2), p: beat + v.ph + i * 0.35 });
+        list.push({ v, i, x, y, depth, s: 238 * v.size * (0.84 + 0.16 * (depth + 1) / 2), p: beat + v.ph + i * 0.35 });
       }
       list.sort((p, q) => p.depth - q.depth);
       const bearerDone = eo(seg(t, 4.6, 8.0));
-      const bearer = { x: lerp(2150, 960, bearerDone), y: 1318 };
+      const bearer = { x: lerp(2150, 960, bearerDone), y: 1345 };
       let drewBearer = false;
       for (const d of list) {
         if (!drewBearer && d.depth > -0.05) { drawBearer(ctx, bearer.x, bearer.y, t, beat, fl); drewBearer = true; }
@@ -884,41 +902,21 @@
       if (!drewBearer) drawBearer(ctx, bearer.x, bearer.y, t, beat, fl);
     }
 
-    // ----- chandeliers (slightly closer to camera: more parallax) -----
-    ctx.restore();
-    ctx.save();
-    applyCam(ctx, c, 1.12);
-    const chIntens = fl * (1 + 1.2 * burstUp);
-    for (const [x, y, s, dim] of [[160, 470, 0.62, 0.7], [1760, 470, 0.62, 0.7], [420, 330, 0.95, 1], [1500, 330, 0.95, 1]]) {
-      ctx.strokeStyle = 'rgba(60,40,20,0.9)'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x, -600); ctx.lineTo(x, y); ctx.stroke();
-      ctx.drawImage(L.chand, x - 220 * s, y, 440 * s, 340 * s);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = clamp(0.33 * dim * chIntens, 0, 1);
-      ctx.drawImage(L.glow, x - 420 * s, y + 150 * s - 420 * s, 840 * s, 840 * s);
-      for (let k = 0; k < L.cands.length; k++) {
-        const cd = L.cands[k];
-        const f = 0.75 + 0.25 * Math.sin(t * (9 + (k % 4)) + k * 1.9 + x);
-        ctx.globalAlpha = clamp(0.8 * cd[2] * f * dim, 0, 1);
-        const gs = 46 * s;
-        ctx.drawImage(L.spark, x + cd[0] * s - gs / 2, y + cd[1] * s - gs / 2, gs, gs);
-      }
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = 'source-over';
+    // ----- chandelier candles: flickering flames -----
+    ctx.globalCompositeOperation = 'lighter';
+    const chBoost = 1 + 1.5 * burst;
+    for (let k = 0; k < L.candles.length; k++) {
+      const cd = L.candles[k];
+      const f = 0.72 + 0.28 * Math.sin(t * (8 + (k % 5)) + k * 1.9);
+      ctx.globalAlpha = clamp(0.75 * cd[2] * f * chBoost, 0, 1);
+      const gs = (40 + 14 * burst) * cd[3];
+      ctx.drawImage(L.spark, cd[0] - gs / 2, cd[1] - gs / 2, gs, gs);
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     // ----- screen-space atmosphere -----
-    // floor/bottom calm band for the caption
-    const bgr = ctx.createLinearGradient(0, H * 0.7, 0, H);
-    bgr.addColorStop(0, 'rgba(10,5,2,0)'); bgr.addColorStop(1, 'rgba(10,5,2,0.6)');
-    ctx.fillStyle = bgr; ctx.fillRect(0, H * 0.7, W, H * 0.3);
-
-    // warm haze
     ctx.globalCompositeOperation = 'lighter';
-    const hz = ctx.createLinearGradient(0, 0, 0, H);
-    hz.addColorStop(0, 'rgba(255,170,80,0.03)'); hz.addColorStop(0.5, 'rgba(255,170,80,0.06)'); hz.addColorStop(1, 'rgba(255,170,80,0)');
-    ctx.fillStyle = hz; ctx.fillRect(0, 0, W, H);
 
     // confetti + sparkles
     const confAmt = ss(4.8, 7.5, t);
@@ -961,34 +959,27 @@
     }
 
     // ----- finale: golden burst, then the title -----
-    if (burst > 0.001) {
-      ctx.globalCompositeOperation = 'lighter';
-      const bx = 960, by = 440 + 80 * (1 - c.d);
-      const r = lerp(500, 1400, burstUp);
-      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, r);
-      bg.addColorStop(0, `rgba(255,236,190,${0.85 * burst})`);
-      bg.addColorStop(0.35, `rgba(255,190,95,${0.5 * burst})`);
-      bg.addColorStop(1, 'rgba(200,110,30,0)');
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-      const flash = burstUp * (1 - ss(15.0, 16.8, t));
-      ctx.fillStyle = `rgba(255,175,80,${0.3 * flash})`; ctx.fillRect(0, 0, W, H);
-      ctx.globalCompositeOperation = 'source-over';
-    }
     const veil = ss(15.0, 16.8, t);
     if (veil > 0) {
-      const vg = ctx.createRadialGradient(960, 520, 120, 960, 520, 1100);
-      vg.addColorStop(0, `rgba(40,18,6,${0.28 * veil})`); vg.addColorStop(1, `rgba(20,9,3,${0.55 * veil})`);
-      ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = veil;
+      ctx.drawImage(L.veil, 0, 0);
+      ctx.globalAlpha = 1;
+    }
+    const flash = burstUp * (1 - ss(15.0, 16.9, t));
+    if (flash > 0.002) {
+      ctx.globalCompositeOperation = 'lighter';
+      const by = 470;
+      const r = lerp(700, 2600, eos(burstUp));
+      ctx.globalAlpha = clamp(flash, 0, 1);
+      ctx.drawImage(L.glow, 960 - r, by - r * 0.75, 2 * r, 1.5 * r);
+      ctx.fillStyle = `rgba(255,170,70,${0.32 * flash})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
     }
     drawTitle(ctx, t);
 
-    // ----- finishing: vignette + grain -----
-    ctx.drawImage(L.vignette, 0, 0);
-    const fr = Math.floor(t * 24), hsh = hash(fr + 7);
-    const gt = L.grain[fr & 1], ox = hsh % 512, oy = (hsh >>> 9) % 512;
-    ctx.globalAlpha = 0.055;
-    for (let y = -oy; y < H; y += 512) for (let x = -ox; x < W; x += 512) ctx.drawImage(gt, x, y);
-    ctx.globalAlpha = 1;
+    // ----- finishing: vignette + calm bottom band + grain (pre-composited) -----
+    ctx.drawImage(L.finish[hash(Math.floor(t * 24) + 7) % L.finish.length], 0, 0);
     ctx.restore();
   }
 
@@ -1005,11 +996,11 @@
     // rim light (backlit by the Ark and chandeliers)
     ctx.save();
     ctx.translate(0.004, -0.007);
-    const rim = `rgba(255,${190 - back * 30},${110 - back * 30},${0.75 - back * 0.3})`;
+    const rim = `rgba(255,${185 - back * 30},${105 - back * 30},${0.6 - back * 0.25})`;
     ctx.fillStyle = rim; ctx.strokeStyle = rim;
     dancerPaths(ctx, p, v, t); drawArms(ctx, arms);
     ctx.restore();
-    const base = [20 + back * 34, 11 + back * 22, 7 + back * 14];
+    const base = [13 + back * 30, 8 + back * 19, 5 + back * 12];
     ctx.fillStyle = rgb(base); ctx.strokeStyle = rgb(base);
     dancerPaths(ctx, p, v, t);
     if (v.tallit) {
@@ -1028,7 +1019,7 @@
   }
 
   function drawBearer(ctx, x, y, t, beat, fl) {
-    const s = 300, p = beat * 0.5;
+    const s = 262, p = beat * 0.5;
     const bounce = Math.abs(Math.sin(p)) * 0.03;
     ctx.save();
     ctx.translate(x, y);
@@ -1083,8 +1074,8 @@
     ctx.save();
     // soft halo behind the words
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.55 * a;
-    ctx.drawImage(L.glow, cx - 700, cy - 330, 1400, 660);
+    ctx.globalAlpha = 0.5 * a;
+    ctx.drawImage(L.glow, cx - 560, cy - 250, 1120, 500);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
 

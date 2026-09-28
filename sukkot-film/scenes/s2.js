@@ -80,14 +80,14 @@
   function camera(t) {
     const u = eInOutSine(clamp(t / DUR, 0, 1));
     const yaw = lerp(0.44, 0.17, u);
-    const dist = lerp(10.6, 7.7, u);
-    const h = lerp(3.9, 3.45, u);
+    const dist = lerp(10.6, 8.3, u);
+    const h = lerp(4.0, 3.85, u);
     const ty = 1.3;
     const pitch = Math.atan2(h - ty, dist);
     return {
       px: Math.sin(yaw) * dist, py: h, pz: -Math.cos(yaw) * dist,
       cyw: Math.cos(yaw), syw: Math.sin(yaw), cp: Math.cos(pitch), sp: Math.sin(pitch),
-      f: 1250, cx: 960, cy: 600, yaw: yaw,
+      f: 1250, cx: 960, cy: 575, yaw: yaw,
     };
   }
   function P(c, x, y, z) {
@@ -253,7 +253,7 @@
     const n = 12;
     for (let i = 0; i < n; i++) {
       const palm = i % 3 !== 2;
-      const len = palm ? 3.3 + rng() * 0.5 : 2.4 + rng() * 0.5;
+      const len = palm ? 2.9 + rng() * 0.35 : 2.2 + rng() * 0.4;
       const segs = [];
       const dirSign = rng() < 0.5 ? 1 : -1;
       const x0 = -len / 2, x1 = len / 2;
@@ -336,8 +336,8 @@
     const cmx = (w.ax + w.bx) / 2, cmz = (w.az + w.bz) / 2;
     const extVis = w.nx * (c.px - cmx) + w.nz * (c.pz - cmz) > 0;
     const sunlit = w.nx * sunH[0] + w.nz * sunH[1] > 0;
-    const shade = extVis ? (sunlit ? 1.0 : 0.7) : (sunlit ? 0.9 : 0.64);
-    const base = mix([246, 238, 222], [255, 212, 162], sunlit ? 0.35 : 0.12);
+    const shade = extVis ? (sunlit ? 1.0 : 0.8) : (sunlit ? 0.93 : 0.76);
+    const base = mix([246, 238, 222], [255, 206, 158], sunlit ? 0.38 : 0.24);
     ctx.globalAlpha = appear;
     if (p > 0) {
       const tm = P(c, cmx, Hs, cmz), bm = P(c, cmx, yb, cmz);
@@ -393,7 +393,7 @@
     if (t < fd.s - 0.2) return;
     const e = eOutCubic(pr);
     const settle = pr >= 1 ? 0 : 1 - e;
-    const y = fd.y + 2.6 * settle + 0.03 * Math.sin(pr * PI * 3) * (1 - pr);
+    const y = fd.y + 1.5 * settle + 0.03 * Math.sin(pr * PI * 3) * (1 - pr);
     const sway = 0.45 * settle * Math.sin(t * 2.4 + fd.ph);
     const rot = fd.rot + 0.7 * settle * Math.sin(t * 1.6 + fd.ph);
     const cr = Math.cos(rot), sr = Math.sin(rot);
@@ -427,7 +427,7 @@
     if (t < pl.s - 0.2) return;
     const pr = prog(t, pl.s, pl.d);
     const e = eOutBack(pr, 1.1);
-    const lift = 2.2 * (1 - e);
+    const lift = 1.3 * (1 - e);
     const tl = 0.35 * (1 - eOutCubic(pr)) * pl.tilt;
     const y = SK.h + 0.06;
     const a = P(c, pl.x, y + lift + tl, -1.42), b = P(c, pl.x, y + lift - tl, 1.42);
@@ -495,48 +495,49 @@
       });
       const dust = [];
       for (let i = 0; i < 12; i++) dust.push([rng() * PI * 2, 0.3 + rng() * 0.7, rng()]);
-      // pre-rendered gradient sprites (gradient fills are costly per frame)
-      const radial = (stops) => {
-        const s = mk(256, 256), sx = s.getContext('2d');
-        const gg = sx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      // pre-rendered layers: blitting at integer offsets is far cheaper than live gradients
+      const radial = (size, stops) => {
+        const s = mk(size, size), sx = s.getContext('2d'), h = size / 2;
+        const gg = sx.createRadialGradient(h, h, 0, h, h, h);
         for (const st of stops) gg.addColorStop(st[0], st[1]);
-        sx.fillStyle = gg; sx.fillRect(0, 0, 256, 256); return s;
+        sx.fillStyle = gg; sx.fillRect(0, 0, size, size); return s;
       };
-      const soft = (r, g, b) => radial([[0, `rgba(${r},${g},${b},1)`], [0.2, `rgba(${r},${g},${b},0.62)`], [0.45, `rgba(${r},${g},${b},0.25)`], [0.7, `rgba(${r},${g},${b},0.07)`], [1, `rgba(${r},${g},${b},0)`]]);
-      const sprGold = soft(255, 214, 150), sprRose = soft(246, 136, 110), sprAmber = soft(255, 160, 80);
-      const sprHot = radial([[0, 'rgba(255,250,230,1)'], [0.25, 'rgba(255,226,160,0.7)'], [0.6, 'rgba(255,180,100,0.15)'], [1, 'rgba(255,160,80,0)']]);
-      const strip = (stops) => {
-        const s = mk(4, 256), sx = s.getContext('2d');
-        const gg = sx.createLinearGradient(0, 0, 0, 256);
-        for (const st of stops) gg.addColorStop(st[0], st[1]);
-        sx.fillStyle = gg; sx.fillRect(0, 0, 4, 256); return s;
-      };
-      const stripHaze = strip([[0, 'rgba(240,172,132,0)'], [0.3, 'rgba(240,172,132,0.3)'], [1, 'rgba(200,140,130,0.12)']]);
-      const stripNight = strip([[0, 'rgba(26,20,56,0)'], [0.3, 'rgba(26,20,56,0.7)'], [0.55, 'rgba(26,20,56,1)'], [1, 'rgba(26,20,56,1)']]);
-      const stripFloor = strip([[0, 'rgba(150,100,80,0)'], [0.35, 'rgba(150,104,80,0.45)'], [1, 'rgba(78,54,50,0.96)']]);
-      // sky: one column per moment of the scene
-      const SKN = 72, sky = mk(SKN * 4, 1200), skx = sky.getContext('2d');
-      for (let i = 0; i < SKN; i++) {
-        const uu = i / (SKN - 1);
-        const gg = skx.createLinearGradient(0, 0, 0, 600);
-        gg.addColorStop(0, rgb(keyed(SKY_TOP, uu))); gg.addColorStop(0.62, rgb(keyed(SKY_MID, uu))); gg.addColorStop(1, rgb(keyed(SKY_HOR, uu)));
-        skx.fillStyle = gg; skx.fillRect(i * 4, 0, 4, 1200);
-      }
-      // sun-ray fan
-      const rays = mk(1024, 1024), rx = rays.getContext('2d');
-      const rgR = rx.createRadialGradient(512, 512, 10, 512, 512, 512);
-      rgR.addColorStop(0, 'rgba(255,220,160,1)'); rgR.addColorStop(0.4, 'rgba(255,200,140,0.45)'); rgR.addColorStop(1, 'rgba(255,190,120,0)');
+      const soft = (size, r, g, b) => radial(size, [[0, `rgba(${r},${g},${b},1)`], [0.2, `rgba(${r},${g},${b},0.6)`], [0.45, `rgba(${r},${g},${b},0.24)`], [0.7, `rgba(${r},${g},${b},0.07)`], [1, `rgba(${r},${g},${b},0)`]]);
+      const sprGold = soft(256, 255, 214, 150), sprAmber = soft(256, 255, 160, 80);
+      const sprHot = radial(128, [[0, 'rgba(255,250,230,1)'], [0.25, 'rgba(255,226,160,0.7)'], [0.6, 'rgba(255,180,100,0.15)'], [1, 'rgba(255,160,80,0)']]);
+      const haloGold = soft(1200, 255, 212, 150), haloRose = soft(1400, 246, 136, 110);
+      // city by day (hills behind, warm haze baked in) and a darkened night copy
+      const day = mk(BG_W, 820), dx = day.getContext('2d');
+      dx.drawImage(hills, 0, 0); dx.drawImage(cc.city, 0, 0);
+      dx.globalCompositeOperation = 'source-atop';
+      let hg = dx.createLinearGradient(0, BG_HZ - 140, 0, BG_HZ + 420);
+      hg.addColorStop(0, 'rgba(240,172,132,0)'); hg.addColorStop(0.3, 'rgba(240,172,132,0.3)'); hg.addColorStop(1, 'rgba(200,140,130,0.12)');
+      dx.fillStyle = hg; dx.fillRect(0, 0, BG_W, 820);
+      const nightC = mk(BG_W, 820), nx = nightC.getContext('2d');
+      nx.drawImage(day, 0, 0); nx.globalCompositeOperation = 'source-atop';
+      hg = nx.createLinearGradient(0, BG_HZ - 200, 0, BG_HZ + 300);
+      hg.addColorStop(0, 'rgba(40,30,74,0.5)'); hg.addColorStop(0.4, 'rgba(30,22,60,0.62)'); hg.addColorStop(1, 'rgba(22,16,44,0.72)');
+      nx.fillStyle = hg; nx.fillRect(0, 0, BG_W, 820);
+      // floor tone
+      const floorG = mk(W, 900), fx = floorG.getContext('2d');
+      hg = fx.createLinearGradient(0, 0, 0, 900);
+      hg.addColorStop(0, 'rgb(226,186,138)'); hg.addColorStop(0.28, 'rgb(196,152,112)'); hg.addColorStop(0.75, 'rgb(112,80,66)'); hg.addColorStop(1, 'rgb(84,60,54)');
+      fx.fillStyle = hg; fx.fillRect(0, 0, W, 900);
+      // sun-ray fan (origin at RAY_O inside the canvas)
+      const rays = mk(2100, 1300), rx = rays.getContext('2d');
+      const rgR = rx.createRadialGradient(400, 300, 10, 400, 300, 1700);
+      rgR.addColorStop(0, 'rgba(255,220,160,1)'); rgR.addColorStop(0.3, 'rgba(255,200,140,0.5)'); rgR.addColorStop(1, 'rgba(255,190,120,0)');
       rx.fillStyle = rgR; rx.beginPath();
-      for (let i = 0; i < 11; i++) {
-        const a = -0.35 + i * 0.17 + (rng() - 0.5) * 0.06, hw = 0.012 + rng() * 0.022;
-        rx.moveTo(512, 512);
-        rx.lineTo(512 + Math.cos(a - hw) * 520, 512 + Math.sin(a - hw) * 520);
-        rx.lineTo(512 + Math.cos(a + hw) * 520, 512 + Math.sin(a + hw) * 520);
+      for (let i = 0; i < 12; i++) {
+        const a = -0.3 + i * 0.16 + (rng() - 0.5) * 0.06, hw = 0.01 + rng() * 0.022;
+        rx.moveTo(400, 300);
+        rx.lineTo(400 + Math.cos(a - hw) * 2200, 300 + Math.sin(a - hw) * 2200);
+        rx.lineTo(400 + Math.cos(a + hw) * 2200, 300 + Math.sin(a + hw) * 2200);
         rx.closePath();
       }
       rx.fill();
       L = { hills, city: cc.city, lights: cc.lights, olive, fronds, grain, vg, clouds, stars, motes, flocks, dust,
-        sprGold, sprRose, sprAmber, sprHot, stripHaze, stripNight, stripFloor, sky, SKN, rays };
+        sprGold, sprAmber, sprHot, haloGold, haloRose, day, nightC, floorG, rays };
       // parallax anchor: screen x of the +z direction at mid-orbit
       const cm = camera(DUR / 2);
       L.anchor = PD(cm, 0, 0, 1)[0];
@@ -566,11 +567,11 @@
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
 
-      // ---- sky (pre-rendered columns, cross-blended) ----
-      const sf = u * (L.SKN - 1), si = Math.min(L.SKN - 2, Math.floor(sf)), sfr = sf - si;
-      ctx.fillStyle = rgb(keyed(SKY_TOP, u)); ctx.fillRect(0, 0, W, Math.max(0, hz - 598));
-      ctx.drawImage(L.sky, si * 4 + 1, 0, 2, 1200, 0, hz - 600, W, 1200);
-      if (sfr > 0.01) { ctx.globalAlpha = sfr; ctx.drawImage(L.sky, si * 4 + 5, 0, 2, 1200, 0, hz - 600, W, 1200); ctx.globalAlpha = 1; }
+      // ---- sky ----
+      const cTop = keyed(SKY_TOP, u), cMid = keyed(SKY_MID, u), cHor = keyed(SKY_HOR, u);
+      const sg = ctx.createLinearGradient(0, hz - 600, 0, hz);
+      sg.addColorStop(0, rgb(cTop)); sg.addColorStop(0.62, rgb(cMid)); sg.addColorStop(1, rgb(cHor));
+      ctx.fillStyle = sg; ctx.fillRect(0, 0, W, Math.round(hz + 40));
 
       // stars as dusk deepens
       const sa = sm(10, 17.5, t);
@@ -586,8 +587,8 @@
 
       // sun halo & disc
       const haloA = 0.55 * (0.35 + 0.65 * sunStr);
-      spr(L.sprGold, sp[0], sp[1], 560, haloA * (1 - u));
-      spr(L.sprRose, sp[0], sp[1], 620, haloA * (0.3 + u));
+      const sx0 = Math.round(sp[0]), sy0 = Math.round(sp[1]);
+      ctx.globalAlpha = haloA; ctx.drawImage(u < 0.5 ? L.haloGold : L.haloRose, sx0 - (u < 0.5 ? 600 : 700), sy0 - (u < 0.5 ? 600 : 700));
       ctx.globalAlpha = 1;
       if (el > -0.03) {
         const dg = ctx.createRadialGradient(sp[0], sp[1], 0, sp[0], sp[1], 40);
@@ -627,19 +628,20 @@
       }
 
       // ---- distant hills and the city ----
-      ctx.drawImage(L.hills, bgx * 0.97, bgy);
-      ctx.drawImage(L.city, bgx, bgy);
-      const night = sm(4, 18, t);
-      ctx.globalAlpha = 0.62 * night; ctx.drawImage(L.stripNight, 0, hz - 170, W, 700);
-      ctx.globalAlpha = 1;
+      const bx = Math.round(bgx), by = Math.round(bgy);
+      // visible part: screen columns 0..W, rows down to the parapet line
+      const pTop = Math.min(P(c, -6.6, 0, 6.2)[1], P(c, 7.5, 0, 6.2)[1]);
+      const sx1 = -bx, sy1 = Math.max(0, -by), sh1 = Math.min(820, Math.ceil(pTop - by + 60)) - sy1;
+      const blit = (img) => ctx.drawImage(img, sx1, sy1, W, sh1, 0, by + sy1, W, sh1);
+      blit(L.day);
+      const night = sm(3, 18, t);
+      if (night > 0) { ctx.globalAlpha = night; blit(L.nightC); ctx.globalAlpha = 1; }
       const la = sm(6.5, 15, t);
       if (la > 0) {
         ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = la * 0.9;
-        ctx.drawImage(L.lights, bgx, bgy);
-        ctx.globalCompositeOperation = 'source-over';
+        blit(L.lights);
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1 - 0.5 * u; ctx.drawImage(L.stripHaze, 0, hz - 140, W, 560);
-      ctx.globalAlpha = 1;
 
       // ---- rooftop courtyard ----
       const sunH = [SUN_AZ[0], SUN_AZ[1]];
@@ -651,22 +653,20 @@
       const fl = [P(c, FX0, 0, FZ0), P(c, FX1, 0, FZ0), P(c, FX1, 0, FZ1), P(c, FX0, 0, FZ1)];
       const pb = P(c, 0, 0, FZ1);
       ctx.save(); poly(ctx, fl); ctx.clip();
-      ctx.fillStyle = 'rgb(222,180,134)'; ctx.fillRect(0, pb[1] - 60, W, H - pb[1] + 60);
-      ctx.drawImage(L.stripFloor, 0, pb[1] - 10, W, H - pb[1] + 10);
-      // warm sheen toward the sun
-      const shn = P(c, -2.5, 0, 4.5);
-      spr(L.sprGold, shn[0], shn[1], 1000, 0.4 * sunStr, 0.45);
-      ctx.globalAlpha = 1;
+      const fy = Math.round(pb[1] - 30);
+      ctx.fillStyle = 'rgb(226,186,138)'; ctx.fillRect(0, fy - 200, W, 200);
+      ctx.drawImage(L.floorG, 0, fy);
+      if (fy + 900 < H) { ctx.fillStyle = 'rgb(84,60,54)'; ctx.fillRect(0, fy + 900, W, H - fy - 900); }
       // stone slabs (running bond)
       ctx.strokeStyle = 'rgba(110,72,52,0.3)'; ctx.lineWidth = 1.3;
       ctx.beginPath();
       let row = 0;
-      for (let z = FZ0; z <= FZ1 + 0.01; z += 0.72, row++) {
+      for (let z = FZ0; z <= FZ1 + 0.01; z += 0.9, row++) {
         const a = P(c, FX0, 0, z), b = P(c, FX1, 0, z);
         ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
-        if (z + 0.72 > FZ1 + 0.01) break;
-        for (let x = FX0 + (row % 2) * 0.5; x < FX1; x += 1.0) {
-          const q1 = P(c, x, 0, z), q2 = P(c, x, 0, z + 0.72);
+        if (z + 0.9 > FZ1 + 0.01) break;
+        for (let x = FX0 + (row % 2) * 0.6; x < FX1; x += 1.2) {
+          const q1 = P(c, x, 0, z), q2 = P(c, x, 0, z + 0.9);
           ctx.moveTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]);
         }
       }
@@ -756,7 +756,7 @@
       for (const bm of BEAMS) {
         const pr = prog(t, bm.s, bm.d);
         if (t < bm.s - 0.3) continue;
-        const y = SK.h + 1.8 * (1 - eOutBack(pr, 1.3));
+        const y = SK.h + 1.2 * (1 - eOutBack(pr, 1.3));
         const mc = P(c, (bm.a[0] + bm.b[0]) / 2, y, (bm.a[1] + bm.b[1]) / 2);
         items.push({ z: mc[2] - 0.08, fn: () => {
           const a = P(c, bm.a[0], y, bm.a[1]), b = P(c, bm.b[0], y, bm.b[1]);
@@ -829,15 +829,12 @@
 
       // sun bloom and rays
       const bloomA = 0.5 * sunStr + 0.14 * (1 - sm(14, 18, t));
-      spr(L.sprGold, sp[0], sp[1], 700, bloomA * (1 - u) * 0.8);
-      spr(L.sprRose, sp[0], sp[1], 760, bloomA * (0.25 + u) * 0.7);
+      ctx.globalAlpha = Math.min(1, bloomA * 0.6); ctx.drawImage(L.haloRose, sx0 - 700, sy0 - 700);
       if (sunStr > 0.02) {
-        ctx.save(); ctx.translate(sp[0], sp[1]); ctx.rotate(0.05 * Math.sin(t * 0.21) + 0.12 * u);
-        ctx.globalAlpha = 0.2 * sunStr; ctx.drawImage(L.rays, -1800, -1800, 3600, 3600);
-        ctx.rotate(0.07 + 0.03 * Math.sin(t * 0.33));
-        ctx.globalAlpha = 0.1 * sunStr; ctx.drawImage(L.rays, -1400, -1400, 2800, 2800);
-        ctx.restore();
+        ctx.globalAlpha = 0.14 * sunStr * (0.85 + 0.15 * Math.sin(t * 0.7));
+        ctx.drawImage(L.rays, sx0 - 400, sy0 - 300);
       }
+      ctx.globalAlpha = 1;
 
       // "lock" glints when beams seat, dust puffs when posts land
       for (const bm of BEAMS) {

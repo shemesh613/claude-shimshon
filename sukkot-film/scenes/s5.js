@@ -22,7 +22,10 @@
   const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
   const sstep = (a, b, x) => { x = clamp((x - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
   const fract = (x) => x - Math.floor(x);
-  function hex(c) { const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function hex(c) {
+    if (c[0] === 'r') return c.slice(4, -1).split(',').map(Number);
+    const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
   function mixc(a, b, k) {
     const A = hex(a), B = hex(b);
     k = clamp(k, 0, 1);
@@ -373,7 +376,7 @@
           const h = (13 + rng() * 18) * sc;
           const cx = x + w / 2;
           const dist = Math.hypot(cx - 960, (y - 470) * 1.35);
-          const lf = Math.pow(clamp(1.4 - dist / 1500, 0, 1), 0.8) * (1 - 0.6 * sstep(900, 1140, y));
+          const lf = Math.pow(clamp(1.3 - dist / 1300, 0, 1), 1.1) * (1 - 0.8 * sstep(840, 1080, y));
           const hs = { x, y, w, h, d: (3 + rng() * 4) * sc * (cx < 960 ? 1 : -1), tone: rng(), lf, par: rng() < 0.4 };
           houses.push(hs);
           const nw = w > 30 * sc ? 1 + Math.floor(rng() * 2.6) : (rng() < 0.6 ? 1 : 0);
@@ -384,7 +387,7 @@
             const on = rng() < 0.62 - 0.35 * sstep(900, 1100, y);
             wins.push({ x: wx, y: wy, w: ww, h: wh, on, ph: rng() * 6.28, sp: 0.6 + rng() * 1.8, b: 0.55 + rng() * 0.45, glow: rng() < 0.3 });
           }
-          if (rng() < 0.05) trees.push({ x: x + rng() * w, y: y - h * 0.2, s: (10 + rng() * 10) * sc, lf });
+          if (rng() < 0.025) trees.push({ x: x + rng() * w, y: y - h * 0.2, s: (7 + rng() * 6) * sc, lf });
         }
         x += w + (rng() < 0.18 ? 5 + rng() * 22 : 0.6);
       }
@@ -406,14 +409,14 @@
     for (const hs of city.houses) {
       while (ti < city.trees.length && city.trees[ti].y < hs.y - 10) {
         const tr = city.trees[ti++];
-        g.fillStyle = lit ? mixc('#141420', '#3e3018', tr.lf) : '#0f1018';
+        g.fillStyle = lit ? mixc('#161a1c', '#3a3a1e', tr.lf) : '#141a22';
         g.beginPath(); g.ellipse(tr.x, tr.y - tr.s, tr.s * 0.28, tr.s, 0, 0, Math.PI * 2); g.fill();
       }
       const { x, y, w, h, d, tone } = hs;
       const k = lit ? hs.lf : 0;
-      const front = mixc(mixc('#262742', '#363856', tone), mixc('#c08a50', '#e2b474', tone), k);
-      const roof = mixc(mixc('#474a70', '#55587e', tone), '#ffd996', k);
-      const side = mixc('#1d1d31', '#9a6a3c', k);
+      const front = mixc(mixc('#262742', '#363856', tone), mixc('#8e6036', '#b07c48', tone), k);
+      const roof = mixc(mixc('#474a70', '#55587e', tone), '#f0c078', k);
+      const side = mixc('#1d1d31', '#6a4428', k);
       const dy = Math.abs(d) * 0.55;
       // side face (facing the Temple)
       g.fillStyle = side;
@@ -487,6 +490,12 @@
     st.glowSilver = glowSprite(190, 215, 255, 64, 'rgba(255,255,255,1)');
     st.smoke = glowSprite(190, 140, 105, 64);
     st.star = starSprite(48);
+    st.dome = mk(256, 256);
+    {
+      const d = st.dome.getContext('2d'), gr = d.createRadialGradient(128, 128, 0, 128, 128, 128);
+      gr.addColorStop(0, 'rgba(255,150,60,0.7)'); gr.addColorStop(0.35, 'rgba(200,90,50,0.26)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      d.fillStyle = gr; d.fillRect(0, 0, 256, 256);
+    }
 
     // sparks
     st.sparks = [];
@@ -543,7 +552,8 @@
   function flick(t, s) { return 1 + 0.07 * Math.sin(t * 6.3 + s) + 0.05 * Math.sin(t * 10.7 + s * 2.1) + 0.03 * Math.sin(t * 17.9 + s * 3.3); }
 
   const FL_LAYERS = [[1.12, 'rgba(255,70,15,0.25)'], [1, 'rgba(255,95,20,0.45)'], [0.74, 'rgba(255,160,45,0.7)'], [0.5, 'rgba(255,220,130,0.85)'], [0.28, 'rgba(255,250,220,0.9)']];
-  function flame(ctx, x, y, h, w, t, sd) {
+  function flame(ctx, x, y, h, w, t, sd, swW) {
+    const sw = swW || w;
     const N = 12;
     for (const [k, col] of FL_LAYERS) {
       const hh = h * (0.35 + 0.65 * k), ww = w * (0.45 + 0.55 * k);
@@ -553,7 +563,7 @@
         for (let i = 0; i <= N; i++) {
           const s = side < 0 ? i / N : 1 - i / N;
           const sway = (Math.sin(t * 5.3 + sd + s * 3) * 0.55 + Math.sin(t * 8.7 + sd * 1.7 - s * 5) * 0.3 +
-            Math.sin(t * 14.1 + sd * 2.9 - s * 7) * 0.15) * s * s * w * 1.25;
+            Math.sin(t * 14.1 + sd * 2.9 - s * 7) * 0.15) * s * s * sw * 1.25;
           const half = ww * Math.pow(1 - s, 0.85) * (1 + 0.35 * Math.sin(Math.PI * s)) *
             (1 + 0.14 * Math.sin(t * 17 + sd + s * 9));
           const px = x + sway + side * half, py = y - hh * s;
@@ -611,23 +621,21 @@
       const zc = cam.z, px = 960 + (960 - cam.x) * zc, py = 540 + (430 - cam.y) * zc;
       const r = 1150 * Math.sqrt(zc);
       ctx.globalCompositeOperation = 'lighter';
-      const gr = ctx.createRadialGradient(px, py, 0, px, py, r);
-      gr.addColorStop(0, `rgba(255,150,60,${(0.34 * P * Fm).toFixed(3)})`);
-      gr.addColorStop(0.35, `rgba(200,90,50,${(0.14 * P).toFixed(3)})`);
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = clamp(0.5 * P * Fm, 0, 1);
+      ctx.drawImage(st.dome, px - r, py - r * 0.75, r * 2, r * 1.5);
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     }
 
     // Mount of Olives behind
     ctx.save(); layer(ctx, cam, 0.72);
     {
-      ctx.beginPath(); ctx.moveTo(-700, 1700);
+      ctx.beginPath(); ctx.moveTo(-700, 830);
       for (let x = -700; x <= 2600; x += 40) {
         const y = 566 - 72 * Math.exp(-Math.pow((x - 1260) / 430, 2)) - 44 * Math.exp(-Math.pow((x - 520) / 380, 2)) + 7 * Math.sin(x * 0.013);
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(2600, 1700); ctx.closePath();
+      ctx.lineTo(2600, 830); ctx.closePath();
       const gr = ctx.createLinearGradient(0, 480, 0, 700);
       gr.addColorStop(0, '#1c1a36'); gr.addColorStop(1, '#0b0b18');
       ctx.fillStyle = gr; ctx.fill();
@@ -641,10 +649,10 @@
     ctx.save(); layer(ctx, cam, 1);
     // light columns rising from the lamps
     ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 4; i++) {
-      const f = flick(t, i * 1.9);
-      ctx.globalAlpha = 0.16 * P * f;
-      ctx.drawImage(st.glowWarm, LAMPS[i] - 55, BOWL_Y - 560, 110, 1100);
+    for (let i = 0; i < 2; i++) {
+      const f = flick(t, i * 1.9), cx = (LAMPS[i * 2] + LAMPS[i * 2 + 1]) / 2;
+      ctx.globalAlpha = 0.22 * P * f;
+      ctx.drawImage(st.glowWarm, cx - 110, BOWL_Y - 560, 220, 1100);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(st.temple, TX0, TY0, TW, TH);
@@ -690,7 +698,7 @@
       if (pour > 0.001) {
         const N = 34, pts = [];
         for (let i = 0; i <= N; i++) pts.push(streamPoint(e, (i / N) * pour, t));
-        const passes = [[4.4, 'rgba(30,45,90,0.5)'], [11, 'rgba(120,170,255,0.12)'], [4.2, 'rgba(160,200,255,0.38)'], [2, 'rgba(235,245,255,0.85)'], [0.7, 'rgba(255,255,255,1)']];
+        const passes = [[5.4, 'rgba(30,45,90,0.5)'], [13, 'rgba(120,170,255,0.14)'], [5, 'rgba(160,200,255,0.42)'], [2.4, 'rgba(235,245,255,0.9)'], [0.9, 'rgba(255,255,255,1)']];
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (let pi = 0; pi < passes.length; pi++) {
           const [lw, col] = passes[pi];
@@ -741,10 +749,10 @@
 
     // smoke of the wicks, drifting up (lit from below)
     for (let li = 0; li < 4; li++) {
-      for (let k = 0; k < 6; k++) {
-        const u = fract(t / 7 + k / 6 + li * 0.13);
+      for (let k = 0; k < 4; k++) {
+        const u = fract(t / 7 + k / 4 + li * 0.13);
         const x = LAMPS[li] + Math.sin(u * 3 + li) * 18 * u + u * 50, y = BOWL_Y - 30 - u * 320;
-        spr(ctx, st.smoke, x, y, 40 + u * 170, Math.sin(Math.PI * u) * 0.12 * P);
+        spr(ctx, st.smoke, x, y, 40 + u * 170, Math.sin(Math.PI * u) * 0.15 * P);
       }
     }
     ctx.globalAlpha = 1;
@@ -753,14 +761,18 @@
     ctx.globalCompositeOperation = 'lighter';
     for (let li = 0; li < 4; li++) {
       const lx = LAMPS[li], f = flick(t, li * 2.7);
-      spr(ctx, st.glowWarm, lx, BOWL_Y - 22, 340 * P, 0.42 * P * f);
+      if (li % 2 === 0) {
+        ctx.globalAlpha = clamp(0.6 * P * f, 0, 1);
+        const cx = (lx + LAMPS[li + 1]) / 2, sw = (460 + 100) * P, sh = 400 * P;
+        ctx.drawImage(st.glowWarm, cx - sw / 2, BOWL_Y - 22 - sh / 2, sw, sh);
+      }
       spr(ctx, st.glowHot, lx, BOWL_Y - 18, 100 * P, 0.6 * P * f);
     }
     ctx.globalAlpha = 1;
     for (let li = 0; li < 4; li++) {
       const sd0 = st.fseed[li * 4];
       ctx.globalAlpha = 0.55;
-      flame(ctx, LAMPS[li], BOWL_Y + 1, (52 + 8 * Math.sin(t * 1.7 + sd0)) * (0.75 + 0.25 * P), 26, t, sd0 + 3);
+      flame(ctx, LAMPS[li], BOWL_Y + 1, (52 + 8 * Math.sin(t * 1.7 + sd0)) * (0.75 + 0.25 * P), 26, t, sd0 + 3, 7);
       ctx.globalAlpha = 1;
       for (let b = 0; b < 4; b++) {
         const sd = st.fseed[li * 4 + b];
