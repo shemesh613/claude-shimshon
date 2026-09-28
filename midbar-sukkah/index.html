@@ -1,0 +1,39 @@
+<title>מהמדבר לסוכה</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+
+<div class="stage paused" id="stage">
+  <canvas id="film" aria-label="אנימציה: מהמדבר לסוכה"></canvas>
+  <button class="poster" id="poster" type="button" aria-label="הפעל את הסרט">
+    <h1>מהמדבר לסוכה</h1>
+    <span class="play-big" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></span>
+    <p>סרט קצר לסוכות · עם מוזיקה · 54 שניות</p>
+  </button>
+  <div class="bar" id="bar">
+    <button id="btnPlay" type="button" aria-label="Play"><svg viewBox="0 0 24 24" id="icoPlay"><path d="M6 4l14 8-14 8z"/></svg></button>
+    <input class="seek" id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+    <span class="time" id="time">0:00 / 0:54</span>
+    <button id="btnLoop" type="button" aria-label="Loop" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7a3 3 0 000 6h2v2H7A5 5 0 017 7z"/></svg></button>
+    <button id="btnMute" type="button" aria-label="Mute"><svg viewBox="0 0 24 24" id="icoMute"><path d="M4 9h4l5-4v14l-5-4H4z M16 8.5a5 5 0 010 7 M18.5 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.6" fill-rule="evenodd"/></svg></button>
+    <button id="btnFull" type="button" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg></button>
+  </div>
+</div>
+
+<!-- MODULES -->
+<script src="core.js"></script>
+<script src="world.js"></script>
+<script src="beats/b1.js"></script>
+<script src="beats/b2.js"></script>
+<script src="beats/b3.js"></script>
+<script src="beats/b4.js"></script>
+<script src="beats/b5.js"></script>
+<script src="beats/b6.js"></script>
+<script src="grains.js"></script>
+<script src="post.js"></script>
+<script src="music.js"></script>
+<!-- /MODULES -->
+
+<script src="main.js"></script>

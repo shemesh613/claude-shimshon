@@ -1,0 +1,78 @@
+:root {
+  color-scheme: dark;
+  --ground: #05060f;
+  --ink: #f3e6c8;
+  --ink-dim: #b9a888;
+  --gold: #d9a45a;
+  --gold-hi: #f6d88f;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Heebo', 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.stage {
+  position: relative;
+  height: min(calc(100vh - 32px), calc((100vw - 32px) * 16 / 9));
+  aspect-ratio: 9 / 16;
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.stage:fullscreen { height: 100%; width: 100%; border-radius: 0; aspect-ratio: auto; }
+canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+.poster {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1em;
+  background: radial-gradient(ellipse at 50% 55%, rgba(5, 6, 15, 0.05), rgba(5, 6, 15, 0.8));
+  cursor: pointer; border: 0; color: inherit; font: inherit; width: 100%;
+  text-align: center; padding: 16px; box-sizing: border-box;
+}
+.poster h1 {
+  margin: 0;
+  font-family: 'Frank Ruhl Libre', 'David Libre', serif;
+  font-weight: 900;
+  font-size: clamp(2rem, 8vh, 5rem);
+  line-height: 1.05;
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, #a8782c);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.poster p { margin: 0; color: var(--ink-dim); font-size: clamp(0.8rem, 2vh, 1.05rem); letter-spacing: 0.06em; }
+.play-big {
+  width: clamp(56px, 10vh, 88px); aspect-ratio: 1; border-radius: 50%;
+  border: 1.5px solid var(--gold); display: grid; place-items: center;
+  background: rgba(217, 164, 90, 0.12); transition: transform .2s, background .2s;
+}
+.poster:hover .play-big, .poster:focus-visible .play-big { transform: scale(1.06); background: rgba(217, 164, 90, 0.25); }
+.poster:focus-visible { outline: 2px solid var(--gold); outline-offset: -6px; }
+.play-big svg { width: 38%; margin-inline-start: 8%; fill: var(--gold-hi); }
+
+.bar {
+  position: absolute; inset-inline: 0; bottom: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,0));
+  opacity: 0; transition: opacity .35s;
+  direction: ltr;
+}
+.stage:hover .bar, .stage.paused .bar, .bar:focus-within { opacity: 1; }
+.bar button {
+  background: none; border: 0; color: var(--ink); cursor: pointer; padding: 6px;
+  display: grid; place-items: center; border-radius: 4px;
+}
+.bar button:focus-visible { outline: 2px solid var(--gold); }
+.bar button[aria-pressed="false"] { opacity: 0.45; }
+.bar svg { width: 20px; height: 20px; fill: currentColor; }
+.seek { flex: 1; min-width: 0; accent-color: var(--gold); }
+.time { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink-dim); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .poster .play-big { transition: none; } }
