@@ -85,14 +85,15 @@
     const ridge = fx.mixRGB([196, 150, 96], [96, 84, 110], night);
     const shadow = fx.rgba([20, 12, 8], 0.28 * (1 - night * 0.5));
 
-    // Mishkan courtyard: linen hangings (cream) with the tent of meeting inside.
+    // Mishkan courtyard: linen hangings (cream) with the tent of meeting inside, in the WEST
+    // half (bottom, since east is up); the courtyard entrance is on the east.
     const m = MISHKAN;
     ctx.fillStyle = fx.rgba(fx.mixRGB([243, 230, 200], [150, 150, 175], night * 0.7), 0.95);
     ctx.fillRect(m.x, m.y, m.w, m.h);
     ctx.fillStyle = fx.rgba([214, 196, 160], 1 - night * 0.3);
     ctx.fillRect(m.x + 3, m.y + 3, m.w - 6, m.h - 6);
     ctx.fillStyle = fx.rgba(fx.mixRGB([110, 70, 50], [60, 40, 60], night), 1);
-    ctx.fillRect(m.x + 8, m.y + 6, m.w - 16, m.h * 0.42);
+    ctx.fillRect(m.x + 8, m.y + m.h - 6 - m.h * 0.42, m.w - 16, m.h * 0.42);
 
     for (let i = 0; i < TENTS.length; i++) {
       const a = appear(i);

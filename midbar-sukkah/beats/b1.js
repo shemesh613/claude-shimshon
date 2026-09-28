@@ -122,7 +122,7 @@
   };
   const P_DAY = {
     skyTop: [112, 140, 180], skyMid: [206, 196, 186], skyHor: [250, 226, 186], haze: [244, 214, 170],
-    lit: [252, 214, 150], shade: [140, 84, 50], amb: 0.26, L: [-0.8, 0.45, 0.25], fogD: 3200,
+    lit: [255, 216, 152], shade: [132, 76, 44], amb: 0.2, L: [-0.8, 0.45, 0.25], fogD: 4200,
     ink: [59, 38, 22], inkA: 0.13, crest: [255, 240, 210], crestA: 0.3, sil: [59, 38, 22],
   };
   const P_LATE = {
@@ -164,6 +164,8 @@
   // ---------------------------------------------------------------- statics
   let stars = [];
   let rippleTex = null, gridTex = null;
+  let LO = null;
+  const LOQ = 0.5; // terrain buffer resolution (fraction of the output)
   // grains
   let ROLE, ARM, STR, SPOS, SJ1, SJ2, TS, GX, GY, GZ, GW, STRM, SEED, TX, TY, EST, ARC, FOOTX;
   const SIM_T0 = 1.6;
@@ -177,8 +179,10 @@
     const rF = 10 + Math.pow(hf, 1.4) * 210 * fx.ease.out(fx.range(tau, 0, 1.4));
     const thF = STR[i] + hf * 5.2 + tau * 6.2 + SJ1[i] * 0.05;
     const sway = 38 * Math.sin(hf * 2.6 + tau * 1.7) * hf;
-    const xF = 540 + rF * Math.cos(thF) + sway + SJ1[i] * 4 * (0.4 + hf);
-    const yF = 1010 - hf * Hc + rF * Math.sin(thF) * 0.2 + SJ2[i] * 6 - 3;
+    const spray = SJ2[i] > 0.82 ? (SJ2[i] - 0.82) * 5.5 : 0; // a few grains flung off the strands
+    const jr = (SJ1[i] * (5 + 16 * hf)) * (1 + 3 * spray);
+    const xF = 540 + (rF + jr) * Math.cos(thF) + sway + spray * 60 * Math.cos(thF + 1.2) * tau;
+    const yF = 1010 - hf * Hc + (rF + jr) * Math.sin(thF) * 0.2 + SJ2[i] * 8 - 4 - spray * 40 * tau;
     // 2) the devil unfolds (top first) into three ribbons spiralling out over the dunes
     const u = fx.ease.inOut(fx.range(tau, 0.75 + 0.7 * (1 - hf), 2.0 + 0.7 * (1 - hf)));
     if (u <= 0) { o[0] = xF; o[1] = yF; return o; }
@@ -288,7 +292,7 @@
   }
 
   // ---------------------------------------------------------------- drawing
-  function shadeColor(P, x, z, h, zc) {
+  function shadeRGB(P, x, z, h, zc, out, o) {
     const e = 1.5;
     const hx = (Ht(x + e, z) - h) / e, hz = (Ht(x, z + e) - h) / e;
     const il = 1 / Math.sqrt(hx * hx + 1 + hz * hz);
@@ -307,10 +311,125 @@
     let v = P.amb + (1 - P.amb) * d;
     v *= 0.82 + 0.18 * fx.clamp((h - 6) / 26);
     const fog = (1 - Math.exp(-Math.max(0, zc - FOG_H) / P.fogD)) * 0.92;
-    const r = lerp(lerp(P.shade[0], P.lit[0], v), P.haze[0], fog);
-    const g = lerp(lerp(P.shade[1], P.lit[1], v), P.haze[1], fog);
-    const b = lerp(lerp(P.shade[2], P.lit[2], v), P.haze[2], fog);
-    return `rgb(${r | 0},${g | 0},${b | 0})`;
+    out[o] = lerp(lerp(P.shade[0], P.lit[0], v), P.haze[0], fog);
+    out[o + 1] = lerp(lerp(P.shade[1], P.lit[1], v), P.haze[1], fog);
+    out[o + 2] = lerp(lerp(P.shade[2], P.lit[2], v), P.haze[2], fog);
+  }
+
+  // Software rasteriser for sky + terrain into an ImageData: per column, rows near -> far with a
+  // y-buffer (every pixel written once), Gouraud shading between adjacent rows, hard (antialiased)
+  // edges where a far dune shows above a nearer crest.
+  let IMG = null, COL = new Float32Array(0), SKY = new Float32Array(0);
+  function rasterTerrain(g, fr, lw, lh) {
+    if (!IMG || IMG.width !== lw || IMG.height !== lh) IMG = g.createImageData(lw, lh);
+    const d = IMG.data;
+    const rows = fr.rows, R = rows.length, P = fr.P, c = fr.c;
+    if (COL.length < R * NS * 3) COL = new Float32Array(R * NS * 3 + 3000);
+    for (let r = 0; r < R; r++) {
+      const row = rows[r], base = r * NS * 3;
+      for (let j = 0; j < NS; j += 3) shadeRGB(P, row.xs[j], row.z, row.hs[j], row.zc, COL, base + j * 3);
+      shadeRGB(P, row.xs[NS - 1], row.z, row.hs[NS - 1], row.zc, COL, base + (NS - 1) * 3);
+      for (let j = 0; j < NS - 1; j++) {
+        if (j % 3 === 0) continue;
+        const j0 = j - (j % 3), j1 = Math.min(NS - 1, j0 + 3), k = (j - j0) / (j1 - j0);
+        const a = base + j0 * 3, b = base + j1 * 3, o = base + j * 3;
+        COL[o] = COL[a] + (COL[b] - COL[a]) * k; COL[o + 1] = COL[a + 1] + (COL[b + 1] - COL[a + 1]) * k; COL[o + 2] = COL[a + 2] + (COL[b + 2] - COL[a + 2]) * k;
+      }
+    }
+    // sky colour per pixel row
+    if (SKY.length < lh * 3) SKY = new Float32Array(lh * 3);
+    const ky = lh / H, kx = W / lw;
+    const hy = c.pitch < 80 ? 960 - F * Math.tan(c.pitch * DEG) : -1e4;
+    for (let p = 0; p < lh; p++) {
+      const y = (p + 0.5) / ky;
+      let col;
+      if (y >= hy) col = P.haze;
+      else {
+        const u = fx.clamp((y - (hy - 1150)) / 1152);
+        col = u < 0.55 ? fx.mixRGB(P.skyTop, P.skyMid, u / 0.55) : fx.mixRGB(P.skyMid, P.skyHor, (u - 0.55) / 0.45);
+      }
+      SKY[p * 3] = col[0]; SKY[p * 3 + 1] = col[1]; SKY[p * 3 + 2] = col[2];
+    }
+    const step = 1160 / (NS - 1);
+    for (let px = 0; px < lw; px++) {
+      const X = (px + 0.5) * kx;
+      const f = (X + 40) / step;
+      const j = Math.max(0, Math.min(NS - 2, Math.floor(f))), k = f - j;
+      let ybot = lh, prevIdx = -1;
+      for (let r = R - 1; r >= 0; r--) {
+        const sy = rows[r].sy;
+        const y = (sy[j] + (sy[j + 1] - sy[j]) * k) * ky;
+        if (y >= ybot) continue;
+        const o = (r * NS + j) * 3;
+        const cr = COL[o] + (COL[o + 3] - COL[o]) * k, cg = COL[o + 1] + (COL[o + 4] - COL[o + 1]) * k, cb = COL[o + 2] + (COL[o + 5] - COL[o + 2]) * k;
+        const adj = prevIdx === r + 1;
+        // shade down toward the next nearer row (even where it is hidden behind a crest)
+        let nr = cr, ng = cg, nb = cb, ny = ybot;
+        if (r + 1 < R) {
+          const sy2 = rows[r + 1].sy, o2 = ((r + 1) * NS + j) * 3;
+          ny = (sy2[j] + (sy2[j + 1] - sy2[j]) * k) * ky;
+          nr = COL[o2] + (COL[o2 + 3] - COL[o2]) * k; ng = COL[o2 + 1] + (COL[o2 + 4] - COL[o2 + 1]) * k; nb = COL[o2 + 2] + (COL[o2 + 5] - COL[o2 + 2]) * k;
+        }
+        const yt = y < 0 ? 0 : y;
+        const pTop = Math.floor(yt), pBot = Math.floor(ybot);
+        const inv = ny - y > 0.01 ? 1 / (ny - y) : 0;
+        let q = pTop * lw + px;
+        for (let pp = pTop; pp < pBot && pp < lh; pp++, q += lw) {
+          const i4 = q * 4;
+          let m = (pp + 0.5 - y) * inv;
+          m = m < 0 ? 0 : m > 1 ? 1 : m;
+          d[i4] = cr + (nr - cr) * m; d[i4 + 1] = cg + (ng - cg) * m; d[i4 + 2] = cb + (nb - cb) * m;
+          d[i4 + 3] = 255;
+        }
+        if (pBot < lh && !adj) { // antialiased silhouette: blend into the nearer crest's top pixel
+          const cov = pBot >= pTop ? Math.min(1, ybot - Math.max(y, pBot)) : 0;
+          if (cov > 0) {
+            const i4 = (pBot * lw + px) * 4;
+            let m = (ybot - 0.5 * cov - y) * inv; m = m < 0 ? 0 : m > 1 ? 1 : m;
+            const er = cr + (nr - cr) * m, eg = cg + (ng - cg) * m, eb = cb + (nb - cb) * m;
+            d[i4] += (er - d[i4]) * cov; d[i4 + 1] += (eg - d[i4 + 1]) * cov; d[i4 + 2] += (eb - d[i4 + 2]) * cov;
+          }
+        }
+        ybot = y; prevIdx = r;
+        if (ybot <= 0) break;
+      }
+      if (ybot > 0) {
+        const pBot = Math.floor(ybot);
+        let q = px;
+        for (let pp = 0; pp < pBot && pp < lh; pp++, q += lw) {
+          const i4 = q * 4, s3 = pp * 3;
+          d[i4] = SKY[s3]; d[i4 + 1] = SKY[s3 + 1]; d[i4 + 2] = SKY[s3 + 2]; d[i4 + 3] = 255;
+        }
+        if (pBot < lh) {
+          const cov = ybot - pBot, i4 = (pBot * lw + px) * 4, s3 = pBot * 3;
+          if (prevIdx < 0) { d[i4] = SKY[s3]; d[i4 + 1] = SKY[s3 + 1]; d[i4 + 2] = SKY[s3 + 2]; d[i4 + 3] = 255; }
+          else { d[i4] += (SKY[s3] - d[i4]) * cov; d[i4 + 1] += (SKY[s3 + 1] - d[i4 + 1]) * cov; d[i4 + 2] += (SKY[s3 + 2] - d[i4 + 2]) * cov; }
+        }
+      }
+    }
+    g.putImageData(IMG, 0, 0);
+  }
+
+  function drawInk(g, fr) {
+    const P = fr.P, rows = fr.rows, occ = fr.occ;
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      if (!(row.ink > 0)) continue;
+      const { sx, sy, xs, hs } = row;
+      const fog = Math.exp(-row.zc / (P.fogD * 0.8));
+      g.strokeStyle = fx.rgba(P.ink, P.inkA * row.ink * fog);
+      g.lineWidth = fx.clamp(400 / row.zc, 0.6, 1.5) * 1.4;
+      g.beginPath();
+      let pen = false;
+      const o = (r + 1) * NS;
+      for (let j = 0; j < NS; j++) {
+        const hz = Math.abs(Ht(xs[j], row.z + 2) - hs[j]) / 2;
+        const ok = hz > 0.16 && sy[j] <= occ[o + j] + 0.5 && fx.noise(xs[j] * 0.012, row.z * 0.05) > -0.15;
+        if (ok) { if (pen) g.lineTo(sx[j], sy[j]); else { g.moveTo(sx[j], sy[j]); pen = true; } }
+        else if (pen) { g.lineTo(sx[j], sy[j]); pen = false; }
+      }
+      g.stroke();
+    }
   }
   let FOG_H = 0;
   const SHD = [7, 16, 30, 50];
@@ -319,38 +438,15 @@
   function drawSky(ctx, fr, t) {
     const { c, P } = fr;
     const hy = c.pitch < 80 ? 960 - F * Math.tan(c.pitch * DEG) : -1e4;
-    if (hy > -50) {
-      const g = ctx.createLinearGradient(0, hy - 1150, 0, hy + 2);
-      g.addColorStop(0, fx.rgba(P.skyTop, 1));
-      g.addColorStop(0.55, fx.rgba(P.skyMid, 1));
-      g.addColorStop(1, fx.rgba(P.skyHor, 1));
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, Math.min(H, hy + 4));
-      ctx.fillStyle = fx.rgba(P.haze, 1);
-      if (hy + 4 < H) ctx.fillRect(0, Math.max(0, hy + 2), W, H);
-    } else {
-      ctx.fillStyle = fx.rgba(P.haze, 1);
-      ctx.fillRect(0, 0, W, H);
-      return;
-    }
+    if (hy <= -50) return;
     const dirProj = (az, el) => {
       const dx = Math.sin(az * DEG) * Math.cos(el * DEG), dy = Math.sin(el * DEG), dz = Math.cos(az * DEG) * Math.cos(el * DEG);
       const zc = -dy * c.sp + dz * c.cp, yc = dy * c.cp + dz * c.sp;
       if (zc <= 0.05) return null;
       return [540 + F * dx / zc, 960 - F * yc / zc];
     };
-    // stars
     const night = 1 - fx.smooth(fx.range(t, 4.8, 6.6));
     if (night > 0.01) {
-      ctx.fillStyle = '#e9eefc';
-      for (const s of stars) {
-        const p = dirProj(s.az, s.el);
-        if (!p || p[1] > hy - 6) continue;
-        const tw = 0.65 + 0.35 * Math.sin(t * s.f + s.p);
-        ctx.globalAlpha = night * s.a * tw * fx.clamp((hy - p[1]) / 140);
-        ctx.fillRect(p[0] - s.r / 2, p[1] - s.r / 2, s.r, s.r);
-      }
-      ctx.globalAlpha = 1;
       // full moon of Tishrei
       const m = dirProj(16, 27);
       if (m) {
@@ -374,7 +470,7 @@
     const sunK = fx.smooth(fx.range(t, 4.9, 7.2));
     if (sunK > 0.01) {
       const el = lerp(-3.5, 9, fx.ease.out(fx.range(t, 5.2, 11)));
-      const s = dirProj(-30, el);
+      const s = dirProj(-21, el);
       if (s) {
         ctx.globalCompositeOperation = 'lighter';
         const g1 = fx.glow(520, [255, 150, 80]);
@@ -382,12 +478,34 @@
         const g2 = fx.glow(160, [255, 214, 150]);
         ctx.globalAlpha = 0.8 * sunK; ctx.drawImage(g2, s[0] - 160, s[1] - 160);
         ctx.globalCompositeOperation = 'source-over';
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, hy + 1); ctx.clip();
         ctx.globalAlpha = sunK;
         ctx.fillStyle = '#fff4dc';
         ctx.beginPath(); ctx.arc(s[0], s[1], 17, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
         ctx.globalAlpha = 1;
       }
     }
+  }
+
+  function drawStars(ctx, fr, t, rev) {
+    const c = fr.c;
+    const night = (1 - fx.smooth(fx.range(t, 4.8, 6.6))) * (0.25 + 0.75 * rev);
+    if (night <= 0.01 || c.pitch > 60) return;
+    const hy = 960 - F * Math.tan(c.pitch * DEG);
+    ctx.fillStyle = '#e9eefc';
+    for (const s of stars) {
+      const dx = Math.sin(s.az * DEG) * Math.cos(s.el * DEG), dy = Math.sin(s.el * DEG), dz = Math.cos(s.az * DEG) * Math.cos(s.el * DEG);
+      const zc = -dy * c.sp + dz * c.cp, yc = dy * c.cp + dz * c.sp;
+      if (zc <= 0.05) continue;
+      const px = 540 + F * dx / zc, py = 960 - F * yc / zc;
+      if (py > hy - 6) continue;
+      const tw = 0.65 + 0.35 * Math.sin(t * s.f + s.p);
+      ctx.globalAlpha = night * s.a * tw * fx.clamp((hy - py) / 140);
+      ctx.fillRect(px - s.r / 2, py - s.r / 2, s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function drawRow(ctx, fr, i) {
@@ -475,7 +593,7 @@
     out[0] = x; out[1] = tmp2[1] - 0.3; out[2] = tmp2[0] - 1.2;
     return out;
   }
-  function caravanAlpha(t) { return fx.smooth(fx.range(t, 4.9, 6.4)) * (1 - fx.smooth(fx.range(t, 10.4, 11.4))); }
+  function caravanAlpha(t) { return fx.smooth(fx.range(t, 4.9, 6.4)) * (1 - fx.smooth(fx.range(t, 9.4, 10.4))); }
   const mw = [0, 0, 0];
   function drawCaravan(ctx, fr, t) {
     const a = caravanAlpha(t);
@@ -493,6 +611,7 @@
       const fx0 = PXo, fy0 = PYo, zc = PZo;
       if (fx0 < -40 || fx0 > W + 40) continue;
       const s = (F / zc) * 1.55; // px per metre (stylised)
+      if (visible(fr, mw[2], fx0, fy0 - 0.9 * s) < 0.5) continue;
       // long shadow on the sand, away from the sun
       proj(c, mw[0] - Lx * shLen, mw[1] - 0.4, mw[2] - Lz * shLen);
       ctx.strokeStyle = fx.rgba(P.shade, 0.35);
@@ -675,7 +794,7 @@
     let best = 1e9;
     for (let n = N_MIN; n <= N_MAX; n++) {
       const z = CZ[(n - N_MIN) * CNX + Math.round((0 - CX0) / CSTEP)];
-      const d = Math.abs(z - (c.z + 280));
+      const d = Math.abs(z - (c.z + 330));
       if (d < best) { best = d; CAR_N = n; }
     }
     const r = fx.rng(606);
@@ -722,12 +841,12 @@
         const x = CX0 + j * CSTEP;
         const okp = proj(c, x, CH[o + j], CZ[o + j]);
         const sx = PXo, sy = PYo;
-        const good = okp && CM[o + j] > 0.5 && sx > -10 && sx < W + 10 && sy > 860 && sy < 1560 && PZo < 900 &&
+        const good = okp && CM[o + j] > 0.5 && sx > -10 && sx < W + 10 && sy > 880 && sy < 1500 && PZo < 560 &&
           visible(fr, CZ[o + j], sx, sy) > 0.6;
         const cur = good ? { j, sx, sy } : null;
         if (cur && prev) {
           const len = Math.hypot(cur.sx - prev.sx, cur.sy - prev.sy);
-          if (len < 80) { segs.push({ n, j: prev.j, len, acc: total }); total += len; }
+          if (len < 420) { segs.push({ n, j: prev.j, len, acc: total }); total += len; }
         }
         prev = cur;
       }
@@ -926,43 +1045,43 @@
       }
       const fr = frame(t);
       FOG_H = fr.c.y * 0.9;
-      drawSky(ctx, fr, t);
-      // painter's list
-      const ev = [];
-      for (let i = 0; i < fr.rows.length; i++) ev.push({ z: fr.rows[i].z, type: 0, i });
-      if (fr.c.pitch < 75) crestEvents(fr, ev);
-      if (caravanAlpha(t) > 0.01) {
-        let zmin = 1e9;
-        for (const m of MEMBERS) { memberWorld(m, t, mw); zmin = Math.min(zmin, mw[2]); }
-        ev.push({ z: zmin - 2, type: 2 });
-      }
-      ev.sort((a, b) => b.z - a.z || a.type - b.type);
-      for (const e of ev) {
-        if (e.type === 0) drawRow(ctx, fr, e.i);
-        else if (e.type === 1) drawCrest(ctx, fr, e);
-        else drawCaravan(ctx, fr, t);
-      }
-      // night: the foreground sinks into shadow
-      const nf = 1 - fx.smooth(fx.range(t, 5, 7.5));
-      if (nf > 0.01) {
-        const g = ctx.createLinearGradient(0, 1150, 0, H);
-        g.addColorStop(0, 'rgba(7,8,26,0)'); g.addColorStop(1, `rgba(7,8,26,${0.5 * nf})`);
-        ctx.fillStyle = g; ctx.fillRect(0, 1150, W, H - 1150);
+      const topA = fx.smooth((fr.c.pitch - 62) / 26);
+      const rev = fx.ease.inOut(fx.range(t, SIM_T0, 5.2));
+      if (topA < 0.999) {
+        // sky + terrain are soft-shaded, so they are painted into a reduced-resolution buffer
+        const dev = Math.abs(ctx.getTransform().a) || 1;
+        const lw = Math.max(64, Math.round(W * dev * LOQ)), lh = Math.max(64, Math.round(H * dev * LOQ));
+        if (!LO || LO.width !== lw || LO.height !== lh) LO = fx.canvas(lw, lh);
+        const g = LO.getContext('2d');
+        g.setTransform(lw / W, 0, 0, lh / H, 0, 0);
+        g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+        rasterTerrain(g, fr, lw, lh);
+        drawSky(g, fr, t);
+        drawInk(g, fr);
+        // night: the foreground sinks into shadow
+        const nf = 1 - fx.smooth(fx.range(t, 5, 7.5));
+        if (nf > 0.01) {
+          const gr = g.createLinearGradient(0, 1150, 0, H);
+          gr.addColorStop(0, 'rgba(7,8,26,0)'); gr.addColorStop(1, `rgba(7,8,26,${0.5 * nf})`);
+          g.fillStyle = gr; g.fillRect(0, 1150, W, H - 1150);
+        }
+        // fade up from the dark, as a widening breath around the grain
+        if (rev < 1) {
+          const r1 = 60 + rev * 1900;
+          const gr = g.createRadialGradient(ORIGIN[0], ORIGIN[1], r1 * 0.15, ORIGIN[0], ORIGIN[1], r1);
+          gr.addColorStop(0, `rgba(7,8,26,${(1 - rev) * 0.55})`);
+          gr.addColorStop(1, `rgba(7,8,26,${Math.min(1, (1 - rev) * 1.6)})`);
+          g.fillStyle = gr; g.fillRect(0, 0, W, H);
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(LO, 0, 0, W, H);
+        drawStars(ctx, fr, t, rev);
+        if (caravanAlpha(t) > 0.01) drawCaravan(ctx, fr, t);
       }
       // top-down sand and the grid of the camp-to-be
-      const topA = fx.smooth((fr.c.pitch - 62) / 26);
       if (topA > 0.005) {
         const M = drawTopSand(ctx, fr, t, topA);
         drawGrid(ctx, M, 0.22 * fx.smooth(fx.range(t, 11.2, 13.2)));
-      }
-      // fade up from the dark, as a widening breath around the grain
-      const rev = fx.ease.inOut(fx.range(t, SIM_T0, 5.2));
-      if (rev < 1) {
-        const r1 = 60 + rev * 1900;
-        const g = ctx.createRadialGradient(ORIGIN[0], ORIGIN[1], r1 * 0.15, ORIGIN[0], ORIGIN[1], r1);
-        g.addColorStop(0, `rgba(7,8,26,${(1 - rev) * 0.55})`);
-        g.addColorStop(1, `rgba(7,8,26,${Math.min(1, (1 - rev) * 1.6)})`);
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       }
     },
 
