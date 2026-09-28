@@ -1,22 +1,22 @@
 // Beat 2 (film 12-25 s, local t 0..13): the Camp of Israel forms from above, dusk falls,
 // and the Clouds of Glory gather around it.
 //
-// END STATE (H2, held stable for t = 11..13, only slow drift):
-//   camera  = WORLD.CAM_CAMP exactly ({x:0, y:0, zoom:1.45}), static from t = 6.8.
+// END STATE (H2, held stable for t = 11..13; only slow drift):
+//   camera  = WORLD.CAM_CAMP exactly ({x:0, y:0, zoom:1.45}); static from t = 6.8.
 //   camp    = WORLD.drawCamp(ctx, CAM_CAMP, { appear: () => 1, night: 1, glow: 0.5 }, env)
-//   ground  = the day sand texture, multiplied by rgb(74,82,150) and then covered with
-//             #12143a at alpha 0.42 (a deep, cool moonlit indigo on which the ripples still read).
-//             Beat 3 can draw exactly this ground at any camera with
-//             MIDBAR.beats[2].scene.ground(ctx, cam, env, 1)
-//   light   = warm pillar glow on the ground at the Mishkan (screen 540,960), ~60 tiny flickering
-//             campfire glows in the lanes between blocks, and a pearl light pool under the cloud ring.
-//   clouds  = pearl-white/gold luminous clouds on a rounded-square ring (superellipse p=3,
-//             radius ~480 x 505 px around 540,960), larger dim clouds beyond it, a thin
-//             translucent canopy over the camp and the pillar vortex over the Mishkan.
-//             Beat 3 can draw the same clouds with
-//             MIDBAR.beats[2].scene.clouds(ctx, t, env, alpha)   (t = b2 local time, e.g. 13 + s)
-//   grains  = sparkling fine structure: 70% trace the ring clouds, 16% spiral in the pillar,
-//             14% sit in the canopy; w 0.3..0.7 twinkling.
+//             (from t >= 10.9 this is drawn from a cached render of exactly that call).
+//   ground  = the day sand texture multiplied by rgb(88,98,172), then #12143a at alpha 0.36:
+//             deep, cool, moonlit indigo on which the wind ripples still read. No colour veil.
+//             Beat 3 can draw it at any camera: MIDBAR.beats[2].scene.ground(ctx, cam, env, 1)
+//   lights  = warm pillar glow on the ground at the Mishkan (screen 540,960), ~60 tiny flickering
+//             campfire glows in the lanes between blocks: scene.lights(ctx, cam, env, t, alpha)
+//   clouds  = pearl-white/gold luminous clouds on a rounded-square ring (superellipse p=3.2,
+//             radii 560 x 600 px around 540,960, so the sides run partly off-frame), a deeper
+//             back ring and larger dim clouds beyond it, faint canopy veils over the camp, and
+//             the pillar vortex + soft eye over the Mishkan. Everything rotates slowly about
+//             (540,960) at 0.01 rad/s. scene.clouds(ctx, t, env, alpha), t = b2 local time (13 + s).
+//   grains  = sparkling fine structure: ~78% trace the ring clouds, ~9% spiral in the pillar
+//             (r 8..138 px), ~13% in the canopy; w 0.2..0.7, twinkling.
 (function () {
   const S = (window.MIDBAR = window.MIDBAR || { beats: {} });
 
@@ -777,20 +777,18 @@
     draw(ctx, t, env) {
       const cam = camAt(t);
       const opts = camOpts(t);
-      const SK_ = window.B2SKIP || {}, TM_ = window.B2TIME || {};
-      const tm = (k, f) => { if (SK_[k]) return; const a = performance.now(); f(); TM_[k] = (TM_[k] || 0) + performance.now() - a; };
       ctx.fillStyle = '#16193a';
       ctx.fillRect(0, 0, env.W, env.H);
-      tm('ground', () => drawGround(ctx, cam, env, t));
-      tm('ink', () => drawInk(ctx, cam, env, t, opts.night));
-      tm('shadows', () => drawShadows(ctx, cam, env, t, opts.appear));
-      tm('camp', () => drawCampCached(ctx, cam, opts, env, t));
-      tm('cover', () => coverMishkan(ctx, cam, env, t));
-      tm('ink2', () => drawInk(ctx, cam, env, t, opts.night, true));
-      tm('banners', () => drawBanners(ctx, cam, env, t, opts.night));
-      tm('grade', () => drawGrade(ctx, env, t));
-      tm('lights', () => drawLights(ctx, cam, env, t, 1));
-      tm('clouds', () => drawClouds(ctx, t, env, 1));
+      drawGround(ctx, cam, env, t);
+      drawInk(ctx, cam, env, t, opts.night);
+      drawShadows(ctx, cam, env, t, opts.appear);
+      drawCampCached(ctx, cam, opts, env, t);
+      coverMishkan(ctx, cam, env, t);
+      drawInk(ctx, cam, env, t, opts.night, true);
+      drawBanners(ctx, cam, env, t, opts.night);
+      drawGrade(ctx, env, t);
+      drawLights(ctx, cam, env, t, 1);
+      drawClouds(ctx, t, env, 1);
     },
 
     grains(t, out, env) {
@@ -851,7 +849,6 @@
     },
 
     // Shared with beat 3 (read-only helpers): the end-state look at any camera / time.
-    _dbg: () => sprites,
     scene: {
       ground: (ctx, cam, env, night) => drawGround(ctx, cam, env, 13, night == null ? 1 : night),
       lights: (ctx, cam, env, t, a) => drawLights(ctx, cam, env, t == null ? 13 : t, a == null ? 1 : a),

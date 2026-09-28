@@ -423,7 +423,8 @@
   }
   function drawPuffs(ctx, t, which, heroDepth) {
     ctx.save();
-    const lum = 1;
+    const lum = sm(2.0, 3.2, t);
+    if (lum <= 0.01) { ctx.restore(); return; }
     for (const p of G.puffs) {
       const [x, y, z] = puffPos(p, t);
       const d = pr(x, y, z);
@@ -449,17 +450,18 @@
   function drawPillar(ctx, t) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (let k = 0; k < 14; k++) {
+    const pa = sm(2.0, 3.0, t);
+    for (let k = 0; k < 14 && pa > 0.01; k++) {
       const z = k * 20;
       const d = pr(G.mcx, G.mcy, z);
       if (d < 5) continue;
       const r = F * (34 + k * 2) / d;
       if (r > 3000) continue;
-      ctx.globalAlpha = 0.16 * (1 - k / 16);
+      ctx.globalAlpha = pa * 0.16 * (1 - k / 16);
       ctx.drawImage(G.goldGlow, SX - r, SY - r, 2 * r, 2 * r);
     }
     const d0 = pr(G.mcx, G.mcy, 4);
-    if (d0 > 5) { const r = F * 70 / d0; ctx.globalAlpha = 0.45; ctx.drawImage(G.pearlGlow, SX - r, SY - r, 2 * r, 2 * r); }
+    if (d0 > 5 && pa > 0.01) { const r = F * 70 / d0; ctx.globalAlpha = 0.45 * pa; ctx.drawImage(G.pearlGlow, SX - r, SY - r, 2 * r, 2 * r); }
     // a soft shaft of cloud-light through the parted roof onto the hero sukkah
     const sh = sm(2.8, 5.0, t) * (1 - sm(7.6, 8.8, t));
     if (sh > 0.01) {
@@ -898,26 +900,27 @@
   }
 
   // ---------------------------------------------------------------- frame
-  let ORDER = null;
   function draw(ctx, t) {
     setCam(t);
+    const base = ctx.getTransform();
     const zoomPx = F / C.pz;
-    // the seam with beat 2: the exact shared overview
-    if (t < 1.2) {
-      drawBackground(ctx, t);
-      drawPuffs(ctx, t, false, 1e9);
-      drawPillar(ctx, t);
-      WD.drawCamp(ctx, { x: C.px, y: C.py, zoom: zoomPx }, { night: 1, glow: 0.5 }, { W, H });
-      lampGlows(ctx, G.SK, t);
-      drawPuffs(ctx, t, true, 1e9);
-      return;
-    }
-    drawBackground(ctx, t);
+    ctx.fillStyle = '#16193a';
+    ctx.fillRect(0, 0, W, H);
+    drawBackground(ctx, t, base);
     drawSky(ctx, t);
     const hs = G.SK[G.hero];
     const heroDepth = depth(hs.x, hs.y, 3);
     drawPuffs(ctx, t, false, heroDepth);
     drawPillar(ctx, t);
+    // the seam with beat 2: until the wave of change begins, the camp is exactly WORLD.drawCamp
+    if (t < 1.2) {
+      ctx.save(); planeTransform(ctx, base, 0); ctx.scale(1 / zoomPx, 1 / zoomPx); ctx.translate(-CX, -CY);
+      WD.drawCamp(ctx, { x: 0, y: 0, zoom: zoomPx }, { night: 1, glow: 0.5 }, { W, H });
+      ctx.restore();
+      drawB2Clouds(ctx, t, base);
+      drawPuffs(ctx, t, true, heroDepth);
+      return;
+    }
     drawMishkan(ctx);
 
     // cull & sort
@@ -943,15 +946,8 @@
       lampGlows(ctx, [s], t);
     }
     if (!heroDone) drawHero(ctx, t, false);
-    lampGlows(ctx, [hs], t);
+    drawB2Clouds(ctx, t, base);
     drawPuffs(ctx, t, true, heroDepth);
-    // interior warmth once we are inside
-    const inside = sm(7.6, 9.0, t);
-    if (inside > 0) {
-      const g = ctx.createLinearGradient(0, H, 0, H * 0.35);
-      g.addColorStop(0, `rgba(255,160,70,${0.22 * inside})`); g.addColorStop(1, 'rgba(255,160,70,0)');
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
-    }
   }
 
   // ---------------------------------------------------------------- grains
