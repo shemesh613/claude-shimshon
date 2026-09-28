@@ -1,0 +1,355 @@
+<title>זמן שמחתנו</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Heebo:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #07060a;
+    --panel: rgba(12, 10, 16, 0.72);
+    --ink: #f3ead8;
+    --ink-dim: #b9ab92;
+    --gold: #e0b45a;
+    --gold-hi: #f6d88f;
+    --track: rgba(243, 234, 216, 0.18);
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Heebo', 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    width: min(100%, calc((100vh - 32px) * 16 / 9));
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .stage:fullscreen { width: 100%; height: 100%; border-radius: 0; aspect-ratio: auto; }
+  canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+  .poster {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2em;
+    background: radial-gradient(ellipse at 50% 60%, rgba(7, 6, 10, 0.1), rgba(7, 6, 10, 0.75));
+    cursor: pointer; border: 0; color: inherit; font: inherit; width: 100%;
+    text-align: center;
+  }
+  .poster h1 {
+    margin: 0;
+    font-family: 'Frank Ruhl Libre', 'David Libre', serif;
+    font-weight: 900;
+    font-size: clamp(2.4rem, 9vw, 7rem);
+    line-height: 1;
+    background: linear-gradient(180deg, var(--gold-hi), var(--gold) 60%, #a8782c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 40px rgba(224, 180, 90, 0.25);
+  }
+  .poster p { margin: 0; color: var(--ink-dim); font-size: clamp(0.8rem, 1.8vw, 1.1rem); letter-spacing: 0.08em; }
+  .play-big {
+    width: clamp(56px, 9vw, 92px); aspect-ratio: 1; border-radius: 50%;
+    border: 1.5px solid var(--gold); display: grid; place-items: center;
+    background: rgba(224, 180, 90, 0.12); transition: transform .2s, background .2s;
+  }
+  .poster:hover .play-big, .poster:focus-visible .play-big { transform: scale(1.06); background: rgba(224, 180, 90, 0.25); }
+  .poster:focus-visible { outline: 2px solid var(--gold); outline-offset: -6px; }
+  .play-big svg { width: 38%; margin-inline-start: 8%; fill: var(--gold-hi); }
+
+  .bar {
+    position: absolute; inset-inline: 0; bottom: 0;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,0));
+    opacity: 0; transition: opacity .35s;
+    direction: ltr;
+  }
+  .stage:hover .bar, .stage.paused .bar, .bar:focus-within { opacity: 1; }
+  .bar button {
+    background: none; border: 0; color: var(--ink); cursor: pointer; padding: 6px;
+    display: grid; place-items: center; border-radius: 4px;
+  }
+  .bar button:focus-visible { outline: 2px solid var(--gold); }
+  .bar svg { width: 20px; height: 20px; fill: currentColor; }
+  .seek { flex: 1; min-width: 0; accent-color: var(--gold); }
+  .time { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-dim); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { .poster .play-big { transition: none; } }
+</style>
+
+<div class="stage paused" id="stage">
+  <canvas id="film" aria-label="סרט אנימציה על חג הסוכות"></canvas>
+  <button class="poster" id="poster" type="button" aria-label="הפעל את הסרט">
+    <h1>זמן שמחתנו</h1>
+    <span class="play-big" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></span>
+    <p>סרט קצר על חג הסוכות · עם מוזיקה · 2 דקות</p>
+  </button>
+  <div class="bar" id="bar">
+    <button id="btnPlay" type="button" aria-label="Play"><svg viewBox="0 0 24 24" id="icoPlay"><path d="M6 4l14 8-14 8z"/></svg></button>
+    <input class="seek" id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+    <span class="time" id="time">0:00 / 0:00</span>
+    <button id="btnMute" type="button" aria-label="Mute"><svg viewBox="0 0 24 24" id="icoMute"><path d="M4 9h4l5-4v14l-5-4H4z M16 8.5a5 5 0 010 7 M18.5 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.6" fill-rule="evenodd"/></svg></button>
+    <button id="btnFull" type="button" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg></button>
+  </div>
+</div>
+
+<!-- SCENES -->
+<script src="scenes/s1.js"></script>
+<script src="scenes/s2.js"></script>
+<script src="scenes/s3.js"></script>
+<script src="scenes/s4.js"></script>
+<script src="scenes/s5.js"></script>
+<script src="scenes/s6.js"></script>
+<script src="scenes/s7.js"></script>
+<script src="music.js"></script>
+<!-- /SCENES -->
+
+<script>
+(function () {
+  'use strict';
+  const W = 1920, H = 1080, XFADE = 1.5;
+  const S = (window.SUKKOT = window.SUKKOT || { scenes: {} });
+  const SERIF = "'Frank Ruhl Libre', 'David Libre', serif";
+
+  // Verse captions, one per scene: [text, source, fadeInAt, fadeOutAt (null = end - 2)]
+  const CAPTIONS = {
+    1: ['כִּי בַסֻּכּוֹת הוֹשַׁבְתִּי אֶת בְּנֵי יִשְׂרָאֵל', 'ויקרא כג, מג', 8.5, null],
+    2: ['חַג הַסֻּכֹּת תַּעֲשֶׂה לְךָ שִׁבְעַת יָמִים', 'דברים טז, יג', 2.5, null],
+    3: ['וּלְקַחְתֶּם לָכֶם בַּיּוֹם הָרִאשׁוֹן פְּרִי עֵץ הָדָר\nכַּפֹּת תְּמָרִים וַעֲנַף עֵץ עָבֹת וְעַרְבֵי נָחַל', 'ויקרא כג, מ', 2.5, null],
+    4: ['בַּסֻּכֹּת תֵּשְׁבוּ שִׁבְעַת יָמִים', 'ויקרא כג, מב', 2.5, null],
+    5: ['מִי שֶׁלֹּא רָאָה שִׂמְחַת בֵּית הַשּׁוֹאֵבָה\nלֹא רָאָה שִׂמְחָה מִיָּמָיו', 'משנה סוכה ה, א', 2.5, null],
+    6: ['מַשִּׁיב הָרוּחַ וּמוֹרִיד הַגֶּשֶׁם', 'מתפילת שמיני עצרת', 2.5, null],
+    7: ['וְשָׂמַחְתָּ בְּחַגֶּךָ · וְהָיִיתָ אַךְ שָׂמֵחַ', 'דברים טז, יד–טו', 2.0, 12.0],
+  };
+
+  const canvas = document.getElementById('film');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const env = { W, H };
+
+  // ---------- timeline ----------
+  const ids = [1, 2, 3, 4, 5, 6, 7].filter((n) => S.scenes[n]);
+  const timeline = [];
+  let acc = 0;
+  ids.forEach((n, i) => {
+    const sc = S.scenes[n];
+    const start = i === 0 ? 0 : acc - XFADE;
+    timeline.push({ n, sc, start, end: start + sc.duration });
+    acc = start + sc.duration;
+  });
+  const DURATION = acc;
+  const cues = timeline.map((e) => ({ scene: e.n, start: e.start, end: e.end }));
+  timeline.forEach((e) => { try { e.sc.init && e.sc.init(env); } catch (err) { console.error('init scene', e.n, err); e.broken = true; } });
+
+  // ---------- buffers ----------
+  let scale = 1;
+  const bufA = document.createElement('canvas');
+  const bufB = document.createElement('canvas');
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = stage.clientWidth || 960;
+    const pw = Math.max(640, Math.min(W, Math.round(cssW * dpr)));
+    const ph = Math.round(pw * H / W);
+    for (const c of [canvas, bufA, bufB]) { c.width = pw; c.height = ph; }
+    scale = pw / W;
+    renderAt(filmTime);
+  }
+
+  const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+
+  function drawScene(target, e, t) {
+    const c = target.getContext('2d');
+    c.save();
+    c.setTransform(scale, 0, 0, scale, 0, 0);
+    if (e.broken) { c.fillStyle = '#000'; c.fillRect(0, 0, W, H); }
+    else {
+      try { e.sc.draw(c, Math.max(0, Math.min(e.sc.duration, t)), env); }
+      catch (err) { console.error('draw scene', e.n, err); e.broken = true; }
+    }
+    c.restore();
+    // reset any state a scene may have left behind
+    c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.filter = 'none';
+  }
+
+  function drawCaption(c, e, t) {
+    const cap = CAPTIONS[e.n];
+    if (!cap) return 0;
+    const [text, source, tin, toutRaw] = cap;
+    const tout = toutRaw == null ? e.sc.duration - 2.2 : toutRaw;
+    const a = ease((t - tin) / 1.1) * (1 - ease((t - tout) / 1.0));
+    if (a <= 0.001) return 0;
+    const lines = text.split('\n');
+    c.save();
+    c.globalAlpha = a;
+    // scrim
+    const g = c.createLinearGradient(0, H * 0.7, 0, H);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.55)');
+    c.fillStyle = g; c.fillRect(0, H * 0.7, W, H * 0.3);
+    c.direction = 'rtl'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    const size = lines.length > 1 ? 50 : 58;
+    const lh = size * 1.32;
+    const baseY = H - 118 - (lines.length - 1) * lh;
+    const rise = (1 - ease((t - tin) / 1.4)) * 14;
+    c.font = `700 ${size}px ${SERIF}`;
+    c.shadowColor = 'rgba(0,0,0,0.85)'; c.shadowBlur = 18;
+    lines.forEach((ln, i) => {
+      const y = baseY + i * lh + rise;
+      c.fillStyle = '#f5ecd9';
+      c.fillText(ln, W / 2, y);
+    });
+    c.shadowBlur = 10;
+    c.font = `400 26px ${SERIF}`;
+    c.fillStyle = '#e0b45a';
+    c.fillText('— ' + source + ' —', W / 2, baseY + (lines.length - 1) * lh + 52 + rise);
+    c.restore();
+    return a;
+  }
+
+  function drawOpeningTitle(c, T) {
+    // "סוכות · זמן שמחתנו" over the wilderness, T in [1.5, 8]
+    const a = ease((T - 1.6) / 1.6) * (1 - ease((T - 6.4) / 1.4));
+    if (a <= 0.001) return;
+    c.save();
+    c.globalAlpha = a;
+    c.direction = 'rtl'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const s = 1 + (T - 1.6) * 0.012;
+    c.translate(W / 2, H * 0.42); c.scale(s, s);
+    const g = c.createLinearGradient(0, -110, 0, 90);
+    g.addColorStop(0, '#fbe6a8'); g.addColorStop(0.55, '#e0b45a'); g.addColorStop(1, '#9e6f28');
+    c.shadowColor = 'rgba(246, 216, 143, 0.55)'; c.shadowBlur = 50;
+    c.font = `900 190px ${SERIF}`;
+    c.fillStyle = g; c.fillText('סוכות', 0, 0);
+    c.shadowBlur = 16; c.shadowColor = 'rgba(0,0,0,0.8)';
+    c.font = `400 44px ${SERIF}`;
+    c.fillStyle = '#f5ecd9';
+    c.fillText('זְמַן שִׂמְחָתֵנוּ', 0, 150);
+    c.restore();
+  }
+
+  function renderAt(T) {
+    T = Math.max(0, Math.min(DURATION, T));
+    const active = timeline.filter((e) => T >= e.start && T <= e.end);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    if (!active.length) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; }
+    const a = active[0];
+    drawScene(bufA, a, T - a.start);
+    ctx.drawImage(bufA, 0, 0);
+    if (active.length > 1) {
+      const b = active[1];
+      drawScene(bufB, b, T - b.start);
+      ctx.globalAlpha = ease((T - b.start) / XFADE);
+      ctx.drawImage(bufB, 0, 0);
+      ctx.globalAlpha = 1;
+    }
+    // overlays in 1920x1080 space
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    if (started) {
+      drawOpeningTitle(ctx, T);
+      active.forEach((e) => drawCaption(ctx, e, T - e.start));
+    }
+    // fade from/to black at the very start and end
+    const fade = Math.max(1 - ease(T / 1.2), ease((T - (DURATION - 1.2)) / 1.2));
+    if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  // ---------- playback & audio ----------
+  let filmTime = 10.5, playing = false, started = false;
+  let audio = null, master = null, musicHandle = null, anchorCtx = 0, anchorFilm = 0, anchorPerf = 0, muted = false;
+
+  function now() {
+    if (audio && audio.state === 'running') return anchorFilm + (audio.currentTime - anchorCtx);
+    return anchorFilm + (performance.now() - anchorPerf) / 1000;
+  }
+  function startMusic() {
+    if (!audio || !S.music) return;
+    stopMusic();
+    const when = audio.currentTime + 0.06;
+    try { musicHandle = S.music.build(audio, master, cues, filmTime, when); } catch (err) { console.error('music', err); }
+    anchorCtx = when; anchorFilm = filmTime;
+  }
+  function stopMusic() { if (musicHandle) { try { musicHandle.stop(); } catch (_) {} musicHandle = null; } }
+
+  function play() {
+    if (filmTime >= DURATION - 0.05) filmTime = 0;
+    if (!started) { started = true; filmTime = 0; }
+    document.getElementById('poster').hidden = true;
+    try {
+      if (!audio) {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+        master = audio.createGain(); master.gain.value = muted ? 0 : 1; master.connect(audio.destination);
+      }
+      audio.resume();
+    } catch (_) { audio = null; }
+    anchorFilm = filmTime; anchorPerf = performance.now();
+    if (audio) { anchorCtx = audio.currentTime; startMusic(); }
+    playing = true; stage.classList.remove('paused'); setIcons();
+    requestAnimationFrame(tick);
+  }
+  function pause() {
+    filmTime = now(); playing = false; stopMusic();
+    stage.classList.add('paused'); setIcons();
+  }
+  function seek(T) {
+    filmTime = Math.max(0, Math.min(DURATION, T));
+    if (playing) { anchorFilm = filmTime; anchorPerf = performance.now(); if (audio) { anchorCtx = audio.currentTime; startMusic(); } }
+    renderAt(filmTime); updateUI();
+  }
+  function tick() {
+    if (!playing) return;
+    filmTime = now();
+    if (filmTime >= DURATION) { filmTime = DURATION; renderAt(filmTime); pause(); updateUI(); return; }
+    renderAt(filmTime); updateUI();
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- UI ----------
+  const seekEl = document.getElementById('seek'), timeEl = document.getElementById('time');
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  function updateUI() {
+    seekEl.value = String(Math.round((filmTime / DURATION) * 1000));
+    timeEl.textContent = `${fmt(filmTime)} / ${fmt(DURATION)}`;
+  }
+  function setIcons() {
+    document.getElementById('icoPlay').innerHTML = playing ? '<path d="M6 4h4v16H6zm8 0h4v16h-4z"/>' : '<path d="M6 4l14 8-14 8z"/>';
+    document.getElementById('btnPlay').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  }
+  document.getElementById('poster').addEventListener('click', play);
+  document.getElementById('btnPlay').addEventListener('click', () => (playing ? pause() : play()));
+  canvas.addEventListener('click', () => (playing ? pause() : play()));
+  seekEl.addEventListener('input', () => { if (!started) { started = true; document.getElementById('poster').hidden = true; } seek((seekEl.value / 1000) * DURATION); });
+  document.getElementById('btnMute').addEventListener('click', () => {
+    muted = !muted; if (master) master.gain.value = muted ? 0 : 1;
+    document.getElementById('icoMute').style.opacity = muted ? 0.4 : 1;
+  });
+  document.getElementById('btnFull').addEventListener('click', () => {
+    try { document.fullscreenElement ? document.exitFullscreen() : stage.requestFullscreen().catch(() => {}); } catch (_) {}
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' && e.code !== 'Space') return;
+    if (e.code === 'Space' || e.key === 'k') { e.preventDefault(); if (!started) play(); else playing ? pause() : play(); }
+    if (e.key === 'ArrowRight') seek(filmTime + 5);
+    if (e.key === 'ArrowLeft') seek(filmTime - 5);
+  });
+  window.addEventListener('resize', resize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderAt(filmTime));
+
+  // hook for offline export (frame-by-frame rendering)
+  window.FILM = { duration: DURATION, cues, renderAt: (T) => { started = true; filmTime = T; renderAt(T); }, setResolution(pw) { for (const c of [canvas, bufA, bufB]) { c.width = pw; c.height = Math.round(pw * H / W); } scale = pw / W; } };
+
+  resize();
+  updateUI();
+})();
+</script>
