@@ -598,11 +598,9 @@
     const k = fx.smooth((t - A[0]) / (B[0] - A[0]));
     const al = fx.lerp(A[3], B[3], k);
     if (al <= 0.003) return;
-    const bot = lerp3(A[1], B[1], k), top = lerp3(A[2], B[2], k);
-    const gr = ctx.createLinearGradient(0, env.H, 0, 0);
-    gr.addColorStop(0, fx.rgba(bot, al));
-    gr.addColorStop(1, fx.rgba(top, al * 0.7));
-    ctx.fillStyle = gr;
+    // a flat veil (a gradient fill costs ~5 ms more per frame at 1080)
+    const col = lerp3(lerp3(A[1], B[1], k), lerp3(A[2], B[2], k), 0.4);
+    ctx.fillStyle = fx.rgba(col, al * 0.88);
     ctx.fillRect(0, 0, env.W, env.H);
   }
 

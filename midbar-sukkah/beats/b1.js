@@ -127,7 +127,7 @@
   };
   const P_LATE = {
     skyTop: [120, 130, 170], skyMid: [214, 186, 160], skyHor: [250, 214, 160], haze: [240, 204, 150],
-    lit: [252, 212, 150], shade: [150, 88, 46], amb: 0.2, L: [-0.45, 0.32, -0.83], fogD: 3600,
+    lit: [252, 212, 150], shade: [140, 80, 42], amb: 0.2, L: [-0.55, 0.3, 0.78], fogD: 3600,
     ink: [59, 38, 22], inkA: 0.1, crest: [255, 236, 200], crestA: 0.24, sil: [59, 38, 22],
   };
   const KEYS = [[0, P_NIGHT], [4.9, P_NIGHT], [6.6, P_DAWN], [8.6, P_DAY], [10.2, P_DAY], [12.2, P_LATE]];
@@ -288,6 +288,15 @@
     const nx = -hx * il, ny = il, nz = -hz * il;
     let d = nx * P.L[0] + ny * P.L[1] + nz * P.L[2];
     d = d < 0 ? 0 : d;
+    // long soft cast shadows: march toward the light
+    const lh = Math.hypot(P.L[0], P.L[2]) + 1e-6, ux = P.L[0] / lh, uz = P.L[2] / lh, tg = P.L[1] / lh;
+    let sh = 0;
+    for (let q = 0; q < SHD.length; q++) {
+      const dd = SHD[q];
+      const o = Ht(x + ux * dd, z + uz * dd) - h - dd * tg;
+      if (o > sh) sh = o;
+    }
+    d *= 1 - fx.smooth(sh / 5);
     let v = P.amb + (1 - P.amb) * d;
     v *= 0.82 + 0.18 * fx.clamp((h - 6) / 26);
     const fog = (1 - Math.exp(-Math.max(0, zc - FOG_H) / P.fogD)) * 0.92;
@@ -297,6 +306,7 @@
     return `rgb(${r | 0},${g | 0},${b | 0})`;
   }
   let FOG_H = 0;
+  const SHD = [7, 16, 30, 50];
   const STOPS = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33];
 
   function drawSky(ctx, fr, t) {
@@ -778,27 +788,24 @@
   }
 
   function buildFinal() {
-    // order the camp migration: sweep by position of the grain at t = 9.6
+    // the camp migration sweeps left to right, by where each grain is at t = 9.6
     const cc = campCam(14);
-    const pos = new Float32Array(N * 2);
-    const tmpg = new Float32Array(N * 3);
-    phaseD(9.6, tmpg, frame(9.6));
+    const tmpg = new Float32Array(N * 4);
+    phaseD(9.6, tmpg);
     let minx = 1e9, maxx = -1e9;
-    for (let i = 0; i < N; i++) { minx = Math.min(minx, tmpg[3 * i]); maxx = Math.max(maxx, tmpg[3 * i]); }
+    for (let i = 0; i < N; i++) { minx = Math.min(minx, tmpg[4 * i]); maxx = Math.max(maxx, tmpg[4 * i]); }
     const cp = [0, 0];
     for (let i = 0; i < N; i++) {
       campTarget(i, cc, cp);
       TX[i] = cp[0]; TY[i] = cp[1];
-      const xr = fx.clamp((tmpg[3 * i] - minx) / (maxx - minx + 1));
-      EST[i] = 9.4 + 1.3 * xr + 0.5 * SEED[i];
-      pos[2 * i] = tmpg[3 * i]; pos[2 * i + 1] = tmpg[3 * i + 1];
+      const xr = fx.clamp((tmpg[4 * i] - minx) / (maxx - minx + 1));
+      EST[i] = 9.4 + 1.1 * xr + 0.5 * SEED[i];
     }
   }
 
-  // grains in the dunes / journey phase (world anchored), writes screen x, y, w
+  // grains in the dunes / journey phase (world anchored), writes world X, Y, Z, w
   const wtmp = [0, 0, 0];
-  function phaseD(t, out, fr) {
-    const c = fr.c;
+  function phaseD(t, out) {
     const day = fx.smooth(fx.range(t, 5.2, 8.5));
     for (let i = 0; i < N; i++) {
       let X = GX[i], Y = GY[i], Z = GZ[i];
@@ -843,14 +850,11 @@
       } else if (role === 3) {
         w *= 0.6 + 0.4 * Math.sin(t * (1.5 + SEED[i] * 3) + SEED[i] * 40);
       }
-      if (!proj(c, X, Y, Z)) { out[3 * i] = PXo; out[3 * i + 1] = PYo; out[3 * i + 2] = 0; continue; }
-      const sx = PXo, sy = PYo;
-      const v = visible(fr, Z, sx, sy);
-      out[3 * i] = sx; out[3 * i + 1] = sy; out[3 * i + 2] = w * v;
+      out[4 * i] = X; out[4 * i + 1] = Y; out[4 * i + 2] = Z; out[4 * i + 3] = w;
     }
   }
 
-  const ptmp = new Float32Array(4000 * 3);
+  const ptmp = new Float32Array(4000 * 4);
   function grainsAt(t, out) {
     if (t < SIM_T0) {
       for (let i = 0; i < N; i++) { out[3 * i] = ORIGIN[0]; out[3 * i + 1] = ORIGIN[1]; out[3 * i + 2] = 0; }
@@ -859,13 +863,28 @@
       if (t >= 1.2) out[2] = lerp(out[2], 0.95, fx.smooth(fx.range(t, 1.2, 1.6)));
       return;
     }
-    const fr = frame(t);
-    phaseD(t, ptmp, fr);
+    const fr = frame(t), c = fr.c;
+    phaseD(t, ptmp);
     const burstW = fx.smooth(fx.range(t, SIM_T0, SIM_T0 + 0.5));
-    const cc = campCam(t);
     const final = t > 9.3;
     for (let i = 0; i < N; i++) {
-      let x = ptmp[3 * i], y = ptmp[3 * i + 1], w = ptmp[3 * i + 2];
+      let X = ptmp[4 * i], Y = ptmp[4 * i + 1], Z = ptmp[4 * i + 2], w = ptmp[4 * i + 3];
+      if (final) {
+        const k = fx.ease.inOut(fx.range(t, EST[i], EST[i] + 1.7));
+        if (k > 0) {
+          // fly (in the world) to a tent-outline point on the camp plain
+          const sk = Math.sin(Math.PI * k);
+          X = lerp(X, CAMP_A * TX[i], k) + sk * ARC[i] * 110;
+          Y = lerp(Y, 0, k) + sk * (50 + 40 * SEED[i]);
+          Z = lerp(Z, PZ - CAMP_A * TY[i], k);
+          w = lerp(w, 0.4 + 0.05 * Math.sin(t * 3 + SEED[i] * 30), k) + 0.25 * sk;
+        }
+      }
+      let x, y;
+      if (proj(c, X, Y, Z) && PZo > 2) {
+        x = PXo; y = PYo;
+        if (t < T_TOP) w *= visible(fr, Z, x, y);
+      } else { x = -200; y = 2200; w = 0; }
       if (t < TS[i] + 1.2) {
         spiral(i, t, sp2);
         const qx = sp2[0], qy = sp2[1];
@@ -873,21 +892,6 @@
         const wb = (i === 0 ? 0.95 : (0.2 + 0.45 * SEED[i]) * (1.25 - 0.5 * SPOS[i]) * burstW);
         if (k <= 0) { x = qx; y = qy; w = wb; }
         else { x = lerp(qx, x, k); y = lerp(qy, y, k); w = lerp(wb, w, k); }
-      }
-      if (final) {
-        const k = fx.ease.inOut(fx.range(t, EST[i], EST[i] + 1.7));
-        if (k > 0) {
-          // tent outline point: camp coords -> world ground -> screen through the current camera
-          proj(fr.c, CAMP_A * TX[i], 0, PZ - CAMP_A * TY[i]);
-          let ex = PXo, ey = PYo;
-          if (t >= T_TOP) { ex = (TX[i] - cc.x) * cc.zoom + 540; ey = (TY[i] - cc.y) * cc.zoom + 960; }
-          const dx = ex - x, dy = ey - y;
-          const arc = Math.sin(Math.PI * k) * 0.3 * ARC[i];
-          const nx = x + dx * k - dy * arc, ny = y + dy * k + dx * arc - Math.sin(Math.PI * k) * 60;
-          x = nx; y = ny;
-          const tw = 0.4 + 0.05 * Math.sin(t * 3 + SEED[i] * 30);
-          w = lerp(w, tw, k) + 0.25 * Math.sin(Math.PI * k);
-        }
       }
       out[3 * i] = x; out[3 * i + 1] = y; out[3 * i + 2] = w;
     }

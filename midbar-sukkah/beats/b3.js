@@ -558,74 +558,102 @@
     }
   }
 
+  // which side of a wall the camera sees: true = exterior
+  function wallFacing(s, a0, b0, a1, b1, ni, nj) {
+    const mx = s.x + s.ax * (a0 + a1) / 2 * s.w2 + s.bx * (b0 + b1) / 2 * s.h2, my = s.y + s.ay * (a0 + a1) / 2 * s.w2 + s.by * (b0 + b1) / 2 * s.h2;
+    const nx = -(s.ax * ni + s.bx * nj), ny = -(s.ay * ni + s.by * nj);
+    return (C.px - mx) * nx + (C.py - my) * ny > 0;
+  }
+  const EXT = 'rgb(36,28,36)', INT = 'rgb(150,92,50)', FLOOR = 'rgb(196,128,64)', RIM = 'rgba(190,184,226,0.35)';
+  const SCH = 'rgba(146,168,92,0.95)';
+
   // far sukkot: batched by style (drawn small, overlap order irrelevant)
   function drawSukkotBatched(ctx, list, t, zoomPx) {
-    const lw = clamp(zoomPx * 0.13, 0.5, 2.2);
+    const lw = clamp(zoomPx * 0.12, 0.5, 2.0);
+    const ms = list.map((s) => morph(s, t));
     // shadows (slide under as the walls rise)
     ctx.beginPath();
-    for (const s of list) {
-      const st = stages(morph(s, t)), o = 2.5 * (1 - st.fold);
-      if (o < 0.05) continue;
+    list.forEach((s, k) => {
+      const o = 2.5 * (1 - stages(ms[k]).fold);
+      if (o < 0.05) return;
       quad(ctx, cx_(s, -1, -1) + o, cy_(s, -1, -1) + o, 0, cx_(s, 1, -1) + o, cy_(s, 1, -1) + o, 0, cx_(s, 1, 1) + o, cy_(s, 1, 1) + o, 0, cx_(s, -1, 1) + o, cy_(s, -1, 1) + o, 0);
-    }
+    });
     ctx.fillStyle = 'rgba(20,12,8,0.14)'; ctx.fill();
     // lamp-lit floors
     ctx.beginPath();
-    for (const s of list) {
-      if (morph(s, t) < 0.22) continue;
+    list.forEach((s, k) => {
+      if (ms[k] < 0.22) return;
       quad(ctx, cx_(s, -1, -1), cy_(s, -1, -1), 0, cx_(s, 1, -1), cy_(s, 1, -1), 0, cx_(s, 1, 1), cy_(s, 1, 1), 0, cx_(s, -1, 1), cy_(s, -1, 1), 0);
-    }
-    ctx.fillStyle = 'rgb(186,118,58)'; ctx.fill();
-    // cloth: flat tent -> walls
-    ctx.beginPath();
-    for (const s of list) {
-      const phi = stages(morph(s, t)).fold * Math.PI / 2;
-      eachWall(s, (a0, b0, a1, b1, ni, nj) => wallPath(ctx, s, phi, a0, b0, a1, b1, ni, nj));
-    }
-    ctx.fillStyle = rgb(CLOTH); ctx.fill();
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,80,0.11)'; ctx.fill(); ctx.restore();
+    });
+    ctx.fillStyle = FLOOR; ctx.fill();
+    // cloth: flat tent -> walls. Inner faces (lamp-lit) first, then outer faces and flat cloth.
+    const pIn = new Path2D(), pOut = new Path2D(), pFlat = new Path2D(), pRim = new Path2D();
+    list.forEach((s, k) => {
+      const fold = stages(ms[k]).fold, phi = fold * Math.PI / 2;
+      eachWall(s, (a0, b0, a1, b1, ni, nj) => {
+        if (fold < 0.35) { wallPath(pFlat, s, phi, a0, b0, a1, b1, ni, nj); return; }
+        const out = wallFacing(s, a0, b0, a1, b1, ni, nj);
+        wallPath(out ? pOut : pIn, s, phi, a0, b0, a1, b1, ni, nj);
+        if (fold > 0.9) {
+          const ax = cx_(s, a0, b0), ay = cy_(s, a0, b0), bx = cx_(s, a1, b1), by = cy_(s, a1, b1);
+          seg(pRim, ax, ay, s.Hs, bx, by, s.Hs);
+        }
+      });
+    });
+    ctx.fillStyle = INT; ctx.fill(pIn);
+    ctx.fillStyle = EXT; ctx.fill(pOut);
+    ctx.fillStyle = rgb(CLOTH); ctx.fill(pFlat);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,80,0.11)'; ctx.fill(pFlat); ctx.restore();
+    ctx.strokeStyle = RIM; ctx.lineWidth = Math.max(0.6, lw * 0.7); ctx.stroke(pRim);
     // tent ridge, shrinking away
     ctx.beginPath();
-    for (const s of list) {
-      const k = 1 - clamp(stages(morph(s, t)).fold / 0.4);
-      if (k <= 0) continue;
-      seg(ctx, s.x - s.ax * s.w2 * k, s.y - s.ay * s.w2 * k, 0.01, s.x + s.ax * s.w2 * k, s.y + s.ay * s.w2 * k, 0.01);
-    }
-    ctx.strokeStyle = rgb(RIDGE, 0.9); ctx.lineWidth = 1.1 * zoomPx / 1.45 > 1.6 ? 1.6 : Math.max(0.6, 1.1 * zoomPx / 1.45); ctx.stroke();
-    // gold construction drawing
-    ctx.beginPath();
-    for (const s of list) { const m = morph(s, t); if (m > 0) linesPath(ctx, s, stages(m).line); }
-    ctx.strokeStyle = INK + '0.85)'; ctx.lineWidth = lw; ctx.stroke();
+    list.forEach((s, k) => {
+      const q = 1 - clamp(stages(ms[k]).fold / 0.4);
+      if (q <= 0) return;
+      seg(ctx, s.x - s.ax * s.w2 * q, s.y - s.ay * s.w2 * q, 0.01, s.x + s.ax * s.w2 * q, s.y + s.ay * s.w2 * q, 0.01);
+    });
+    ctx.strokeStyle = rgb(RIDGE, 0.9); ctx.lineWidth = clamp(1.1 * zoomPx / 1.45, 0.6, 1.6); ctx.stroke();
     // schach
     ctx.beginPath();
-    for (const s of list) { const m = morph(s, t); if (m > 0.55) schachPath(ctx, s, stages(m).sch, zoomPx > 6); }
-    ctx.strokeStyle = 'rgba(150,170,96,0.95)'; ctx.lineWidth = lw * 1.2; ctx.stroke();
+    list.forEach((s, k) => { if (ms[k] > 0.55) schachPath(ctx, s, stages(ms[k]).sch, zoomPx > 5); });
+    ctx.strokeStyle = SCH; ctx.lineWidth = lw * 1.2; ctx.stroke();
+    // gold construction drawing: bright while it is being drawn, then it settles into the wood
+    const ink = [new Path2D(), new Path2D(), new Path2D()];
+    list.forEach((s, k) => {
+      const m = ms[k];
+      if (m <= 0 || m >= 1) return;
+      const fade = 1 - sm(0.6, 1, m);
+      linesPath(ink[fade > 0.66 ? 2 : fade > 0.33 ? 1 : 0], s, stages(m).line);
+    });
+    ctx.lineWidth = lw;
+    for (let b = 0; b < 3; b++) { ctx.strokeStyle = INK + (0.25 + 0.3 * b) + ')'; ctx.stroke(ink[b]); }
   }
 
   // near sukkot: individually, in depth order, with facing-aware walls
   function drawSukkahNear(ctx, s, t) {
     const m = morph(s, t), st = stages(m), phi = st.fold * Math.PI / 2;
     const above = C.pz > s.Hs;
-    // floor
     ctx.beginPath();
     quad(ctx, cx_(s, -1, -1), cy_(s, -1, -1), 0, cx_(s, 1, -1), cy_(s, 1, -1), 0, cx_(s, 1, 1), cy_(s, 1, 1), 0, cx_(s, -1, 1), cy_(s, -1, 1), 0);
-    ctx.fillStyle = m > 0.22 ? 'rgb(170,104,50)' : rgb(CLOTH); ctx.fill();
+    ctx.fillStyle = m > 0.22 ? FLOOR : rgb(CLOTH); ctx.fill();
     const inner = [], outer = [];
     eachWall(s, (a0, b0, a1, b1, ni, nj) => {
-      const mx = s.x + s.ax * (a0 + a1) / 2 * s.w2 + s.bx * (b0 + b1) / 2 * s.h2, my = s.y + s.ay * (a0 + a1) / 2 * s.w2 + s.by * (b0 + b1) / 2 * s.h2;
-      const nx = -(s.ax * ni + s.bx * nj), ny = -(s.ay * ni + s.by * nj); // outward
-      const facing = (C.px - mx) * nx + (C.py - my) * ny > 0;
-      (facing && phi > 0.5 ? outer : inner).push([a0, b0, a1, b1, ni, nj]);
+      (wallFacing(s, a0, b0, a1, b1, ni, nj) && phi > 0.5 ? outer : inner).push([a0, b0, a1, b1, ni, nj]);
     });
     ctx.beginPath(); for (const w of inner) wallPath(ctx, s, phi, ...w);
-    ctx.fillStyle = phi > 0.5 ? 'rgb(112,64,36)' : rgb(CLOTH); ctx.fill();
+    ctx.fillStyle = phi > 0.5 ? INT : rgb(CLOTH); ctx.fill();
     const sch = () => {
-      ctx.beginPath(); linesPath(ctx, s, st.line); ctx.strokeStyle = INK + '0.7)'; ctx.lineWidth = 1.4; ctx.stroke();
-      if (st.sch > 0) { ctx.beginPath(); schachPath(ctx, s, st.sch, true); ctx.strokeStyle = 'rgba(130,150,84,0.95)'; ctx.lineWidth = 2; ctx.stroke(); }
+      if (m < 1) { ctx.beginPath(); linesPath(ctx, s, st.line); ctx.strokeStyle = INK + (0.8 * (1 - sm(0.6, 1, m))) + ')'; ctx.lineWidth = 1.4; ctx.stroke(); }
+      if (st.sch > 0) { ctx.beginPath(); schachPath(ctx, s, st.sch, true); ctx.strokeStyle = SCH; ctx.lineWidth = 2; ctx.stroke(); }
     };
     if (!above) sch();
     ctx.beginPath(); for (const w of outer) wallPath(ctx, s, phi, ...w);
-    ctx.fillStyle = 'rgb(44,34,52)'; ctx.fill();
+    ctx.fillStyle = EXT; ctx.fill();
+    if (phi > 1.4) {
+      ctx.beginPath();
+      for (const w of outer) seg(ctx, cx_(s, w[0], w[1]), cy_(s, w[0], w[1]), s.Hs, cx_(s, w[2], w[3]), cy_(s, w[2], w[3]), s.Hs);
+      ctx.strokeStyle = RIM; ctx.lineWidth = 1.2; ctx.stroke();
+    }
     if (above) sch();
   }
 
