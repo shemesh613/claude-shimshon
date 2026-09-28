@@ -22,8 +22,8 @@
 
   let fx, WD, W, H, N;
   // sand texture in world space
-  const SX0 = -440, SY0 = -770, SK = 1.8;
-  let sand = null, sandNight = null;
+  const SX0 = -440, SY0 = -760, SK = 1.8, SK2 = 1.45; // SK2 = CAM_CAMP zoom: 1:1 blit at 1080
+  let sand = null, sandDay2 = null, sandNight = null;
   // clouds
   let sprites = [], blobs = [], cloudLayer = null, cctx = null;
   const CL = 0.5; // cloud layer resolution factor
@@ -175,7 +175,7 @@
     for (let k = 0; k < nB; k++) {
       const a = ((k + 0.5) / nB) * Math.PI * 2 + (r() - 0.5) * 0.1;
       blobs.push({ kind: 1, a, rf: 1.06 + (r() - 0.5) * 0.08, size: 150 + r() * 70, spr: 6 + ((r() * 4) | 0),
-        rot: a - Math.PI / 2 + (r() - 0.5) * 0.4, alpha: 0.7 + r() * 0.2, grp: 1, inner: false });
+        rot: a - Math.PI / 2 + (r() - 0.5) * 0.4, alpha: 0.7 + r() * 0.2, grp: 0, inner: false });
     }
     const nR = 34;
     for (let k = 0; k < nR; k++) {
@@ -183,7 +183,7 @@
       const inner = r() < 0.7;
       blobs.push({ kind: 1, a, rf: 0.97 + (r() - 0.5) * 0.08, size: 115 + r() * 65, spr: (r() * 6) | 0,
         rot: (inner ? a + Math.PI / 2 : a - Math.PI / 2) + (r() - 0.5) * 0.35, alpha: 0.78 + r() * 0.2,
-        grp: r() < 0.5 ? 2 : 3, inner });
+        grp: 1, inner });
     }
     // canopy over the camp: luminous veils
     for (let k = 0; k < 7; k++) {
@@ -204,11 +204,13 @@
   let ringIdx = [], canopyIdx = [];
 
   // ring cloud groups: 0 outer, 1 deep back ring, 2-3 bright front ring
-  const GROUP_D = [0.0, 0.3, 0.6, 1.2], OMEGA = 0.01;
+  // (group 2 = the canopy veils over the camp)
+  const GROUP_D = [0.0, 0.7, -1], OMEGA = 0.01, CANOPY = 2;
   function groupT(k, t) {
-    const g = fx.ease.inOut(fx.range(t, 5.7 + GROUP_D[k], 9.4 + GROUP_D[k]));
-    const th = OMEGA * (t - 11) - (1 - g) * 0.2;
-    const s = (1 + (1 - g) * 0.14) * (1 + 0.006 * Math.sin(0.5 * t));
+    const g = k === CANOPY ? fx.ease.inOut(fx.range(t, 7.8, 10.8)) : fx.ease.inOut(fx.range(t, 5.7 + GROUP_D[k], 9.4 + GROUP_D[k]));
+    const sw = k === CANOPY ? 0 : 1 - g;
+    const th = OMEGA * (t - 11) - sw * 0.2;
+    const s = (1 + sw * 0.14) * (1 + 0.006 * Math.sin(0.5 * t));
     return { g, th, s, c: Math.cos(th), sn: Math.sin(th) };
   }
   const LM = 240; // ring layer margin (logical px)
@@ -220,6 +222,15 @@
     const paint = (c, k) => {
       c.setTransform(CL, 0, 0, CL, LM * CL, LM * CL);
       for (const b of blobs) {
+        if (k === CANOPY && b.kind === 2) {
+          c.globalCompositeOperation = 'lighter';
+          c.globalAlpha = b.alpha;
+          c.save();
+          c.translate(b.x, b.y); c.rotate(b.rot);
+          c.drawImage(sprites[b.spr], -b.size, -b.size * 0.66, 2 * b.size, 1.32 * b.size);
+          c.restore();
+          continue;
+        }
         if ((b.kind !== 0 && b.kind !== 1) || b.grp !== k) continue;
         const rad = ringR(b.a) * b.rf;
         const x = CX + Math.cos(b.a) * rad * RX, y = CY + Math.sin(b.a) * rad * RY, s = b.size;
@@ -257,12 +268,13 @@
       out[3] = b.alpha * gt.g;
       out[4] = b.rot + gt.th;
     } else if (b.kind === 2) {
-      const g = fx.ease.inOut(fx.range(t, 7.8 + b.d, 10.6 + b.d * 0.3));
-      out[0] = b.x + b.vx * (t - 11);
-      out[1] = b.y + b.vy * (t - 11);
-      out[2] = b.size * (0.85 + 0.15 * g);
-      out[3] = b.alpha * g;
-      out[4] = b.rot + 0.01 * (t - 11);
+      const gt = groupT(CANOPY, t);
+      const x0 = (b.x - CX) * gt.s, y0 = (b.y - CY) * gt.s;
+      out[0] = CX + x0 * gt.c - y0 * gt.sn;
+      out[1] = CY + x0 * gt.sn + y0 * gt.c;
+      out[2] = b.size * gt.s;
+      out[3] = b.alpha * gt.g;
+      out[4] = b.rot + gt.th;
     } else {
       const g = fx.ease.inOut(fx.range(t, 7.0, 10.4));
       const a = b.a + b.w * (t - 11) * 3 + (1 - g) * 1.2;
@@ -410,14 +422,24 @@
   }
 
   // ---------------- drawing pieces ----------------
+  const isCamp = (cam) => cam.x === WD.CAM_CAMP.x && cam.y === WD.CAM_CAMP.y && cam.zoom === WD.CAM_CAMP.zoom;
   function drawGround(ctx, cam, env, t, nightOverride) {
     const n = nightOverride != null ? nightOverride : nightK(t);
     ctx.save();
-    WD.applyCam(ctx, cam, env);
     ctx.imageSmoothingEnabled = true;
-    const x = SX0, y = SY0, w = sand.width / SK, h = sand.height / SK;
-    if (n < 0.999) ctx.drawImage(sand, x, y, w, h);
-    if (n > 0.001) { ctx.globalAlpha = n; ctx.drawImage(sandNight, x, y, w, h); }
+    const tr = ctx.getTransform();
+    if (isCamp(cam) && tr.b === 0 && tr.c === 0) {
+      // static overview camera: blit the 1.45 px/unit textures (1:1 at a 1080 px render)
+      const [x0, y0] = WD.toScreen(cam, SX0, SY0, env);
+      const w = -2 * SX0 * cam.zoom, h = -2 * SY0 * cam.zoom;
+      if (n < 0.999) ctx.drawImage(sandDay2, x0, y0, w, h);
+      if (n > 0.001) { ctx.globalAlpha = n; ctx.drawImage(sandNight, x0, y0, w, h); }
+    } else {
+      WD.applyCam(ctx, cam, env);
+      const x = SX0, y = SY0, w = -2 * SX0, h = -2 * SY0;
+      if (n < 0.999) ctx.drawImage(sand, x, y, w, h);
+      if (n > 0.001) { ctx.globalAlpha = n; ctx.drawImage(sandNight, x, y, w, h); }
+    }
     ctx.restore();
   }
 
@@ -563,9 +585,9 @@
   const VEIL = [
     // t, bottom (west) rgb, top (east) rgb, alpha
     [0, [255, 206, 130], [255, 214, 150], 0.0],
-    [3.5, [255, 196, 110], [255, 214, 150], 0.08],
-    [6.4, [255, 142, 60], [230, 130, 120], 0.24],
-    [8.2, [120, 70, 130], [70, 56, 120], 0.3],
+    [3.5, [255, 180, 90], [255, 206, 140], 0.14],
+    [6.4, [255, 120, 40], [236, 120, 100], 0.36],
+    [8.2, [130, 64, 120], [70, 56, 120], 0.34],
     [9.6, [50, 46, 110], [36, 36, 96], 0.18],
     [10.9, [30, 32, 90], [30, 32, 90], 0.0],
   ];
@@ -612,7 +634,7 @@
       ctx.globalAlpha = 0.34 * pg;
       ctx.drawImage(s, x - 300 * br, y - 300 * br, 600 * br, 600 * br);
       s = fx.glow(110, [255, 236, 200]);
-      ctx.globalAlpha = 0.42 * pg;
+      ctx.globalAlpha = 0.22 * pg;
       ctx.drawImage(s, x - 110, y - 110, 220, 220);
     }
     ctx.restore();
@@ -628,59 +650,65 @@
   function drawClouds(ctx, t, env, alphaMul) {
     alphaMul = alphaMul == null ? 1 : alphaMul;
     if (t < 5.75) return;
-    const c = cctx;
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.globalCompositeOperation = 'source-over';
-    c.globalAlpha = 1;
-    c.clearRect(0, 0, cloudLayer.width, cloudLayer.height);
-    c.setTransform(CL, 0, 0, CL, 0, 0);
     const night = nightK(t);
     const gts = GROUP_D.map((_, k) => groupT(k, t));
-    if (gts.every((q) => q.g >= 0.9999)) { c.globalAlpha = 1; drawRingLayer(c, ringAll, gts[0]); }
-    else gts.forEach((gt, k) => { if (gt.g > 0.002) { c.globalAlpha = gt.g; drawRingLayer(c, ringLayers[k], gt); } });
-    c.globalAlpha = 1;
-    // canopy veils and the pillar vortex
-    for (const b of blobs) {
-      if (b.kind < 2) continue;
-      blobAt(b, t, tmp);
-      const [x, y, s, a, rot] = tmp;
-      if (a <= 0.004) continue;
-      c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = a;
-      c.save();
-      c.translate(x, y); c.rotate(rot);
-      c.drawImage(sprites[b.spr], -s, -s * 0.66, 2 * s, 1.32 * s);
-      c.restore();
+    if (night >= 0.9999 && gts.every((q) => q.g >= 0.9999)) {
+      // end state: one direct draw of the gathered ring + canopy
+      ctx.save();
+      ctx.globalAlpha = alphaMul;
+      ctx.imageSmoothingEnabled = true;
+      drawRingLayer(ctx, ringAll, gts[0]);
+      ctx.restore();
+    } else {
+      const c = cctx;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalCompositeOperation = 'source-over';
+      c.globalAlpha = 1;
+      c.clearRect(0, 0, cloudLayer.width, cloudLayer.height);
+      c.setTransform(CL, 0, 0, CL, 0, 0);
+      gts.forEach((gt, k) => { if (gt.g > 0.002) { c.globalAlpha = gt.g; drawRingLayer(c, ringLayers[k], gt); } });
+      // time-of-day tint of the cloud forms: rose-gold at sunset, pearl at night
+      const warm = 1 - night;
+      if (warm > 0.002) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.globalCompositeOperation = 'source-atop';
+        c.globalAlpha = 0.42 * warm;
+        c.fillStyle = 'rgb(255,178,130)';
+        c.fillRect(0, 0, cloudLayer.width, cloudLayer.height);
+      }
+      c.globalCompositeOperation = 'source-over';
+      c.globalAlpha = 1;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save();
+      ctx.globalAlpha = alphaMul;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(cloudLayer, 0, 0, env.W, env.H);
+      ctx.restore();
     }
-    // pillar core: a soft bright eye at the heart of the vortex
+    // the pillar: a slow vortex of cloud-light over the Mishkan, with a soft bright eye
     const pg = fx.ease.inOut(fx.range(t, 7.0, 10.4));
     if (pg > 0.01) {
-      c.globalCompositeOperation = 'lighter';
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const tint = 1 - night;
+      for (const b of blobs) {
+        if (b.kind !== 3) continue;
+        blobAt(b, t, tmp);
+        const [x, y, s, a, rot] = tmp;
+        ctx.globalAlpha = 0.55 * a * alphaMul * (1 - 0.3 * tint);
+        ctx.save();
+        ctx.translate(x, y); ctx.rotate(rot);
+        ctx.drawImage(sprites[b.spr], -s, -s * 0.66, 2 * s, 1.32 * s);
+        ctx.restore();
+      }
       const e = fx.glow(60, [255, 240, 214]);
-      c.globalAlpha = 0.4 * pg;
-      c.drawImage(e, CX - 60, CY - 60, 120, 120);
+      ctx.globalAlpha = 0.2 * pg * alphaMul;
+      ctx.drawImage(e, CX - 60, CY - 60, 120, 120);
       const e2 = fx.glow(170, [255, 210, 150]);
-      c.globalAlpha = 0.2 * pg;
-      c.drawImage(e2, CX - 170, CY - 170, 340, 340);
+      ctx.globalAlpha = 0.16 * pg * alphaMul;
+      ctx.drawImage(e2, CX - 170, CY - 170, 340, 340);
+      ctx.restore();
     }
-    // time-of-day tint of the cloud forms: rose-gold at sunset, pearl at night
-    const warm = 1 - night;
-    if (warm > 0.02) {
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      c.globalCompositeOperation = 'source-atop';
-      c.globalAlpha = 0.42 * warm;
-      c.fillStyle = 'rgb(255,178,130)';
-      c.fillRect(0, 0, cloudLayer.width, cloudLayer.height);
-    }
-    c.globalCompositeOperation = 'source-over';
-    c.globalAlpha = 1;
-    c.setTransform(1, 0, 0, 1, 0, 0);
-
-    ctx.save();
-    ctx.globalAlpha = alphaMul;
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(cloudLayer, 0, 0, env.W, env.H);
-    ctx.restore();
   }
 
   function camOpts(t) {
@@ -720,14 +748,17 @@
     init(env) {
       fx = env.fx; WD = env.world; W = env.W; H = env.H;
       sand = makeSand();
-      sandNight = fx.canvas(sand.width, sand.height);
+      const w2 = Math.round(-2 * SX0 * SK2), h2 = Math.round(-2 * SY0 * SK2);
+      sandDay2 = fx.canvas(w2, h2);
+      sandDay2.getContext('2d').drawImage(sand, 0, 0, w2, h2);
+      sandNight = fx.canvas(w2, h2);
       {
         const g = sandNight.getContext('2d');
-        g.drawImage(sand, 0, 0);
+        g.drawImage(sandDay2, 0, 0);
         g.globalCompositeOperation = 'multiply';
-        g.fillStyle = 'rgb(88,98,172)'; g.fillRect(0, 0, sand.width, sand.height);
+        g.fillStyle = 'rgb(88,98,172)'; g.fillRect(0, 0, w2, h2);
         g.globalCompositeOperation = 'source-over';
-        g.fillStyle = 'rgba(18,20,58,0.36)'; g.fillRect(0, 0, sand.width, sand.height);
+        g.fillStyle = 'rgba(18,20,58,0.36)'; g.fillRect(0, 0, w2, h2);
       }
       const bright = { lit: [252, 250, 255], shade: [170, 168, 210], gold: [255, 224, 172], g: 0.5, a: 0.94 };
       const deep = { lit: [236, 222, 236], shade: [104, 100, 150], gold: [255, 200, 140], g: 0.3, a: 0.8 };

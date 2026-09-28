@@ -53,7 +53,7 @@
       gr.addColorStop(0, '#0a0c1e'); gr.addColorStop(0.5, '#141838'); gr.addColorStop(1, '#221f3e');
       g.fillStyle = gr; g.fillRect(0, 0, W, SKY_H);
       // moon glow (upper right)
-      const mx = 780, my = 300;
+      const mx = 720, my = 440;
       let rg = g.createRadialGradient(mx, my, 0, mx, my, 620);
       rg.addColorStop(0, 'rgba(210,220,255,0.55)'); rg.addColorStop(0.08, 'rgba(190,205,250,0.35)');
       rg.addColorStop(0.3, 'rgba(120,135,200,0.12)'); rg.addColorStop(1, 'rgba(60,70,130,0)');
@@ -614,20 +614,20 @@
       const dp = fx.canvas(dw, dh), g = dp.getContext('2d');
       const id = g.createImageData(dw, dh);
       for (let y = 0; y < dh; y++) for (let x = 0; x < dw; x++) {
-        const v = fx.fbm(x * 0.16 + 3.1, y * 0.16 + 7.7, 3);
-        const a = fx.smooth((v - 0.12) / 0.14) * 0.9;
+        const v = fx.fbm(x * 0.3 + 3.1, y * 0.22 + 7.7, 3);
+        const a = fx.smooth((v - 0.2) / 0.1) * 0.9;
         const p = (y * dw + x) * 4;
-        id.data[p] = 205; id.data[p + 1] = 215; id.data[p + 2] = 255; id.data[p + 3] = a * 255;
+        id.data[p] = 225; id.data[p + 1] = 222; id.data[p + 2] = 240; id.data[p + 3] = a * 255;
       }
       g.putImageData(id, 0, 0);
       const d2 = fx.canvas(W + 80, 2300), g2 = d2.getContext('2d');
-      g2.filter = 'blur(3px)'; g2.drawImage(dp, 0, 0, W + 80, 2300); g2.filter = 'none';
+      g2.filter = 'blur(2px)'; g2.drawImage(dp, 0, 0, W + 80, 2300); g2.filter = 'none';
       // bake the moonlight dapple into the wall and the table (world-locked, like the schach above)
       const wgc = C.wall.getContext('2d');
-      wgc.globalCompositeOperation = 'lighter'; wgc.globalAlpha = 0.085;
+      wgc.globalCompositeOperation = 'lighter'; wgc.globalAlpha = 0.06;
       wgc.drawImage(d2, -40, 60); wgc.globalAlpha = 1; wgc.globalCompositeOperation = 'source-over';
       const tgc = C.table.getContext('2d');
-      tgc.globalCompositeOperation = 'source-atop'; tgc.globalAlpha = 0.07;
+      tgc.globalCompositeOperation = 'source-atop'; tgc.globalAlpha = 0.05;
       tgc.drawImage(d2, -40, 60 - 870); tgc.globalAlpha = 1; tgc.globalCompositeOperation = 'source-over';
       // keep the lower UI band quiet (baked at the table's final position)
       const bgr2 = tgc.createLinearGradient(0, 1480 - 910, 0, TABLE_H);
@@ -757,6 +757,14 @@
         const cut = -sTop / Lc.schSy;
         ctx.drawImage(C.sch, 0, cut, SCH_W, SCH_H - cut, -60, 0, SCH_W, Lc.schAnchor);
       }
+      // as the schach foreshortens overhead, let it sink into shadow
+      const dk = fx.smooth(fx.range(c, 0.45, 0.95));
+      if (dk > 0) {
+        const h2 = Math.min(Lc.schAnchor, 700);
+        const dg = ctx.createLinearGradient(0, Lc.schAnchor - h2, 0, Lc.schAnchor);
+        dg.addColorStop(0, `rgba(10,8,18,${0.75 * dk})`); dg.addColorStop(1, `rgba(10,8,18,${0.35 * dk})`);
+        ctx.fillStyle = dg; ctx.fillRect(0, Lc.schAnchor - h2, W, h2);
+      }
     }
 
     // amber uplight from the lamps below while we look up
@@ -765,7 +773,10 @@
       const ug2 = ctx.createLinearGradient(0, H, 0, H * 0.35);
       ug2.addColorStop(0, `rgba(255,150,64,${0.42 * up * lampF})`); ug2.addColorStop(0.5, `rgba(255,140,60,${0.12 * up * lampF})`); ug2.addColorStop(1, 'rgba(255,140,60,0)');
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = ug2; ctx.fillRect(0, H * 0.35, W, H * 0.65);
-      ctx.globalCompositeOperation = 'source-over';
+      const bgw = fx.glow(520, [255, 170, 90]);
+      ctx.globalAlpha = 0.55 * up * lampF;
+      ctx.drawImage(bgw, CX - 520, H + 120 - 520 + Math.round(600 * c));
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     }
 
     const cloudLight = 0.75 + 0.25 * Math.sin(t * 0.8 + 1.2) * Math.sin(t * 0.33);
@@ -795,7 +806,7 @@
       if (y < H + 1100) {
         const big = fx.glow(700, [255, 150, 70]);
         ctx.globalAlpha = Math.min(1, 0.5 * lampF);
-        ctx.drawImage(big, CX - 700, y - 700);
+        ctx.drawImage(big, CX - 700, Math.round(y) - 700);
       }
     }
     for (let k = 0; k < C.flames.length; k++) {
@@ -863,7 +874,7 @@
   function grains(t, out, env) {
     const fx = env.fx, N = env.GRAINS, P = C.P;
     const Lc = layout(fx, t);
-    const sy = Lc.schSy, anchor = Lc.schAnchor, wt = Lc.wallTop, tt = Lc.tableTop;
+    const sy = Lc.schSy, anchor = Lc.schAnchor, wt = Math.round(Lc.wallTop), tt = Math.round(Lc.tableTop);
     const z = Lc.zoom;
     const cloudRot = t * 0.13;
     for (let i = 0; i < N; i++) {

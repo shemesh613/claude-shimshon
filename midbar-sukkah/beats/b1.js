@@ -12,7 +12,7 @@
   const S = (window.MIDBAR = window.MIDBAR || { beats: {} });
 
   const F = 1100;              // focal length (px)
-  const DB = 3;                // base row spacing (m)
+  const DB = 1;                // base row spacing (m)
   const NS = 34;               // samples per row
   const LAM = 105;             // dune wavelength (m)
   const CR = 0.26;             // crest position within a dune period (steep slipface faces the camera)
@@ -29,9 +29,7 @@
   function mask(x, z) {
     const dx = x / 720, dz = (z - PZ) / 900;
     const d = Math.sqrt(dx * dx + dz * dz);
-    const cx = (x - 5) / 90, cz = (z + 930) / 90; // a low hollow under the opening camera
-    const hol = 0.3 + 0.7 * fx.smooth(Math.sqrt(cx * cx + cz * cz) - 0.5);
-    return (0.5 + 0.5 * fx.smooth((d - 1) / 0.75)) * hol;
+    return 0.5 + 0.5 * fx.smooth((d - 1) / 0.75);
   }
   function warpZ(x, z) {
     return z + 34 * fx.noise(x * 0.0024 + 11.3, z * 0.0032) + 26 * Math.sin(x * 0.0036 + 2 * fx.noise(z * 0.001, 3.3));
@@ -115,22 +113,22 @@
   const P_NIGHT = {
     skyTop: [5, 6, 20], skyMid: [14, 16, 44], skyHor: [38, 40, 84], haze: [34, 37, 78],
     lit: [104, 112, 176], shade: [10, 11, 30], amb: 0.12, L: [0.25, 0.45, 0.86], fogD: 2600,
-    ink: [150, 162, 225], inkA: 0.2, crest: [200, 212, 255], crestA: 0.45, sil: [8, 8, 20],
+    ink: [150, 162, 225], inkA: 0.14, crest: [200, 212, 255], crestA: 0.26, sil: [8, 8, 20],
   };
   const P_DAWN = {
     skyTop: [44, 44, 92], skyMid: [150, 104, 128], skyHor: [252, 176, 112], haze: [226, 160, 124],
     lit: [255, 184, 118], shade: [66, 40, 52], amb: 0.16, L: [-0.5, 0.14, 0.86], fogD: 2300,
-    ink: [70, 40, 36], inkA: 0.2, crest: [255, 214, 160], crestA: 0.55, sil: [44, 26, 22],
+    ink: [70, 40, 36], inkA: 0.14, crest: [255, 214, 160], crestA: 0.34, sil: [44, 26, 22],
   };
   const P_DAY = {
     skyTop: [112, 140, 180], skyMid: [206, 196, 186], skyHor: [250, 226, 186], haze: [244, 214, 170],
     lit: [252, 214, 150], shade: [140, 84, 50], amb: 0.26, L: [-0.8, 0.45, 0.25], fogD: 3200,
-    ink: [59, 38, 22], inkA: 0.2, crest: [255, 240, 210], crestA: 0.5, sil: [59, 38, 22],
+    ink: [59, 38, 22], inkA: 0.13, crest: [255, 240, 210], crestA: 0.3, sil: [59, 38, 22],
   };
   const P_LATE = {
     skyTop: [120, 130, 170], skyMid: [214, 186, 160], skyHor: [250, 214, 160], haze: [240, 204, 150],
-    lit: [248, 210, 148], shade: [160, 100, 56], amb: 0.34, L: [-0.35, 0.45, -0.8], fogD: 3600,
-    ink: [59, 38, 22], inkA: 0.16, crest: [255, 236, 200], crestA: 0.4, sil: [59, 38, 22],
+    lit: [252, 212, 150], shade: [150, 88, 46], amb: 0.2, L: [-0.45, 0.32, -0.83], fogD: 3600,
+    ink: [59, 38, 22], inkA: 0.1, crest: [255, 236, 200], crestA: 0.24, sil: [59, 38, 22],
   };
   const KEYS = [[0, P_NIGHT], [4.9, P_NIGHT], [6.6, P_DAWN], [8.6, P_DAY], [10.2, P_DAY], [12.2, P_LATE]];
   function pal(t) {
@@ -151,7 +149,8 @@
   let CAR_N = 0; // dune index of the caravan's ridge
   const MEMBERS = []; // {kind:0 man,1 camel,2 donkey, off (m behind head), ph}
   const CAR_V = 1.7; // m/s
-  const headX = (t) => -28 + CAR_V * (t - 5);
+  const CAR_X0 = 45;
+  const headX = (t) => CAR_X0 + CAR_V * (t - 5);
   let CAR_LEN = 0;
   function crestAt(n, x, outArr) { // interpolate crest (z, h) at x for dune n
     const f = (x - CX0) / CSTEP;
@@ -208,7 +207,7 @@
     zmax += 10;
 
     // choose rows: LOD walk (world-anchored multiples of DB * 2^L)
-    const SPX = 11;
+    const SPX = 8;
     const ks = [];
     const sgy = (z) => { proj(c, c.x, 0, z); return PYo; };
     let k = Math.ceil(zmin / DB), L = 0;
@@ -222,12 +221,12 @@
       ks.push(k);
       k += 1 << L;
     }
-    // ink rows: every 6 base rows (18 m), faded by projected spacing
+    // ink rows: every 18 base rows (18 m), faded by projected spacing
     const inkPitch = 1 - fx.smooth((c.pitch - 30) / 35);
     const inkMap = new Map();
     if (inkPitch > 0.01 && P.inkA > 0.01) {
-      for (let q = Math.ceil(zmin / (DB * 6)) * 6; q <= kmax; q += 6) {
-        const s = Math.abs(sgy(q * DB) - sgy((q + 6) * DB));
+      for (let q = Math.ceil(zmin / (DB * 18)) * 18; q <= kmax; q += 18) {
+        const s = Math.abs(sgy(q * DB) - sgy((q + 18) * DB));
         const a = fx.smooth((s - 7) / 26) * inkPitch;
         if (a > 0.02) inkMap.set(q, a);
       }
@@ -291,12 +290,13 @@
     d = d < 0 ? 0 : d;
     let v = P.amb + (1 - P.amb) * d;
     v *= 0.82 + 0.18 * fx.clamp((h - 6) / 26);
-    const fog = (1 - Math.exp(-zc / P.fogD)) * 0.92;
+    const fog = (1 - Math.exp(-Math.max(0, zc - FOG_H) / P.fogD)) * 0.92;
     const r = lerp(lerp(P.shade[0], P.lit[0], v), P.haze[0], fog);
     const g = lerp(lerp(P.shade[1], P.lit[1], v), P.haze[1], fog);
     const b = lerp(lerp(P.shade[2], P.lit[2], v), P.haze[2], fog);
     return `rgb(${r | 0},${g | 0},${b | 0})`;
   }
+  let FOG_H = 0;
   const STOPS = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33];
 
   function drawSky(ctx, fr, t) {
@@ -400,7 +400,7 @@
       let pen = false;
       for (let j = 0; j < NS; j++) {
         const hz = Math.abs(Ht(xs[j], row.z + 2) - hs[j]) / 2;
-        if (hz > 0.16) { if (pen) ctx.lineTo(sx[j], sy[j]); else { ctx.moveTo(sx[j], sy[j]); pen = true; } }
+        if (hz > 0.16 && fx.noise(xs[j] * 0.012, row.z * 0.05) > -0.15) { if (pen) ctx.lineTo(sx[j], sy[j]); else { ctx.moveTo(sx[j], sy[j]); pen = true; } }
         else if (pen) { ctx.lineTo(sx[j], sy[j]); pen = false; }
       }
       ctx.stroke();
@@ -425,26 +425,26 @@
       for (let j = jLo; j <= jHi; j += stride) {
         const m = CM[o + j];
         const x = CX0 + j * CSTEP;
-        if (!proj(c, x, CH[o + j], CZ[o + j]) || PZo < 6) { pts.push(NaN, NaN, 0); continue; }
-        pts.push(PXo, PYo, m);
+        if (!proj(c, x, CH[o + j], CZ[o + j]) || PZo < 6) { pts.push(NaN, NaN, 0, 0); continue; }
+        pts.push(PXo, PYo, m, fx.noise(x * 0.004, n * 3.7));
         if (CZ[o + j] < key) key = CZ[o + j];
       }
-      if (pts.length >= 6 && key < Infinity) events.push({ z: key - 0.5, type: 1, pts, zc: zc0, n });
+      if (pts.length >= 8 && key < Infinity) events.push({ z: key - 0.5, type: 1, pts, zc: zc0, n });
     }
   }
 
   function drawCrest(ctx, fr, ev) {
     const P = fr.P;
-    const fog = Math.exp(-ev.zc / (P.fogD * 0.9));
-    const a = P.crestA * (0.25 + 0.75 * fog);
+    const fog = Math.exp(-Math.max(0, ev.zc - FOG_H) / (P.fogD * 0.5));
+    const a = P.crestA * fog;
     if (a < 0.02) return;
     ctx.lineWidth = fx.clamp(260 / ev.zc, 0.5, 2.2);
     ctx.strokeStyle = fx.rgba(P.crest, a);
     const p = ev.pts;
     ctx.beginPath();
     let pen = false;
-    for (let i = 0; i < p.length; i += 3) {
-      if (!(p[i + 2] > 0.45) || p[i] !== p[i]) { pen = false; continue; }
+    for (let i = 0; i < p.length; i += 4) {
+      if (!(p[i + 2] > 0.45) || p[i] !== p[i] || p[i + 3] < -0.2) { pen = false; continue; }
       if (!pen) { ctx.moveTo(p[i], p[i + 1]); pen = true; } else ctx.lineTo(p[i], p[i + 1]);
     }
     ctx.stroke();
@@ -705,7 +705,7 @@
         const x = CX0 + j * CSTEP;
         const okp = proj(c, x, CH[o + j], CZ[o + j]);
         const sx = PXo, sy = PYo;
-        const good = okp && CM[o + j] > 0.5 && sx > -10 && sx < W + 10 && sy > 380 && sy < 1560 && PZo < 2600 &&
+        const good = okp && CM[o + j] > 0.5 && sx > -10 && sx < W + 10 && sy > 860 && sy < 1560 && PZo < 900 &&
           visible(fr, CZ[o + j], sx, sy) > 0.6;
         const cur = good ? { j, sx, sy } : null;
         if (cur && prev) {
@@ -744,7 +744,7 @@
       proj(c, GX[i], GY[i], GZ[i]);
       const d = Math.min(1, Math.abs(PXo - 540) / 560 + Math.abs(PYo - 1010) / 1400);
       TS[i] = 2.6 + 2.0 * d + 0.35 * SEED[i];
-      GW[i] = ROLE[i] === 3 ? 0.14 + 0.12 * r() : 0.42 + 0.3 * r();
+      GW[i] = ROLE[i] === 3 ? 0.06 + 0.1 * r() : 0.42 + 0.3 * r();
     }
     // footprints: world x along the caravan path
     for (let i = 0; i < N; i++) {
@@ -802,7 +802,7 @@
     const day = fx.smooth(fx.range(t, 5.2, 8.5));
     for (let i = 0; i < N; i++) {
       let X = GX[i], Y = GY[i], Z = GZ[i];
-      let w = GW[i] * (1 - 0.45 * day);
+      let w = GW[i] * (1 - 0.72 * day);
       const role = ROLE[i];
       if (role === 0 && STRM[i]) {
         // sand blowing off the crest, downwind (to the right), looping
@@ -826,7 +826,7 @@
             const fxp = FOOTX[i];
             const tailX = headX(t) - CAR_LEN;
             // before the tail passes, the grain rides in the dust behind the tail
-            const tr = 5 + (fxp + CAR_LEN - (-28)) / CAR_V; // time the tail reaches fxp
+            const tr = 5 + (fxp + CAR_LEN - CAR_X0) / CAR_V; // time the tail reaches fxp
             const kf = fx.ease.out(fx.clamp((t - tr) / 0.6));
             crestAt(CAR_N, fxp, tmp2);
             const fX = fxp, fZ = tmp2[0] - 1.6 + (SEED[i] - 0.5) * 1.2, fY = tmp2[1] - 0.25;
@@ -912,6 +912,7 @@
         return;
       }
       const fr = frame(t);
+      FOG_H = fr.c.y * 0.9;
       drawSky(ctx, fr, t);
       // painter's list
       const ev = [];
@@ -927,6 +928,13 @@
         if (e.type === 0) drawRow(ctx, fr, e.i);
         else if (e.type === 1) drawCrest(ctx, fr, e);
         else drawCaravan(ctx, fr, t);
+      }
+      // night: the foreground sinks into shadow
+      const nf = 1 - fx.smooth(fx.range(t, 5, 7.5));
+      if (nf > 0.01) {
+        const g = ctx.createLinearGradient(0, 1150, 0, H);
+        g.addColorStop(0, 'rgba(7,8,26,0)'); g.addColorStop(1, `rgba(7,8,26,${0.5 * nf})`);
+        ctx.fillStyle = g; ctx.fillRect(0, 1150, W, H - 1150);
       }
       // top-down sand and the grid of the camp-to-be
       const topA = fx.smooth((fr.c.pitch - 62) / 26);

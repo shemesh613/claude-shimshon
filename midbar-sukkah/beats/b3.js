@@ -195,47 +195,48 @@
     const L = (lx, ly) => [h.x + h.ax * lx + h.bx * ly, h.y + h.ay * lx + h.by * ly];
     HC = { x: h.x, y: h.y };
 
-    // hero fronds: palm fronds laid front-to-back across lathes, a few diagonal; a few leafy boughs.
+    // hero fronds: palm fronds laid across the roof (along x, left-right as seen from the door),
+    // resting on lathes; stems alternate sides, some lie at an angle.
     const fronds = [];
-    const NF = 24;
+    const NF = 22;
     for (let k = 0; k < NF; k++) {
-      const across = -h.w2 + 0.2 + (2 * h.w2 - 0.4) * ((k + 0.5) / NF) + (R() - 0.5) * 0.6;
+      const along = -h.h2 + 0.1 + (2 * h.h2 - 0.2) * ((k + 0.5) / NF) + (R() - 0.5) * 0.35;
       const flip = R() < 0.5 ? 1 : -1; // which end is the stem
-      const skew = (R() - 0.5) * 2.4;
-      const y0 = flip * (h.h2 + 0.5 + R() * 0.4), y1 = -flip * (h.h2 + 0.2 + R() * 0.8);
-      const x0 = across - skew / 2, x1 = across + skew / 2;
-      const bend = (R() - 0.5) * 1.2;
-      const zb = h.Hs + 0.25 + (k % 3) * 0.1 + R() * 0.1;
+      const skew = (R() - 0.5) * 3.2;
+      const x0 = flip * (h.w2 + 0.4 + R() * 0.5), x1 = -flip * (h.w2 + 0.1 + R() * 0.9);
+      const y0 = along - skew / 2, y1 = along + skew / 2;
+      const bend = (R() - 0.5) * 0.9;
+      const zb = h.Hs + 0.28 + (k % 3) * 0.07 + R() * 0.08;
       const spine = [];
       const NS = 12;
       for (let j = 0; j <= NS; j++) {
         const s = j / NS;
-        const lx = lerp(x0, x1, s) + bend * Math.sin(Math.PI * s);
-        const ly = lerp(y0, y1, s);
-        const zz = zb - 0.35 * Math.sin(Math.PI * s) - 0.25 * s * s; // sag and drooping tip
+        const ly = lerp(y0, y1, s) + bend * Math.sin(Math.PI * s);
+        const lx = lerp(x0, x1, s);
+        const zz = zb - 0.22 * Math.sin(Math.PI * s) - 0.45 * Math.pow(Math.max(0, s - 0.75) / 0.25, 2) * 0.6; // sag, drooping tip
         const p = L(lx, ly);
         spine.push(p[0], p[1], zz);
       }
       const leaves = [];
-      const NL = 17;
+      const NL = 24;
       for (let j = 0; j < NL; j++) {
-        const s = 0.12 + 0.86 * (j / (NL - 1)) + (R() - 0.5) * 0.02;
+        const s = 0.1 + 0.88 * (j / (NL - 1)) + (R() - 0.5) * 0.015;
         for (const side of [-1, 1]) {
-          const len = (1.75 - 1.1 * s) * (0.8 + R() * 0.4);
-          const ang = (38 + R() * 22) * DEG;
-          leaves.push({ s, side, len, ang, droop: 0.2 + R() * 0.35, wid: 0.06 + R() * 0.05, tw: (R() - 0.5) * 0.3 });
+          const len = (1.25 - 0.75 * s) * (0.8 + R() * 0.4);
+          const ang = (30 + R() * 22) * DEG;
+          leaves.push({ s, side, len, ang, droop: 0.12 + R() * 0.3, wid: 0.03 + R() * 0.025, tw: (R() - 0.5) * 0.35 });
         }
       }
-      fronds.push({ spine, NS, leaves, start: 0.46 + 0.4 * (k / NF) + (R() - 0.5) * 0.06, tone: R(), dir: [x1 - x0, y1 - y0] });
+      fronds.push({ spine, NS, leaves, start: 0.46 + 0.4 * (k / NF) + (R() - 0.5) * 0.06, tone: R() });
     }
     // order fronds randomly for layering
-    fronds.sort(() => R() - 0.5);
+    for (let i = fronds.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0; const q = fronds[i]; fronds[i] = fronds[j]; fronds[j] = q; }
 
-    // lathes (support slats along the long axis x, at several y)
+    // lathes (support slats across the width, at several depths)
     const lathes = [];
-    for (let k = 0; k < 4; k++) {
-      const ly = -h.h2 + (2 * h.h2) * ((k + 0.5) / 4);
-      lathes.push([...L(-h.w2 - 0.4, ly), h.Hs + 0.08, ...L(h.w2 + 0.4, ly), h.Hs + 0.08]);
+    for (let k = 0; k < 5; k++) {
+      const ly = -h.h2 + (2 * h.h2) * ((k + 0.5) / 5);
+      lathes.push([...L(-h.w2 - 0.35, ly), h.Hs + 0.1, ...L(h.w2 + 0.35, ly), h.Hs + 0.1]);
     }
 
     // lamp and stool, at the foot of the back wall (back = -y local = east)
@@ -257,12 +258,12 @@
     const puffs = [];
     for (let i = 0; i < 70; i++) {
       const a = (i / 70) * Math.PI * 2 + (R() - 0.5) * 0.08;
-      const rad = 345 + R() * 70;
-      puffs.push({ x: Math.cos(a) * rad * 0.92, y: Math.sin(a) * rad * 1.08, z: 8 + R() * 90, r: 55 + R() * 45, a: 0.55 + R() * 0.3, spr: i % 4, ring: 1, ph: R() * 6.28 });
+      const rad = 305 + R() * 50;
+      puffs.push({ x: Math.cos(a) * rad * 0.95, y: Math.sin(a) * rad * 1.02, z: 30 + R() * 150, r: 50 + R() * 40, a: 0.5 + R() * 0.3, spr: i % 4, ring: 1, ph: R() * 6.28 });
     }
     for (let i = 0; i < 46; i++) {
       const a = R() * Math.PI * 2, rad = Math.sqrt(R()) * 330;
-      puffs.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad, z: 140 + R() * 120, r: 55 + R() * 40, a: 0.16 + R() * 0.14, spr: i % 4, ring: 0, ph: R() * 6.28 });
+      puffs.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad, z: 220 + R() * 120, r: 60 + R() * 40, a: 0.14 + R() * 0.16, spr: i % 4, ring: 0, ph: R() * 6.28 });
     }
 
     // sprites
@@ -297,22 +298,7 @@
       cloudSpr.push(c);
     }
 
-    // night ground texture for the top-down view (world space, 0.5 px / unit over 1400 x 1400 units)
-    const GT = 700, GS = 0.5, GO = -700;
-    const ground = fx.canvas(GT, GT);
-    {
-      const g = ground.getContext('2d'), img = g.createImageData(GT, GT), dd = img.data;
-      for (let y = 0; y < GT; y++) for (let x = 0; x < GT; x++) {
-        const wx = GO + x / GS, wy = GO + y / GS;
-        const n = fx.fbm(wx * 0.006, wy * 0.006, 4), r2 = fx.noise(wx * 0.05 + n * 3, wy * 0.012);
-        const v = 0.5 + 0.3 * n + 0.08 * r2;
-        const o = 4 * (y * GT + x);
-        dd[o] = 26 + 22 * v; dd[o + 1] = 23 + 18 * v; dd[o + 2] = 44 + 22 * v; dd[o + 3] = 255;
-      }
-      g.putImageData(img, 0, 0);
-    }
-
-    G = { SK, hero, h, L, fronds, lathes, lamp, stars, moon, puffs, glow, amberGlow, pearlGlow, goldGlow, cloudSpr, ground, GS, GO, mcx, mcy };
+    G = { SK, hero, h, L, fronds, lathes, lamp, stars, moon, puffs, glow, amberGlow, pearlGlow, goldGlow, cloudSpr, mcx, mcy };
     buildGrains(env, R);
     buildStarMask(env);
   }
@@ -321,44 +307,71 @@
   function morph(s, t) { return clamp((t - s.t0) / s.dur); }
 
   // ---------------------------------------------------------------- drawing: sky & ground
-  function drawBackground(ctx, t) {
+  // affine map of the plane z = zp at the current (near top-down) camera, composed onto `base`
+  function planeTransform(ctx, base, zp) {
+    pr(0, 0, zp); const ox = SX, oy = SY;
+    pr(100, 0, zp); const exx = (SX - ox) / 100, exy = (SY - oy) / 100;
+    pr(0, 100, zp); const eyx = (SX - ox) / 100, eyy = (SY - oy) / 100;
+    ctx.setTransform(base);
+    ctx.transform(exx, exy, eyx, eyy, ox, oy);
+  }
+  const GROUND = [52, 47, 72];
+  function drawBackground(ctx, t, base) {
     const th = C.th;
-    const GROUND = [26, 24, 46];
-    // horizon screen y (camera right vector is horizontal so the horizon is level)
     const st = Math.sin(th), ct = Math.cos(th);
     const yh = st > 0.02 ? CY - F * ct / st : -1e5;
     ctx.fillStyle = rgb(GROUND);
     ctx.fillRect(0, 0, W, H);
     if (yh > -200) {
-      // sky above the horizon
       const yTop = Math.min(yh, H);
       const eAt = (e) => { const a = e - (th - Math.PI / 2); return a < Math.PI / 2 - 0.01 ? CY - F * Math.tan(a) : -1e5; };
       const y60 = eAt(65 * DEG);
       const g = ctx.createLinearGradient(0, yh, 0, Math.max(-4000, Math.min(yh - 10, y60)));
-      g.addColorStop(0, 'rgb(64,56,100)'); g.addColorStop(0.18, 'rgb(38,36,78)'); g.addColorStop(0.6, 'rgb(20,22,54)'); g.addColorStop(1, 'rgb(11,13,31)');
+      g.addColorStop(0, 'rgb(70,62,104)'); g.addColorStop(0.15, 'rgb(40,38,82)'); g.addColorStop(0.6, 'rgb(20,22,54)'); g.addColorStop(1, 'rgb(11,13,31)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, Math.max(0, yTop));
-      // ground below the horizon: hazy toward it
       if (yh < H) {
-        const gg = ctx.createLinearGradient(0, yh, 0, yh + 360);
-        gg.addColorStop(0, 'rgb(58,52,88)'); gg.addColorStop(1, rgb(GROUND));
+        const gg = ctx.createLinearGradient(0, yh, 0, yh + 420);
+        gg.addColorStop(0, 'rgb(74,66,100)'); gg.addColorStop(1, rgb(GROUND));
         ctx.fillStyle = gg; ctx.fillRect(0, Math.max(0, yh), W, H - Math.max(0, yh));
       }
     }
-    // world-space ground texture while we look (nearly) straight down
-    const ga = 1 - sm(4 * DEG, 30 * DEG, th);
-    if (ga > 0.01) {
-      pr(0, 0, 0); const ox = SX, oy = SY;
-      pr(100, 0, 0); const exx = (SX - ox) / 100, exy = (SY - oy) / 100;
-      pr(0, 100, 0); const eyx = (SX - ox) / 100, eyy = (SY - oy) / 100;
+    // beat 2's moonlit sand (and its lane fires) while we look (nearly) straight down
+    const ga = 1 - sm(3 * DEG, 26 * DEG, th);
+    const B2 = S.beats[2] && S.beats[2].scene;
+    if (ga > 0.01 && B2) {
+      const z0 = WD.CAM_CAMP.zoom, cam = { x: 0, y: 0, zoom: z0 }, env = { W, H };
       ctx.save();
       ctx.globalAlpha = ga;
-      ctx.setTransform(exx, exy, eyx, eyy, ox, oy);
-      ctx.transform(1 / G.GS, 0, 0, 1 / G.GS, G.GO, G.GO);
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(G.ground, 0, 0);
+      planeTransform(ctx, base, 0);
+      ctx.scale(1 / z0, 1 / z0); ctx.translate(-CX, -CY);
+      try { B2.ground(ctx, cam, env, 1); } catch (e) { /* optional */ }
+      ctx.globalAlpha = ga * (1 - sm(1.6, 3.2, t));
+      try { if (ctx.globalAlpha > 0.01) B2.lights(ctx, cam, env, 11 + t, 1); } catch (e) { /* optional */ }
       ctx.restore();
     }
+  }
+
+  // beat 2's Clouds of Glory, treated as a layer at height ZL (so we descend through it)
+  const ZL = 150;
+  function b2CloudMap(t) {
+    // t0 screen point p -> world point on the plane at ZL
+    const k = (Z0 - ZL) / F, c0 = WD.CAM_CAMP;
+    return (px, py) => [c0.x + (px - CX) * k, c0.y + (py - CY) * k];
+  }
+  function drawB2Clouds(ctx, t, base) {
+    const B2 = S.beats[2] && S.beats[2].scene;
+    const a = 1 - sm(2.2, 3.0, t);
+    if (!B2 || a <= 0.01 || C.pz < ZL + 20) return;
+    const m = b2CloudMap(t);
+    const p0 = m(0, 0), p1 = m(100, 0), p2 = m(0, 100);
+    pr(p0[0], p0[1], ZL); const ox = SX, oy = SY;
+    pr(p1[0], p1[1], ZL); const ax = (SX - ox) / 100, ay = (SY - oy) / 100;
+    pr(p2[0], p2[1], ZL); const bx = (SX - ox) / 100, by = (SY - oy) / 100;
+    ctx.save();
+    ctx.setTransform(base); ctx.transform(ax, ay, bx, by, ox, oy);
+    try { B2.clouds(ctx, 11 + t, { W, H }, a); } catch (e) { /* optional */ }
+    ctx.restore();
   }
 
   function drawSky(ctx, t) {

@@ -776,6 +776,8 @@
     c.drawImage(SPR.bg, -20, -20, W + 40, H + 40);
 
     // living light of the room: lamp flicker and slow bokeh
+    const goldK = smooth(range(t, 7.5, 9));
+    if (goldK < 0.9) {
     c.globalCompositeOperation = 'lighter';
     const fl = 0.8 + 0.12 * noise(t * 3.1, 1.7) + 0.06 * noise(t * 7.3, 4.1);
     c.globalAlpha = 0.28 * fl; c.drawImage(glow(260, [255, 170, 80]), 190 - 260, 600 - 260);
@@ -786,6 +788,7 @@
     }
     c.globalCompositeOperation = 'source-over';
     c.globalAlpha = 1;
+    }
 
     // the gold that fills the frame at the end (under the species so they stay legible)
     const gold = smooth(range(t, 7.5, 9));
@@ -806,13 +809,24 @@
     const hFront = range(t, T_H0, T_H1) * HAD_FULL;
     if (st.had.a > 0) {
       if (hFront >= HAD_FULL) place(c, st.had, SPR.hadas, st.had.a);
-      else { c.save(); local(c, st.had); c.globalAlpha = st.had.a; drawHadassim(c, hFront); c.restore(); }
+      else {
+        c.save(); local(c, st.had); c.globalAlpha = st.had.a; drawHadassim(c, hFront);
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.6;
+        for (const b of HB) { if (hFront > b.len + 60) continue; hadNode(b, { s: Math.min(hFront, b.len) }, NP); c.drawImage(glow(34, [255, 214, 140]), NP[0] - 34, NP[1] - 34); }
+        c.restore();
+      }
     }
     // ---- lulav (centre)
     const lF = range(t, T_L0, T_L1) * (LUL_LEN + 1);
     if (lF > 0) {
       if (lF > LUL_LEN) place(c, st.lul, SPR.lulav, st.lul.a);
-      else { c.save(); local(c, st.lul); c.globalAlpha = st.lul.a; drawLulav(c, lF); c.restore(); }
+      else {
+        c.save(); local(c, st.lul); c.globalAlpha = st.lul.a; drawLulav(c, lF);
+        // the luminous "pen" at the growing tip
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.8;
+        c.drawImage(glow(46, [255, 214, 140]), -46, -lF - 46);
+        c.restore();
+      }
     }
     // ---- binding: the woven holder and two rings
     const bp = ease.inOut(range(t, T_B0, T_B1));
@@ -863,10 +877,10 @@
     }
 
     // ---- the wave of warm light
-    if (t > T_W0) {
+    if (t > T_W0 && t < 8.4) {
       const kw = range(t, T_W0, T_W1);
       const Rw = 80 + ease.out(kw) * 1500;
-      const a = 0.5 * fx.smooth(kw * 1.6) * (1 - 0.55 * fx.smooth(fx.range(kw, 0.55, 1)));
+      const a = 0.5 * fx.smooth(kw * 1.6) * (1 - fx.smooth(fx.range(t, 7.9, 8.4)));
       c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a;
       c.drawImage(SPR.wave, WC[0] - Rw, WC[1] - Rw * 1.55, Rw * 2, Rw * 3.1);
       c.restore();
