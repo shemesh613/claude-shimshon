@@ -17,10 +17,7 @@
       <span class="brand-badge">AI</span>
       <span><b>חוג AI לילדים</b><small>כל מה שלומדים ויוצרים, במקום אחד</small></span>
     </a>
-    <nav aria-label="ניווט ראשי">
-      <a href="#lessons-shelf">שיעורים</a>
-      <a href="#products-shelf">השירים שלנו</a>
-      <a href="#tools-shelf">כלים</a>
+    <nav aria-label="הגדרות">
       <button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button>
     </nav>
   </header>
@@ -31,7 +28,13 @@
     <p>השיעורים, הכלים והשירים שלנו.</p>
   </section>
 
-  <section class="shelf" id="lessons-shelf">
+  <nav class="section-tabs" aria-label="חלקי האתר">
+    <a href="#lessons-shelf" data-section-tab="lessons-shelf">שיעורים</a>
+    <a href="#products-shelf" data-section-tab="products-shelf">תוצרי השיעור</a>
+    <a href="#tools-shelf" data-section-tab="tools-shelf">כלים</a>
+  </nav>
+
+  <section class="shelf" id="lessons-shelf" data-section-panel>
     <div class="shelf-head"><span class="icon sm coral">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
     </span><h2>שיעורים</h2></div>
@@ -39,15 +42,16 @@
   </section>
 
 
-  <section class="shelf" id="products-shelf">
+  <section class="shelf" id="products-shelf" data-section-panel>
     <div class="shelf-head"><span class="icon sm sun">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
     </span><h2>השירים שלנו</h2></div>
-    <div class="grid" id="products"></div>
+    <p class="fig-note">שיר אחד מכל זוג. בוחרים שיר ומאזינים.</p>
+    <div id="products"></div>
   </section>
 
 
-  <section class="shelf" id="tools-shelf">
+  <section class="shelf" id="tools-shelf" data-section-panel>
     <div class="shelf-head"><span class="icon sm sky">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5L22 14l-8 8-2.3-2.3a4 4 0 0 0-5-5L2 10l8-8z"/></svg>
     </span><h2>כלים</h2></div>

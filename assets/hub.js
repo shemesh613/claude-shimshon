@@ -12,11 +12,11 @@
     return `<a class="card" href="${esc(it.href)}"${ext}>${icon(it)}<div class="body"><h3>${esc(it.title)}</h3><p>${esc(it.text)}</p>${tags(it)}</div></a>`;
   }
 
-  function productCard(it) {
+  function songPlayer(it) {
     const player = it.sunoId
       ? `<iframe class="suno-player" title="נגן השיר ${esc(it.title)}" src="https://suno.com/embed/${esc(it.sunoId)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`
       : `<audio controls preload="none" src="${esc(it.audio)}"></audio><div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>`;
-    return `<div class="card product"><div class="product-head">${icon(it)}<h3>${esc(it.title)}</h3></div>${it.text ? `<p>${esc(it.text)}</p>` : ""}${tags(it)}${player}</div>`;
+    return `<div class="card product"><div class="product-head">${icon(it)}<h3>${esc(it.title)}</h3></div>${player}</div>`;
   }
 
   function soonCard(text) {
@@ -33,13 +33,38 @@
 
   fill("lessons", SITE.lessons, linkCard);
   fill("tools", SITE.tools, linkCard);
-  fill("products", SITE.products, productCard);
-  
-  // Show a friendly note when a song file has not been uploaded yet
-  document.querySelectorAll(".product audio").forEach((a) => {
-    const missing = a.nextElementSibling;
-    fetch(a.getAttribute("src"), { method: "HEAD" })
-      .then((r) => { if (!r.ok) { a.hidden = true; missing.hidden = false; } })
-      .catch(() => { a.hidden = true; missing.hidden = false; });
-  });
+
+  const products = document.getElementById("products");
+  let selectedSong = 0;
+  if (products && SITE.products.length) {
+    products.innerHTML = `<div class="song-select-wrap">
+      <label for="song-select">בחרו שיר</label>
+      <select id="song-select" class="song-select">${SITE.products.map((it, i) =>
+        `<option value="${i}">${esc(it.title)}</option>`).join("")}</select>
+    </div><div id="selected-song"></div>`;
+    const selectedSongHost = document.getElementById("selected-song");
+    const showSong = () => { selectedSongHost.innerHTML = songPlayer(SITE.products[selectedSong]); };
+    products.querySelector("#song-select").addEventListener("change", (e) => {
+      selectedSong = Number(e.target.value);
+      showSong();
+    });
+
+    const panels = [...document.querySelectorAll("[data-section-panel]")];
+    const tabs = [...document.querySelectorAll("[data-section-tab]")];
+    const activateSection = () => {
+      const requested = decodeURIComponent(location.hash.slice(1));
+      const active = panels.some((panel) => panel.id === requested) ? requested : "lessons-shelf";
+      panels.forEach((panel) => { panel.hidden = panel.id !== active; });
+      tabs.forEach((tab) => {
+        if (tab.dataset.sectionTab === active) tab.setAttribute("aria-current", "location");
+        else tab.removeAttribute("aria-current");
+      });
+      if (active === "products-shelf") showSong();
+      else selectedSongHost.replaceChildren();
+      document.documentElement.classList.add("tabs-ready");
+      if (requested && requested === active) requestAnimationFrame(() => document.getElementById(active).scrollIntoView());
+    };
+    window.addEventListener("hashchange", activateSection);
+    activateSection();
+  }
 })();
