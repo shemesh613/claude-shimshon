@@ -22,12 +22,47 @@ window.SITE = {
     }
   ],
 
-  // תוצרים של הילדים. audio = נתיב לקובץ שיר בתיקייה songs
+  // שיר אחד מכל זוג יצירות של הילדים. sunoId = מזהה הנגן הרשמי של Suno.
   products: [
     {
-      title: "השיר שיצרנו בשיעור",
-      text: "שיר מגניב ומצחיק שהחוג יצר יחד ב-Suno.",
-      audio: "songs/our-song.mp3",
+      title: "בננה בנוני — 0:38",
+      sunoId: "831ac23e-e7fe-4f71-81f1-597a4ba50d98",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "בננה בנוני — 1:17",
+      sunoId: "064f5312-4735-4dd7-921c-09b3f7775668",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "ילדה אחת בשם מיכל",
+      sunoId: "3ff39b6a-c61f-44de-8689-fb996562cf06",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "ילד רצה לטיול",
+      sunoId: "78bafdec-0a46-45ef-ac82-be39c7a12039",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "ילד שרצה לטיול",
+      sunoId: "7915ae77-4294-4962-91f5-63a76f55c694",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "שיר ואלי",
+      sunoId: "1b1f715a-dc71-421d-b1e3-801907527003",
+      icon: "star", color: "sun",
+      tags: []
+    },
+    {
+      title: "שיר ואלי ואלי",
+      sunoId: "fc4d7c46-ae32-4463-8e97-3c956617c6b9",
       icon: "star", color: "sun",
       tags: []
     }

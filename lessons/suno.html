@@ -55,32 +55,29 @@
 
   <section class="step" id="s3">
     <div class="step-head"><span class="step-num">3</span><h3>לוחצים Advanced (מתקדם)</h3></div>
-    <p>מתחת לתיבה הגדולה יש כפתור <span class="en">Advanced</span>. שם כותבים שיר בעצמנו.</p>
-    <figure class="real" data-shot="home" data-marks="advanced:3" aria-label="הכפתור Advanced מסומן"></figure>
+    <p>לוחצים <span class="en">Create</span> בתפריט, ואז <span class="en">Advanced</span> למעלה.</p>
+    <figure class="real" data-shot="signed-simple" data-marks="createNav:3,advanced:4" aria-label="מסך Create לאחר התחברות, הכפתור Advanced מסומן"></figure>
   </section>
 
   <section class="step" id="s4">
     <div class="step-head"><span class="step-num">4</span><h3>כותבים את המילים</h3></div>
-    <p>בוחרים <span class="en">Write Lyrics</span>, וכותבים את המילים בתיבה. אפשר בעברית!</p>
-    <figure class="real" data-shot="lyrics" data-marks="write:4,lyricsBox:" aria-label="Write Lyrics ותיבת המילים מסומנים"></figure>
+    <p>בתיבת <span class="en">Lyrics</span> כותבים את המילים של השיר. אפשר בעברית!</p>
+    <figure class="real" data-shot="signed-lyrics" data-marks="lyricsBox:5" aria-label="תיבת Lyrics עם מילים לדוגמה מסומנת"></figure>
   </section>
 
   <section class="step" id="s5">
     <div class="step-head"><span class="step-num">5</span><h3>בוחרים סגנון ולוחצים Create</h3></div>
-    <p>פותחים את <span class="en">Styles</span> וכותבים סגנון באנגלית, למשל <span class="en">happy pop, kids choir</span>. אחר כך לוחצים <span class="en">Create</span>.</p>
-    <figure class="real" data-shot="create" data-marks="stylesBox:5,createBtn:" aria-label="תיבת הסגנון וכפתור Create מסומנים"></figure>
-    <div class="note">אחרי כמה שניות מופיעים שני שירים. לוחצים ▶ ושומעים!</div>
+    <p>בתיבת <span class="en">Styles</span> כותבים סגנון באנגלית, למשל <span class="en">happy pop, kids choir</span>. אחר כך לוחצים <span class="en">Create</span>.</p>
+    <figure class="real" data-shot="signed-style" data-marks="stylesBox:6,createBtn:7" aria-label="תיבת Styles וכפתור Create מסומנים"></figure>
+    <div class="note">מופיעים שני שירים. לוחצים ▶ ושומעים!</div>
+    <figure class="real" data-shot="signed-results" data-marks="playSong:8,moreSong:9" aria-label="שני השירים שנוצרו, כפתור הניגון ותפריט האפשרויות מסומנים"></figure>
   </section>
 
   <h2 class="sec" id="song">השיר שיצרנו</h2>
   <div class="card product" style="margin-top:12px">
-    <span class="icon sun"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span>
-    <div class="body">
-      <h3>השיר של החוג</h3>
-      <p>מגניב ומצחיק. נוצר ב-Suno בשיעור.</p>
-      <audio controls preload="none" src="../songs/our-song.mp3"></audio>
-      <div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>
-    </div>
+    <div class="product-head"><span class="icon sun"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span><h3>בננה בנוני — 0:38</h3></div>
+    <iframe class="suno-player" title="נגן השיר בננה בנוני" src="https://suno.com/embed/831ac23e-e7fe-4f71-81f1-597a4ba50d98" loading="lazy" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <a href="../index.html#products-shelf">לכל השירים של החוג ←</a>
   </div>
 
 </main>
@@ -88,13 +85,5 @@
 </div>
 <script src="../assets/a11y.js"></script>
 <script src="../assets/shots.js"></script>
-<script>
-  document.querySelectorAll(".product audio").forEach(function (a) {
-    var miss = a.nextElementSibling;
-    fetch(a.getAttribute("src"), { method: "HEAD" })
-      .then(function (r) { if (!r.ok) { a.hidden = true; miss.hidden = false; } })
-      .catch(function () { a.hidden = true; miss.hidden = false; });
-  });
-</script>
 </body>
 </html>

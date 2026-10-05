@@ -13,10 +13,10 @@
   }
 
   function productCard(it) {
-    return `<div class="card product">${icon(it)}<div class="body"><h3>${esc(it.title)}</h3><p>${esc(it.text)}</p>${tags(it)}
-      <audio controls preload="none" src="${esc(it.audio)}"></audio>
-      <div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>
-    </div></div>`;
+    const player = it.sunoId
+      ? `<iframe class="suno-player" title="נגן השיר ${esc(it.title)}" src="https://suno.com/embed/${esc(it.sunoId)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`
+      : `<audio controls preload="none" src="${esc(it.audio)}"></audio><div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>`;
+    return `<div class="card product"><div class="product-head">${icon(it)}<h3>${esc(it.title)}</h3></div>${it.text ? `<p>${esc(it.text)}</p>` : ""}${tags(it)}${player}</div>`;
   }
 
   function soonCard(text) {

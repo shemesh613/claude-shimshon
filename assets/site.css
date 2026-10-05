@@ -113,7 +113,15 @@ a.card:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
 .card.soon { border-style: dashed; box-shadow: none; background: transparent; }
 .card.soon h3, .card.soon p { color: var(--muted); }
 
-.product audio { width: 100%; margin-top: 12px; }
+#products { grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); }
+.card.product { flex-direction: column; gap: 12px; }
+.product-head { display: flex; align-items: center; gap: 12px; }
+.product-head .icon { width: 44px; height: 44px; border-radius: 14px; }
+.product-head .icon svg { width: 24px; height: 24px; }
+.product-head h3 { margin: 0; }
+.product audio { width: 100%; }
+.suno-player { display: block; width: 100%; height: 220px; border: 0; border-radius: 16px; background: #171d31; }
+@media (max-width: 520px) { .suno-player { height: 170px; } }
 .product .missing { margin-top: 12px; font-size: .8em; color: var(--muted); background: var(--bg); border-radius: 14px; padding: 10px 12px; }
 
 .footer { margin-top: 56px; padding-top: 18px; border-top: 2.5px dashed var(--line); color: var(--muted); font-size: .85em; }

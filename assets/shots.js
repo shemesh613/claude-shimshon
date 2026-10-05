@@ -7,19 +7,21 @@
   const SHOTS = {
     home:     { img: "img/1-home.jpg",     url: "suno.com" },
     login:    { img: "img/2-login.jpg",    url: "suno.com" },
-    advanced: { img: "img/3-advanced.jpg", url: "suno.com" },
-    lyrics:   { img: "img/4-lyrics.jpg",   url: "suno.com" },
-    styles:   { img: "img/5-styles.jpg",   url: "suno.com" },
-    create:   { img: "img/6-create.jpg",   url: "suno.com" }
+    "signed-simple":  { img: "img/3-signed-create.jpg", url: "suno.com/create" },
+    "signed-lyrics":  { img: "img/4-signed-lyrics.jpg", url: "suno.com/create" },
+    "signed-style":   { img: "img/5-signed-style.jpg", url: "suno.com/create" },
+    "signed-results": { img: "img/6-signed-results.jpg", url: "suno.com/create" }
   };
   const MARKS = {
     login:    [1063, 20, 67, 40],
     google:   [508, 278, 350, 48],
-    advanced: [368, 503, 107, 36],
-    write:    [860, 226, 94, 34],
-    lyricsBox:[402, 270, 562, 178],
-    stylesBox:[402, 186, 562, 208],
-    createBtn:[393, 531, 580, 56]
+    createNav: [13, 175, 222, 45],
+    advanced:  [319, 72, 74, 40],
+    lyricsBox: [264, 212, 403, 414],
+    stylesBox: [264, 292, 403, 234],
+    createBtn: [328, 640, 354, 50],
+    playSong:  [738, 279, 86, 85],
+    moreSong:  [1274, 298, 49, 48]
   };
 
   const pct = (v, total) => (v / total * 100) + "%";
@@ -69,11 +71,13 @@
   const SCENES = [
     { shot: "home",     mark: "login",     cap: "נכנסים ל-suno.com ולוחצים Log in", click: true },
     { shot: "login",    mark: "google",    cap: "לוחצים Continue with Google ובוחרים את החשבון", click: true },
-    { shot: "home",     mark: "advanced",  cap: "לוחצים על Advanced (מתקדם)", click: true },
-    { shot: "advanced", mark: "write",     cap: "בוחרים Write Lyrics", click: true },
-    { shot: "lyrics",   mark: "lyricsBox", cap: "כותבים את המילים של השיר" },
-    { shot: "create",   mark: "stylesBox", cap: "פותחים Styles וכותבים סגנון, למשל happy pop" },
-    { shot: "create",   mark: "createBtn", cap: "לוחצים Create, ותוך כמה שניות יש שיר!", click: true }
+    { shot: "signed-simple", mark: "createNav", cap: "נכנסים למסך Create", click: true },
+    { shot: "signed-simple", mark: "advanced", cap: "לוחצים Advanced", click: true },
+    { shot: "signed-lyrics", mark: "lyricsBox", cap: "כותבים את מילות השיר בתיבת Lyrics" },
+    { shot: "signed-style", mark: "stylesBox", cap: "בתיבת Styles כותבים את הסגנון" },
+    { shot: "signed-style", mark: "createBtn", cap: "לוחצים Create", click: true },
+    { shot: "signed-results", mark: "playSong", cap: "כשמופיעים שני שירים, לוחצים ▶ ומאזינים", click: true },
+    { shot: "signed-results", mark: "moreSong", cap: "בשלוש הנקודות יש אפשרויות נוספות", click: true }
   ];
 
   host.innerHTML = frame("home");
