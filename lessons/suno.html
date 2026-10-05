@@ -19,7 +19,7 @@
     <span class="icon coral"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
     <div>
       <h1>יוצרים שיר עם Suno</h1>
-      <p>מכניסה לאתר ועד שיר שלם, ב-6 צעדים.</p>
+      <p>מכניסה לאתר ועד שיר שלם, ב-5 צעדים.</p>
     </div>
   </section>
 
@@ -28,7 +28,7 @@
   <h2 class="sec" id="movie">צופים בסרטון</h2>
   <div class="player">
     <div class="caption"><span class="step-num" id="movie-num">1</span><span id="movie-caption"></span></div>
-    <div class="shot"><div id="movie-host"></div></div>
+    <div id="movie-host"></div>
     <div class="controls">
       <button class="btn" id="movie-play" type="button">נגן ▶</button>
       <button class="btn ghost" id="movie-restart" type="button">מההתחלה</button>
@@ -37,54 +37,40 @@
   </div>
 
   <h2 class="sec">שלב אחרי שלב</h2>
-  <p class="fig-note">מה שמסומן באדום, עליו לוחצים.</p>
+  <p class="fig-note">צילומי מסך אמיתיים מאתר Suno. מה שמסומן באדום, עליו לוחצים.</p>
 
   <section class="step" id="s1">
-    <div class="step-head"><span class="step-num">1</span><h3>נכנסים לאתר</h3></div>
-    <p>פותחים את <a href="https://suno.com" target="_blank" rel="noopener">suno.com</a> ולוחצים על הכפתור <span class="en">Sign In</span> (התחברות) למעלה בצד.</p>
-    <div class="shot"><div data-screen="home" data-marks="url:1,signin:2"></div></div>
-    <ol class="callouts"><li><span class="dot">1</span>כותבים בשורת הכתובת <span class="en">suno.com</span></li><li><span class="dot">2</span>לוחצים <span class="en">Sign In</span></li></ol>
+    <div class="step-head"><span class="step-num">1</span><h3>נכנסים לאתר ולוחצים Log in</h3></div>
+    <p>פותחים את <a href="https://suno.com" target="_blank" rel="noopener">suno.com</a> ולוחצים על <span class="en">Log in</span> למעלה.</p>
+    <figure class="real" data-shot="home" data-marks="login:1" aria-label="דף הבית של Suno, הכפתור Log in מסומן"></figure>
     <div class="note">טיפ: האתר באנגלית? לוחצים מקש ימני בעכבר ובוחרים <b>תרגם לעברית</b>.</div>
   </section>
 
   <section class="step" id="s2">
-    <div class="step-head"><span class="step-num">2</span><h3>מתחברים עם חשבון גוגל</h3></div>
-    <p>בחלון שנפתח בוחרים <span class="en">Continue with Google</span>, ואז בוחרים את חשבון הגוגל שלנו.</p>
-    <div class="shot"><div data-screen="signin" data-marks="google:1"></div></div>
-    <div class="note">רק עם הורה או מורה: מתחברים לחשבון גוגל רק באישור מבוגר.</div>
+    <div class="step-head"><span class="step-num">2</span><h3>מתחברים עם גוגל</h3></div>
+    <p>לוחצים <span class="en">Continue with Google</span> ובוחרים את החשבון.</p>
+    <figure class="real" data-shot="login" data-marks="google:2" aria-label="חלון ההתחברות, הכפתור Continue with Google מסומן"></figure>
+    <div class="note">מתחברים רק באישור של מבוגר.</div>
   </section>
 
   <section class="step" id="s3">
-    <div class="step-head"><span class="step-num">3</span><h3>לשונית Create (יצירה)</h3></div>
-    <p>בתפריט שבצד המסך לוחצים על <span class="en">Create</span>. שם יוצרים שירים חדשים.</p>
-    <div class="shot"><div data-screen="home" data-data='{"loggedIn":true}' data-marks="nav-create:1"></div></div>
+    <div class="step-head"><span class="step-num">3</span><h3>לוחצים Advanced (מתקדם)</h3></div>
+    <p>מתחת לתיבה הגדולה יש כפתור <span class="en">Advanced</span>. שם כותבים שיר בעצמנו.</p>
+    <figure class="real" data-shot="home" data-marks="advanced:3" aria-label="הכפתור Advanced מסומן"></figure>
   </section>
 
   <section class="step" id="s4">
-    <div class="step-head"><span class="step-num">4</span><h3>עוברים למצב Advanced (מתקדם)</h3></div>
-    <p>למעלה יש שתי לשוניות: <span class="en">Simple</span> (פשוט) ו-<span class="en">Advanced</span> (מתקדם). לוחצים על <span class="en">Advanced</span> כדי לכתוב בעצמנו את המילים ולבחור סגנון.</p>
-    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true}' data-marks="tab-adv:1"></div></div>
+    <div class="step-head"><span class="step-num">4</span><h3>כותבים את המילים</h3></div>
+    <p>בוחרים <span class="en">Write Lyrics</span>, וכותבים את המילים בתיבה. אפשר בעברית!</p>
+    <figure class="real" data-shot="lyrics" data-marks="write:4,lyricsBox:" aria-label="Write Lyrics ותיבת המילים מסומנים"></figure>
   </section>
 
   <section class="step" id="s5">
-    <div class="step-head"><span class="step-num">5</span><h3>כותבים מילים, סגנון ושם</h3></div>
-    <p>אלה שלושת המקומות שממלאים במצב Advanced, ואחריהם לוחצים על הכפתור הכתום.</p>
-    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true,"advanced":true,"lyrics":true,"styles":true,"title":"השיר של החוג"}' data-marks="lyrics:1,styles:2,title:3,create:4"></div></div>
-    <ol class="callouts">
-      <li><span class="dot">1</span><span><span class="en">Lyrics</span> = המילים של השיר. אפשר לכתוב בעברית. <span class="en">[Verse]</span> זה בית ו-<span class="en">[Chorus]</span> זה פזמון.</span></li>
-      <li><span class="dot">2</span><span><span class="en">Styles</span> = הסגנון. כותבים באנגלית, למשל <span class="en">happy pop, kids choir</span></span></li>
-      <li><span class="dot">3</span><span><span class="en">Song Title</span> = השם של השיר</span></li>
-      <li><span class="dot">4</span><span>לוחצים <span class="en">Create</span> ומחכים כמה שניות</span></li>
-    </ol>
+    <div class="step-head"><span class="step-num">5</span><h3>בוחרים סגנון ולוחצים Create</h3></div>
+    <p>פותחים את <span class="en">Styles</span> וכותבים סגנון באנגלית, למשל <span class="en">happy pop, kids choir</span>. אחר כך לוחצים <span class="en">Create</span>.</p>
+    <figure class="real" data-shot="create" data-marks="stylesBox:5,createBtn:" aria-label="תיבת הסגנון וכפתור Create מסומנים"></figure>
+    <div class="note">אחרי כמה שניות מופיעים שני שירים. לוחצים ▶ ושומעים!</div>
   </section>
-
-  <section class="step" id="s6">
-    <div class="step-head"><span class="step-num">6</span><h3>השיר מוכן</h3></div>
-    <p>Suno יוצר שתי גרסאות של השיר. לוחצים על ▶ כדי לשמוע, ועל שלוש הנקודות כדי להוריד.</p>
-    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true,"advanced":true,"lyrics":true,"styles":true,"title":"השיר של החוג","songs":true}' data-marks="play:1,download:2"></div></div>
-    <ol class="callouts"><li><span class="dot">1</span>מנגנים את השיר</li><li><span class="dot">2</span><span>שלוש נקודות ← <span class="en">Download</span> כדי לשמור</span></li></ol>
-  </section>
-
 
   <h2 class="sec" id="song">השיר שיצרנו</h2>
   <div class="card product" style="margin-top:12px">
@@ -101,8 +87,7 @@
   <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
 </div>
 <script src="../assets/a11y.js"></script>
-<script src="../assets/suno-mock.js"></script>
-<script src="../assets/suno-movie.js"></script>
+<script src="../assets/shots.js"></script>
 <script>
   document.querySelectorAll(".product audio").forEach(function (a) {
     var miss = a.nextElementSibling;

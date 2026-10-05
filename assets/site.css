@@ -168,3 +168,45 @@ h2.sec { font: 600 30px/1.2 var(--font-display); margin: 48px 0 8px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---------- real screenshots in a Windows Chrome window ---------- */
+figure.real { margin: 0; }
+.win {
+  direction: ltr; text-align: left; border-radius: 12px; overflow: hidden; max-width: 100%;
+  border: 1px solid #b9c2cc; box-shadow: 0 8px 0 var(--line), 0 14px 30px -14px rgba(0,0,0,.35);
+  background: #dee1e6; font: 400 13px/1 "Segoe UI", Arial, sans-serif; color: #202124;
+}
+.win-top { display: flex; align-items: flex-end; height: 34px; padding-left: 8px; }
+.win-tab { background: #fff; border-radius: 8px 8px 0 0; height: 28px; width: min(220px, 40%); display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+.win-fav { width: 16px; height: 16px; border-radius: 4px; background: #111; color: #fff; display: grid; place-items: center; font-size: 10px; }
+.win-x { margin-left: auto; color: #5f6368; font-size: 11px; }
+.win-ctrl { margin-left: auto; display: flex; align-self: stretch; }
+.win-ctrl span { width: 44px; display: grid; place-items: center; color: #202124; font-size: 13px; }
+.win-ctrl .close:hover { background: #c42b1c; color: #fff; }
+.win-bar { background: #fff; display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-bottom: 1px solid #dadce0; }
+.win-nav { color: #5f6368; letter-spacing: 6px; white-space: nowrap; }
+.win-url { flex: 1; background: #f1f3f4; border-radius: 999px; padding: 7px 14px; color: #202124; min-width: 0; overflow: hidden; }
+.win-view { position: relative; line-height: 0; background: #111; }
+.win-view img { width: 100%; height: auto; display: block; transition: opacity .25s ease; }
+.win-view img.fade { opacity: .2; }
+
+.ring {
+  position: absolute; border: 4px solid var(--mark); border-radius: 14px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.85), 0 0 18px 4px rgba(255,45,85,.55);
+  animation: ring-pulse 1.4s ease-in-out infinite; pointer-events: none;
+}
+.ring[data-n]::before {
+  content: attr(data-n); position: absolute; top: -16px; right: -16px;
+  width: 30px; height: 30px; border-radius: 50%; background: var(--mark); color: #fff;
+  font: 700 17px/30px var(--font-display); text-align: center; border: 2px solid #fff;
+}
+@keyframes ring-pulse { 50% { border-color: #ffd60a; } }
+@media (max-width: 520px) {
+  .ring { border-width: 3px; border-radius: 8px; }
+  .ring[data-n]::before { width: 22px; height: 22px; font-size: 13px; line-height: 22px; top: -12px; right: -12px; }
+  .win-nav { display: none; }
+}
+.cursor { position: absolute; width: 3.2%; min-width: 18px; z-index: 3; pointer-events: none; transition: left .9s cubic-bezier(.5,0,.2,1), top .9s cubic-bezier(.5,0,.2,1); }
+.cursor svg { width: 100%; height: auto; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+.ripple { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #ffd60a; z-index: 2; pointer-events: none; animation: rip .7s ease-out forwards; }
+@keyframes rip { to { transform: scale(3.4); opacity: 0; } }
