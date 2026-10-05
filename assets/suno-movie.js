@@ -26,9 +26,7 @@
     { cap: "לוחצים Create ומחכים כמה שניות", state: "create", data: { loggedIn: true, advanced: true, lyrics: LYRICS, styles: STYLES, title: TITLE },
       act: [["move", "create"], ["click"], ["wait", 900]] },
     { cap: "מקבלים שני שירים! לוחצים ▶ כדי לשמוע", state: "create", data: { loggedIn: true, advanced: true, lyrics: LYRICS, styles: STYLES, title: TITLE, songs: true },
-      act: [["move", "play"], ["click"], ["wait", 600], ["move", "download"]] },
-    { cap: "טיפ: אתר באנגלית? מקש ימני ← Translate to עברית", state: "translate", data: {},
-      act: [["move", "translate"], ["click"]] }
+      act: [["move", "play"], ["click"], ["wait", 600], ["move", "download"]] }
   ];
 
   progress.innerHTML = SCENES.map((_, i) => `<span title="שלב ${i + 1}" data-i="${i}"></span>`).join("");

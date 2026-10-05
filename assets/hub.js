@@ -15,7 +15,7 @@
   function productCard(it) {
     return `<div class="card product">${icon(it)}<div class="body"><h3>${esc(it.title)}</h3><p>${esc(it.text)}</p>${tags(it)}
       <audio controls preload="none" src="${esc(it.audio)}"></audio>
-      <div class="missing" hidden>השיר עוד לא הועלה. שמים את הקובץ בתיקייה <span class="en">${esc(it.audio)}</span> והוא יופיע כאן.</div>
+      <div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>
     </div></div>`;
   }
 
@@ -31,11 +31,10 @@
     if (count) count.textContent = items.length;
   }
 
-  fill("lessons", SITE.lessons, linkCard, "השיעור הבא יתווסף כאן");
-  fill("tools", SITE.tools, linkCard, "כל כלי חדש שנלמד");
-  fill("products", SITE.products, productCard, "השירים, התמונות והסרטונים שלכם");
-  fill("links", SITE.links, linkCard);
-
+  fill("lessons", SITE.lessons, linkCard);
+  fill("tools", SITE.tools, linkCard);
+  fill("products", SITE.products, productCard);
+  
   // Show a friendly note when a song file has not been uploaded yet
   document.querySelectorAll(".product audio").forEach((a) => {
     const missing = a.nextElementSibling;

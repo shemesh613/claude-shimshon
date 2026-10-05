@@ -7,8 +7,12 @@
   .sm-stage{position:absolute;top:0;left:0;width:${W}px;height:${H}px;transform-origin:top left;direction:ltr;text-align:left;
     font:400 14px/1.4 "Rubik",Arial,sans-serif;color:#f2f2f5;background:#101014;overflow:hidden}
   .sm-bar{height:40px;background:#26262c;display:flex;align-items:center;gap:10px;padding:0 14px}
-  .sm-dots{display:flex;gap:6px}.sm-dots i{width:11px;height:11px;border-radius:50%;background:#ff5f57}.sm-dots i:nth-child(2){background:#febc2e}.sm-dots i:nth-child(3){background:#28c840}
+  .sm-tab{background:#35353d;border-radius:8px 8px 0 0;align-self:flex-end;height:32px;padding:0 12px;display:flex;align-items:center;gap:8px;color:#eee;font-size:12px;width:170px}
+  .sm-tab i{font-style:normal;margin-left:auto;color:#aaa}
   .sm-url{flex:1;max-width:520px;margin:0 auto;background:#16161a;border-radius:16px;padding:5px 14px;color:#cfcfd6;font:500 13px "IBM Plex Mono",monospace}
+  .sm-win{display:flex;align-self:stretch;margin-right:-14px}
+  .sm-win span{width:46px;display:grid;place-items:center;color:#ddd;font-size:14px}
+  .sm-win span:last-child{background:#c42b1c;color:#fff}
   .sm-app{display:flex;height:${H - 40}px}
   .sm-side{width:170px;background:#0a0a0d;padding:16px 12px;display:flex;flex-direction:column;gap:4px;border-right:1px solid #222}
   .sm-logo{font:700 22px/1 Arial,sans-serif;letter-spacing:3px;margin:0 8px 16px}
@@ -155,7 +159,7 @@
     if (state === "signin") main = home(m, d) + signin(m);
     if (state === "create") { main = create(m, d); side = "nav-create"; url = "suno.com/create"; }
     if (state === "translate") { main = home(m, Object.assign(d, { loggedIn: true })) + menu(m); }
-    return `<div class="sm-bar"><div class="sm-dots"><i></i><i></i><i></i></div><div${m("url", "sm-url")}>${url}</div></div>
+    return `<div class="sm-bar"><div class="sm-tab">♪ Suno<i>✕</i></div><div${m("url", "sm-url")}>${url}</div><div class="sm-win"><span>—</span><span>☐</span><span>✕</span></div></div>
       <div class="sm-app">${sidebar(m, d, side)}${main}</div>`;
   }
 

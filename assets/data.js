@@ -8,7 +8,7 @@ window.SITE = {
       text: "מתחברים עם חשבון גוגל, כותבים מילים, בוחרים סגנון ומקבלים שיר שלם.",
       href: "lessons/suno.html",
       icon: "music", color: "coral",
-      tags: ["שיר", "מוזיקה", "חדש"]
+      tags: ["חדש"]
     }
   ],
 
@@ -18,14 +18,7 @@ window.SITE = {
       text: "יוצרים שירים מהמילים שלנו. בוחרים סגנון מוזיקה והמחשב שר.",
       href: "https://suno.com",
       icon: "music", color: "coral",
-      tags: ["מוזיקה", "כניסה עם גוגל"]
-    },
-    {
-      title: "תרגום דף בכרום",
-      text: "אתר באנגלית? לוחצים מקש ימני בעכבר ובוחרים \"תרגם לעברית\".",
-      href: "lessons/suno.html#translate",
-      icon: "globe", color: "sky",
-      tags: ["טיפ", "כרום"]
+      tags: []
     }
   ],
 
@@ -36,12 +29,9 @@ window.SITE = {
       text: "שיר מגניב ומצחיק שהחוג יצר יחד ב-Suno.",
       audio: "songs/our-song.mp3",
       icon: "star", color: "sun",
-      tags: ["Suno", "יצירה משותפת"]
+      tags: []
     }
   ],
 
-  links: [
-    { title: "Suno — האתר", text: "suno.com", href: "https://suno.com", icon: "link", color: "leaf" },
-    { title: "חשבון גוגל", text: "כניסה לחשבון גוגל", href: "https://accounts.google.com", icon: "user", color: "leaf" }
-  ]
+  links: []
 };
