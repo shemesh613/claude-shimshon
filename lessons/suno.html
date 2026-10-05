@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שיעור Suno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top"><div class="crumbs"><a href="../index.html">→ חזרה לאתר החוג</a></div><nav aria-label="הגדרות"><button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button></nav></header>
+<main id="main">
+
+  <section class="lesson-hero">
+    <span class="icon coral"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+    <div>
+      <h1>יוצרים שיר עם Suno</h1>
+      <p>סיכום השיעור: מהכניסה לאתר ועד שיר שלם, עם המילים והסגנון שבחרנו.</p>
+    </div>
+  </section>
+
+  <ul class="learned">
+    <li><span class="icon sm sky"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>מתחברים עם חשבון גוגל</li>
+    <li><span class="icon sm coral"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>לשונית Create</li>
+    <li><span class="icon sm sun"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span>מצב Advanced (מתקדם)</li>
+    <li><span class="icon sm leaf"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></span>כותבים מילים וסגנון</li>
+    <li><span class="icon sm sky"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"/></svg></span>מתרגמים דף במקש ימני</li>
+  </ul>
+
+  <nav class="toc" aria-label="תוכן השיעור">
+    <a href="#movie">סרטון</a><a href="#s1">1 · כניסה</a><a href="#s2">2 · גוגל</a><a href="#s3">3 · Create</a>
+    <a href="#s4">4 · Advanced</a><a href="#s5">5 · מילים וסגנון</a><a href="#s6">6 · השיר מוכן</a><a href="#translate">תרגום</a><a href="#song">השיר שלנו</a>
+  </nav>
+
+  <h2 class="sec" id="movie">הסרטון: כל התהליך בדקה</h2>
+  <div class="player">
+    <div class="caption"><span class="step-num" id="movie-num">1</span><span id="movie-caption"></span></div>
+    <div class="shot"><div id="movie-host"></div></div>
+    <div class="controls">
+      <button class="btn" id="movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost" id="movie-restart" type="button">מההתחלה</button>
+      <div class="progress" id="movie-progress"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">שלב אחרי שלב</h2>
+  <p class="fig-note">התמונות הן איורים של מסכי Suno עם סימונים באדום. המספר על הסימון הוא מספר השלב.</p>
+
+  <section class="step" id="s1">
+    <div class="step-head"><span class="step-num">1</span><h3>נכנסים לאתר</h3></div>
+    <p>פותחים את <a href="https://suno.com" target="_blank" rel="noopener">suno.com</a> ולוחצים על הכפתור <span class="en">Sign In</span> (התחברות) למעלה בצד.</p>
+    <div class="shot"><div data-screen="home" data-marks="url:1,signin:2"></div></div>
+    <ol class="callouts"><li><span class="dot">1</span>כותבים בשורת הכתובת <span class="en">suno.com</span></li><li><span class="dot">2</span>לוחצים <span class="en">Sign In</span></li></ol>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="step-head"><span class="step-num">2</span><h3>מתחברים עם חשבון גוגל</h3></div>
+    <p>בחלון שנפתח בוחרים <span class="en">Continue with Google</span>, ואז בוחרים את חשבון הגוגל שלנו.</p>
+    <div class="shot"><div data-screen="signin" data-marks="google:1"></div></div>
+    <div class="note">רק עם הורה או מורה: מתחברים לחשבון גוגל רק באישור מבוגר.</div>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="step-head"><span class="step-num">3</span><h3>לשונית Create (יצירה)</h3></div>
+    <p>בתפריט שבצד המסך לוחצים על <span class="en">Create</span>. שם יוצרים שירים חדשים.</p>
+    <div class="shot"><div data-screen="home" data-data='{"loggedIn":true}' data-marks="nav-create:1"></div></div>
+  </section>
+
+  <section class="step" id="s4">
+    <div class="step-head"><span class="step-num">4</span><h3>עוברים למצב Advanced (מתקדם)</h3></div>
+    <p>למעלה יש שתי לשוניות: <span class="en">Simple</span> (פשוט) ו-<span class="en">Advanced</span> (מתקדם). לוחצים על <span class="en">Advanced</span> כדי לכתוב בעצמנו את המילים ולבחור סגנון.</p>
+    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true}' data-marks="tab-adv:1"></div></div>
+    <div class="note">בגרסאות קודמות של Suno הלשונית נקראה <span class="en">Custom</span>. זה אותו דבר.</div>
+  </section>
+
+  <section class="step" id="s5">
+    <div class="step-head"><span class="step-num">5</span><h3>כותבים מילים, סגנון ושם</h3></div>
+    <p>אלה שלושת המקומות שממלאים במצב Advanced, ואחריהם לוחצים על הכפתור הכתום.</p>
+    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true,"advanced":true,"lyrics":true,"styles":true,"title":"השיר של החוג"}' data-marks="lyrics:1,styles:2,title:3,create:4"></div></div>
+    <ol class="callouts">
+      <li><span class="dot">1</span><span><span class="en">Lyrics</span> = המילים של השיר. אפשר לכתוב בעברית. <span class="en">[Verse]</span> זה בית ו-<span class="en">[Chorus]</span> זה פזמון.</span></li>
+      <li><span class="dot">2</span><span><span class="en">Styles</span> = הסגנון. כותבים באנגלית, למשל <span class="en">happy pop, kids choir</span></span></li>
+      <li><span class="dot">3</span><span><span class="en">Song Title</span> = השם של השיר</span></li>
+      <li><span class="dot">4</span><span>לוחצים <span class="en">Create</span> ומחכים כמה שניות</span></li>
+    </ol>
+  </section>
+
+  <section class="step" id="s6">
+    <div class="step-head"><span class="step-num">6</span><h3>השיר מוכן</h3></div>
+    <p>Suno יוצר שתי גרסאות של השיר. לוחצים על ▶ כדי לשמוע, ועל שלוש הנקודות כדי להוריד.</p>
+    <div class="shot"><div data-screen="create" data-data='{"loggedIn":true,"advanced":true,"lyrics":true,"styles":true,"title":"השיר של החוג","songs":true}' data-marks="play:1,download:2"></div></div>
+    <ol class="callouts"><li><span class="dot">1</span>מנגנים את השיר</li><li><span class="dot">2</span><span>שלוש נקודות ← <span class="en">Download</span> כדי לשמור</span></li></ol>
+  </section>
+
+  <section class="step" id="translate">
+    <div class="step-head"><span class="step-num" aria-hidden="true">★</span><h3>טיפ: מתרגמים כל אתר לעברית</h3></div>
+    <p>בדפדפן כרום: לוחצים <b>מקש ימני</b> בעכבר על מקום ריק בדף, ובוחרים <span class="en">Translate to עברית</span> (תרגם לעברית). כל הדף מתורגם.</p>
+    <div class="shot"><div data-screen="translate" data-marks="translate:1"></div></div>
+  </section>
+
+  <h2 class="sec" id="song">השיר שיצרנו</h2>
+  <div class="card product" style="margin-top:12px">
+    <span class="icon sun"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span>
+    <div class="body">
+      <h3>השיר של החוג</h3>
+      <p>מגניב ומצחיק. נוצר ב-Suno בשיעור.</p>
+      <audio controls preload="none" src="../songs/our-song.mp3"></audio>
+      <div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>
+    </div>
+  </div>
+
+</main>
+  <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
+</div>
+<script src="../assets/a11y.js"></script>
+<script src="../assets/suno-mock.js"></script>
+<script src="../assets/suno-movie.js"></script>
+<script>
+  document.querySelectorAll(".product audio").forEach(function (a) {
+    var miss = a.nextElementSibling;
+    fetch(a.getAttribute("src"), { method: "HEAD" })
+      .then(function (r) { if (!r.ok) { a.hidden = true; miss.hidden = false; } })
+      .catch(function () { a.hidden = true; miss.hidden = false; });
+  });
+</script>
+</body>
+</html>

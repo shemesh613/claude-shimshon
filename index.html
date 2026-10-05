@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>חוג AI לילדים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="index.html">
+      <span class="brand-badge">AI</span>
+      <span><b>חוג AI לילדים</b><small>כל מה שלומדים ויוצרים, במקום אחד</small></span>
+    </a>
+    <nav aria-label="ניווט ראשי">
+      <a href="#lessons-shelf">שיעורים</a>
+      <a href="#tools-shelf">כלים</a>
+      <a href="#products-shelf">התוצרים שלנו</a>
+      <a href="#links-shelf">קישורים</a>
+      <button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button>
+    </nav>
+  </header>
+
+  <main id="main">
+  <section class="hero">
+    <h1>מה <span class="hl">למדנו</span> ומה יצרנו</h1>
+    <p>סיכומי שיעורים עם צילומי מסך וסרטונים, הכלים שעובדים איתם, והשירים והיצירות של ילדי החוג.</p>
+  </section>
+
+  <section class="shelf" id="lessons-shelf">
+    <div class="shelf-head"><span class="icon sm coral">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
+    </span><h2>סיכומי שיעורים</h2><span class="count" data-count="lessons">1</span>
+      <p>כל שיעור צעד אחרי צעד, עם תמונות מסומנות וסרטון.</p></div>
+    <div class="grid" id="lessons"></div>
+  </section>
+
+  <section class="shelf" id="tools-shelf">
+    <div class="shelf-head"><span class="icon sm sky">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5L22 14l-8 8-2.3-2.3a4 4 0 0 0-5-5L2 10l8-8z"/></svg>
+    </span><h2>הכלים שאנחנו לומדים</h2><span class="count" data-count="tools">2</span>
+      <p>האתרים והטריקים שעובדים איתם בחוג.</p></div>
+    <div class="grid" id="tools"></div>
+  </section>
+
+  <section class="shelf" id="products-shelf">
+    <div class="shelf-head"><span class="icon sm sun">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+    </span><h2>התוצרים שלנו</h2><span class="count" data-count="products">1</span>
+      <p>מה שילדי החוג יצרו. אפשר להאזין ישר מכאן.</p></div>
+    <div class="grid" id="products"></div>
+  </section>
+
+  <section class="shelf" id="links-shelf">
+    <div class="shelf-head"><span class="icon sm leaf">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+    </span><h2>קישורים שימושיים</h2><span class="count" data-count="links">2</span></div>
+    <div class="grid" id="links"></div>
+  </section>
+
+</main>
+  <footer class="footer">להוספת שיעור, כלי או שיר חדש: עורכים את הקובץ <span class="en">assets/data.js</span>.</footer>
+</div>
+<script src="assets/a11y.js"></script>
+<script src="assets/icons.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/hub.js"></script>
+</body>
+</html>
