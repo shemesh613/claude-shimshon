@@ -13,10 +13,11 @@
   }
 
   function songPlayer(it) {
-    const player = it.sunoId
-      ? `<iframe class="suno-player" title="נגן השיר ${esc(it.title)}" src="https://suno.com/embed/${esc(it.sunoId)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`
-      : `<audio controls preload="none" src="${esc(it.audio)}"></audio><div class="missing" hidden>השיר יעלה לכאן בקרוב.</div>`;
-    return `<div class="card product"><div class="product-head">${icon(it)}<h3>${esc(it.title)}</h3></div>${player}</div>`;
+    const player = it.audio
+      ? `<audio controls preload="metadata" aria-label="השמעת ${esc(it.title)}" src="${esc(it.audio)}">הדפדפן אינו תומך בניגון שמע.</audio>`
+      : `<iframe class="suno-player" title="נגן השיר ${esc(it.title)}" src="https://suno.com/embed/${esc(it.sunoId)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+    const links = it.audio ? `<div class="product-actions"><a href="${esc(it.audio)}" download>הורדת השיר</a><a href="https://suno.com/song/${esc(it.sunoId)}" target="_blank" rel="noopener">השיר ב־Suno</a></div>` : "";
+    return `<div class="card product"><div class="product-head">${icon(it)}<h3>${esc(it.title)}</h3></div>${player}${links}</div>`;
   }
 
   function soonCard(text) {

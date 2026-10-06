@@ -133,6 +133,9 @@ a.card:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
 .product-head .icon svg { width: 24px; height: 24px; }
 .product-head h3 { margin: 0; }
 .product audio { width: 100%; }
+.product-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.product-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 15px; border: 2px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600; background: var(--bg); }
+.product-actions a:hover { border-color: var(--sky); }
 .suno-player { display: block; width: 100%; height: 220px; border: 0; border-radius: 16px; background: #171d31; }
 @media (max-width: 520px) { .suno-player { height: 170px; } }
 .product .missing { margin-top: 12px; font-size: .8em; color: var(--muted); background: var(--bg); border-radius: 14px; padding: 10px 12px; }
