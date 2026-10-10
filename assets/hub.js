@@ -35,6 +35,10 @@
   fill("lessons", SITE.lessons, linkCard);
   fill("tools", SITE.tools, linkCard);
 
+  const refs = document.getElementById("refs");
+  if (refs && SITE.refs) refs.innerHTML = SITE.refs.map((it) =>
+    `<div class="card product"><div class="product-head"><h3>${esc(it.title)}</h3></div><audio controls preload="none" aria-label="השמעת ${esc(it.title)}" src="${esc(it.audio)}"></audio><div class="product-actions"><a href="${esc(it.audio)}" download>הורדת הלחן</a></div></div>`).join("");
+
   const products = document.getElementById("products");
   let selectedSong = 0;
   if (products && SITE.products.length) {

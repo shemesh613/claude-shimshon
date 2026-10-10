@@ -75,5 +75,17 @@ window.SITE = {
     }
   ],
 
+  // לחנים להורדה: התלמידים מורידים ומעלים ל-Suno (Upload Audio)
+  refs: [
+    { title: "Happy Birthday — גרסה 1", audio: "assets/downloads/happy-birthday-1.mp3" },
+    { title: "Happy Birthday — מינורי", audio: "assets/downloads/happy-birthday-2-minor.mp3" },
+    { title: "Happy Birthday — מינורי איטי", audio: "assets/downloads/happy-birthday-3-minor-slow.mp3" },
+    { title: "אחד מי יודע — גרסה 1", audio: "assets/downloads/echad-mi-yodea-1.mp3" },
+    { title: "אחד מי יודע — גרסה 2", audio: "assets/downloads/echad-mi-yodea-2.mp3" },
+    { title: "אחד מי יודע — גרסה 3", audio: "assets/downloads/echad-mi-yodea-3.mp3" },
+    { title: "אחד מי יודע — גרסה 4", audio: "assets/downloads/echad-mi-yodea-4.mp3" },
+    { title: "מעוז צור", audio: "assets/downloads/maoz-tzur.mp3" }
+  ],
+
   links: []
 };
