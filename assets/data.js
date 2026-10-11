@@ -75,12 +75,5 @@ window.SITE = {
     }
   ],
 
-  // לחנים להורדה: התלמידים מורידים ומעלים ל-Suno (Upload Audio)
-  refs: [
-    { title: "Happy Birthday", audio: "assets/downloads/happy-birthday-1.mp3" },
-    { title: "אחד מי יודע", audio: "assets/downloads/echad-mi-yodea-3.mp3" },
-    { title: "מעוז צור", audio: "assets/downloads/maoz-tzur.mp3" }
-  ],
-
   links: []
 };
