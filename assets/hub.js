@@ -32,7 +32,7 @@
     if (count) count.textContent = items.length;
   }
 
-  fill("lessons", SITE.lessons, linkCard);
+  fill("lessons", SITE.lessons, linkCard, SITE.lessons.length ? "" : "השיעורים יעלו כאן בהמשך.");
   fill("tools", SITE.tools, linkCard);
 
   const refs = document.getElementById("refs");
