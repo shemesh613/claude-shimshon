@@ -4,6 +4,13 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור 2: לחן מוכר, מילים חדשות",
+      text: "מורידים לחן, מעלים ל-Suno ויוצרים עליו שיר. ואיך עושים רמיקס לשיר שיצרנו.",
+      href: "lessons/suno2.html",
+      icon: "music", color: "sky",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור: יוצרים שיר עם Suno",
       text: "מתחברים עם חשבון גוגל, כותבים מילים, בוחרים סגנון ומקבלים שיר שלם.",
       href: "lessons/suno.html",
@@ -78,8 +85,7 @@ window.SITE = {
   // לחנים להורדה: התלמידים מורידים ומעלים ל-Suno (Upload Audio)
   refs: [
     { title: "Happy Birthday", audio: "assets/downloads/happy-birthday-1.mp3" },
-    { title: "אחד מי יודע", audio: "assets/downloads/echad-mi-yodea-3.mp3" },
-    { title: "מעוז צור", audio: "assets/downloads/maoz-tzur.mp3" }
+    { title: "אחד מי יודע", audio: "assets/downloads/echad-mi-yodea-3.mp3" }
   ],
 
   links: []

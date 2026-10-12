@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שיעור Suno 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-12-l2">
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top"><div class="crumbs"><a href="../index.html">→ חזרה לאתר החוג</a></div><nav aria-label="הגדרות"><button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button></nav></header>
+<main id="main">
+
+  <section class="lesson-hero">
+    <span class="icon coral"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+    <div>
+      <h1>לחן מוכר, מילים חדשות</h1>
+      <p>מעלים לחן ל-Suno ויוצרים עליו שיר משלנו. ואיך משנים שיר שכבר יצרנו.</p>
+    </div>
+  </section>
+
+  <h2 class="sec" id="movie">צופים בסרטון</h2>
+  <div class="player">
+    <div class="caption"><span class="step-num" id="movie-num">1</span><span id="movie-caption"></span></div>
+    <div id="movie-host"></div>
+    <div class="controls">
+      <button class="btn" id="movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost" id="movie-restart" type="button">מההתחלה</button>
+      <div class="progress" id="movie-progress"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">שלב אחרי שלב</h2>
+  <p class="fig-note">צילומי מסך אמיתיים מאתר Suno. מה שמסומן באדום, עליו לוחצים.</p>
+
+  <section class="step" id="s0">
+    <div class="step-head"><span class="step-num">1</span><h3>מורידים לחן מהאתר שלנו</h3></div>
+    <p>בוחרים לחן ולוחצים <b>הורדת הלחן</b>. הקובץ נשמר במחשב.</p>
+    <div class="card product" style="margin-top:12px">
+      <div class="product-head"><h3>Happy Birthday</h3></div>
+      <audio controls preload="none" aria-label="השמעת Happy Birthday" src="../assets/downloads/happy-birthday-1.mp3"></audio>
+      <div class="product-actions"><a href="../assets/downloads/happy-birthday-1.mp3" download>הורדת הלחן</a></div>
+    </div>
+    <div class="card product" style="margin-top:12px">
+      <div class="product-head"><h3>אחד מי יודע</h3></div>
+      <audio controls preload="none" aria-label="השמעת אחד מי יודע" src="../assets/downloads/echad-mi-yodea-3.mp3"></audio>
+      <div class="product-actions"><a href="../assets/downloads/echad-mi-yodea-3.mp3" download>הורדת הלחן</a></div>
+    </div>
+    <div class="note">יותר לחנים בלשונית <a href="../index.html#tools-shelf">כלים</a> בדף הבית.</div>
+  </section>
+
+  <section class="step" id="s1">
+    <div class="step-head"><span class="step-num">2</span><h3>במסך Create לוחצים על Audio</h3></div>
+    <p>נכנסים ל-<span class="en">Create</span> ולוחצים על <span class="en">+ Audio</span>.</p>
+    <figure class="real" data-shot="create" data-marks="audioBtn:1" aria-label="מסך Create, הכפתור Audio מסומן"></figure>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="step-head"><span class="step-num">3</span><h3>בוחרים Upload</h3></div>
+    <p>נפתח תפריט. לוחצים <span class="en">Upload</span> ובוחרים את הקובץ שהורדנו.</p>
+    <figure class="real" data-shot="menu" data-marks="uploadItem:2" aria-label="תפריט Audio, האפשרות Upload מסומנת"></figure>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="step-head"><span class="step-num">4</span><h3>מחכים ולוחצים Continue</h3></div>
+    <p>הקובץ עולה. כשכתוב <span class="en">Uploaded</span>, לוחצים <span class="en">Continue</span>.</p>
+    <figure class="real" data-shot="dialog" data-marks="continueBtn:3" aria-label="חלון ההעלאה, הכפתור Continue מסומן"></figure>
+    <div class="note">אם Suno כותב <span class="en">This audio matches an existing recording</span>, הלחן מוכר מדי והוא לא עובד. מנסים לחן אחר.</div>
+  </section>
+
+  <section class="step" id="s4">
+    <div class="step-head"><span class="step-num">5</span><h3>הלחן נטען במצב Cover</h3></div>
+    <p>הלחן מופיע בתיבת <span class="en">Audio</span>. אפשר ללחוץ ▶ ולשמוע אותו.</p>
+    <figure class="real" data-shot="cover" data-marks="coverBtn:4" aria-label="הלחן שהועלה, המצב Cover מסומן"></figure>
+  </section>
+
+  <section class="step" id="s5">
+    <div class="step-head"><span class="step-num">6</span><h3>כותבים מילים חדשות</h3></div>
+    <p>בתיבת <span class="en">Lyrics</span> מוחקים את מה שיש וכותבים מילים משלנו, באותו קצב של הלחן.</p>
+    <figure class="real" data-shot="lyrics" data-marks="lyricsBox:5" aria-label="תיבת Lyrics עם מילים חדשות מסומנת"></figure>
+  </section>
+
+  <section class="step" id="s6">
+    <div class="step-head"><span class="step-num">7</span><h3>סגנון ו-Create</h3></div>
+    <p>בתיבת <span class="en">Styles</span> כותבים סגנון באנגלית, למשל <span class="en">happy pop, kids choir</span>. אחר כך לוחצים <span class="en">Create</span>.</p>
+    <figure class="real" data-shot="style" data-marks="stylesBox:6,createBtn:7" aria-label="תיבת Styles וכפתור Create מסומנים"></figure>
+  </section>
+
+  <h2 class="sec" id="remix">רמיקס: משנים שיר שיצרנו</h2>
+  <p class="fig-note">יש שיר שיצרנו ורוצים אותו עם מילים אחרות? לא מעלים כלום, הוא כבר ב-Suno.</p>
+
+  <section class="step" id="s7">
+    <div class="step-head"><span class="step-num">8</span><h3>בשלוש הנקודות בוחרים Remix ואז Cover</h3></div>
+    <p>ליד השיר לוחצים על שלוש הנקודות. בוחרים <span class="en">Remix</span> ואז <span class="en">Cover</span>.</p>
+    <figure class="real" data-shot="remix" data-marks="remixItem:8,coverItem:9" aria-label="תפריט השיר, האפשרויות Remix ו-Cover מסומנות"></figure>
+    <div class="note">עכשיו כותבים מילים אחרות ולוחצים <span class="en">Create</span>, כמו בצעדים 6 ו-7.</div>
+  </section>
+
+  <div class="note" style="margin-top:20px">בכל חשבון אפשר ליצור עד 5 שירים ביום.</div>
+
+</main>
+  <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
+</div>
+<script src="../assets/a11y.js"></script>
+<script src="../assets/shots2.js"></script>
+</body>
+</html>
