@@ -4,8 +4,15 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור 3: רמיקס וקאבר",
+      text: "משנים שיר שכבר יצרנו ונותנים לו מילים חדשות.",
+      href: "lessons/suno3.html",
+      icon: "music", color: "leaf",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור 2: לחן מוכר, מילים חדשות",
-      text: "מורידים לחן, מעלים ל-Suno ויוצרים עליו שיר. ואיך עושים רמיקס לשיר שיצרנו.",
+      text: "מורידים לחן, מעלים ל-Suno ויוצרים עליו שיר.",
       href: "lessons/suno2.html",
       icon: "music", color: "sky",
       tags: ["חדש"]

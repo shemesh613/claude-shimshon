@@ -5,7 +5,7 @@
     create:  { img: "img/l2-1.jpg", w: 700, h: 695, url: "suno.com/create" },
     menu:    { img: "img/l2-2.jpg", w: 700, h: 695, url: "suno.com/create" },
     dialog:  { img: "img/l2-3.jpg", w: 540, h: 615, url: "suno.com/create" },
-    cover:   { img: "img/l2-4.jpg", w: 700, h: 695, url: "suno.com/create" },
+    file:    { img: "img/l2-file.jpg", w: 960, h: 600, url: "suno.com/create" },
     lyrics:  { img: "img/l2-5.jpg", w: 700, h: 695, url: "suno.com/create" },
     style:   { img: "img/l2-6.jpg", w: 700, h: 695, url: "suno.com/create" },
     remix:   { img: "img/l2-7.jpg", w: 416, h: 435, url: "suno.com/create" }
@@ -14,7 +14,9 @@
     audioBtn:    ["create", 264, 141, 133, 56],
     uploadItem:  ["menu", 272, 247, 102, 38],
     continueBtn: ["dialog", 216, 536, 286, 56],
-    coverBtn:    ["cover", 503, 225, 110, 40],
+    filePick:    ["file", 227, 218, 160, 36],
+    openBtn:     ["file", 697, 538, 107, 32],
+    fullSong:    ["dialog", 48, 298, 106, 28],
     lyricsBox:   ["lyrics", 264, 137, 403, 413],
     stylesBox:   ["style", 264, 287, 403, 233],
     createBtn:   ["style", 328, 567, 354, 48],
@@ -66,19 +68,30 @@
   const progress = document.getElementById("movie-progress");
   const playBtn = document.getElementById("movie-play");
 
-  const SCENES = [
-    { mark: "audioBtn",    cap: "במסך Create לוחצים + Audio", click: true },
-    { mark: "uploadItem",  cap: "בוחרים Upload ובוחרים את הלחן שהורדנו", click: true },
-    { mark: "continueBtn", cap: "כשהלחן עלה, לוחצים Continue", click: true },
-    { mark: "coverBtn",    cap: "הלחן נטען. המצב הוא Cover" },
-    { mark: "lyricsBox",   cap: "כותבים מילים חדשות לשיר" },
-    { mark: "stylesBox",   cap: "כותבים סגנון באנגלית" },
-    { mark: "createBtn",   cap: "לוחצים Create", click: true },
-    { mark: "remixItem",   cap: "רוצים לשנות שיר שיצרנו? בשלוש הנקודות בוחרים Remix", click: true },
-    { mark: "coverItem",   cap: "ואז Cover, וכותבים מילים אחרות", click: true }
-  ];
+  const LESSON = document.currentScript.dataset.lesson || "2";
+  const SETS = {
+    "2": [
+      { mark: "audioBtn",    cap: "במסך Create לוחצים על Audio", click: true },
+      { mark: "uploadItem",  cap: "בוחרים Upload", click: true },
+      { mark: "filePick",    cap: "נפתחת תיקיית המחשב. בוחרים את הלחן שהורדנו", click: true },
+      { mark: "openBtn",     cap: "לוחצים Open", click: true },
+      { mark: "fullSong",    cap: "בוחרים Full Song", click: true },
+      { mark: "continueBtn", cap: "לוחצים Continue", click: true },
+      { mark: "lyricsBox",   cap: "כותבים מילים חדשות לשיר" },
+      { mark: "stylesBox",   cap: "כותבים סגנון באנגלית" },
+      { mark: "createBtn",   cap: "לוחצים Create", click: true }
+    ],
+    "3": [
+      { mark: "remixItem",   cap: "בשלוש הנקודות ליד השיר בוחרים Remix", click: true },
+      { mark: "coverItem",   cap: "ואז בוחרים Cover", click: true },
+      { mark: "lyricsBox",   cap: "כותבים מילים אחרות" },
+      { mark: "stylesBox",   cap: "אפשר לשנות גם את הסגנון" },
+      { mark: "createBtn",   cap: "לוחצים Create", click: true }
+    ]
+  };
+  const SCENES = SETS[LESSON];
 
-  host.innerHTML = frame("create");
+  host.innerHTML = frame(MARKS[SCENES[0].mark][0]);
   const view = host.querySelector(".win-view");
   const img = view.querySelector("img");
   img.loading = "eager";
@@ -138,5 +151,5 @@
   progress.addEventListener("click", (e) => { const i = e.target.dataset.i; if (i !== undefined) playFrom(+i); });
 
   numEl.textContent = 1;
-  captionEl.textContent = "לוחצים ▶ וצופים איך מעלים לחן ויוצרים עליו שיר";
+  captionEl.textContent = LESSON === "3" ? "לוחצים ▶ וצופים איך עושים רמיקס לשיר" : "לוחצים ▶ וצופים איך מעלים לחן ויוצרים עליו שיר";
 })();
