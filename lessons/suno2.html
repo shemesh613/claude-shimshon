@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-12-l2">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-13-tabs">
 </head>
 <body>
 <a class="skip" href="#main">דילוג לתוכן</a>
@@ -23,18 +23,23 @@
     </div>
   </section>
 
-  <h2 class="sec" id="movie">צופים בסרטון</h2>
-  <div class="player">
-    <div class="caption"><span class="step-num" id="movie-num">1</span><span id="movie-caption"></span></div>
-    <div id="movie-host"></div>
+  <div class="section-tabs lesson-tabs" role="tablist" aria-label="נושאי השיעור">
+    <button type="button" role="tab" data-topic-tab="topicA" aria-selected="true">נושא א: מעלים לחן ויוצרים שיר</button>
+    <button type="button" role="tab" data-topic-tab="topicB" aria-selected="false">נושא ב: קאבר לשיר שיצרנו</button>
+  </div>
+
+  <div id="topicA" data-topic-panel role="tabpanel">
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="A" data-intro="לוחצים ▶ וצופים איך מעלים לחן ויוצרים עליו שיר">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
     <div class="controls">
-      <button class="btn" id="movie-play" type="button">נגן ▶</button>
-      <button class="btn ghost" id="movie-restart" type="button">מההתחלה</button>
-      <div class="progress" id="movie-progress"></div>
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
     </div>
   </div>
 
-  <h2 class="sec">נושא א: מעלים לחן ויוצרים שיר</h2>
   <p class="fig-note">צילומי מסך אמיתיים מאתר Suno. מה שמסומן באדום, עליו לוחצים.</p>
 
   <section class="step" id="s0">
@@ -91,33 +96,44 @@
     <figure class="real" data-shot="style" data-marks="stylesBox:8,createBtn:9" aria-label="תיבת Styles וכפתור Create מסומנים"></figure>
   </section>
 
-  <h2 class="sec" id="cover">נושא ב: קאבר לשיר שיצרנו</h2>
+  </div>
+
+  <div id="topicB" data-topic-panel role="tabpanel" hidden>
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="B" data-intro="לוחצים ▶ וצופים איך עושים קאבר לשיר שיצרנו">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
+    <div class="controls">
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
+    </div>
+  </div>
+
   <p class="fig-note">יש שיר שיצרנו ורוצים אותו עם מילים אחרות? לא מעלים כלום, הוא כבר ב-Suno.</p>
 
   <section class="step" id="c1">
     <div class="step-head"><span class="step-num">1</span><h3>בשלוש הנקודות בוחרים Remix ואז Cover</h3></div>
     <p>ליד השיר שיצרנו לוחצים על שלוש הנקודות. בוחרים <span class="en">Remix</span> ואז <span class="en">Cover</span>.</p>
-    <figure class="real" data-shot="remix" data-marks="remixItem:10,coverItem:11" aria-label="תפריט השיר, האפשרויות Remix ו-Cover מסומנות"></figure>
+    <figure class="real" data-shot="remix" data-marks="remixItem:1,coverItem:2" aria-label="תפריט השיר, האפשרויות Remix ו-Cover מסומנות"></figure>
   </section>
 
   <section class="step" id="c2">
     <div class="step-head"><span class="step-num">2</span><h3>למעלה רואים את השיר המקורי</h3></div>
     <p>במסך <span class="en">Create</span> השיר המקורי מופיע למעלה, בתיבת <span class="en">Audio</span>, במצב <span class="en">Cover</span>. אפשר ללחוץ ▶ ולשמוע אותו.</p>
-    <figure class="real" data-shot="covered" data-marks="originalSong:12,coverMode:13" aria-label="מסך Create אחרי בחירת Cover, השיר המקורי מופיע למעלה בתיבת Audio"></figure>
-    <div class="card product" style="margin-top:12px">
-      <div class="product-head"><h3>השיר המקורי: Happy Birthday</h3></div>
-      <audio controls preload="none" aria-label="השמעת השיר המקורי Happy Birthday" src="../assets/downloads/happy-birthday-1.mp3"></audio>
-    </div>
+    <figure class="real" data-shot="covered" data-marks="originalSong:3,coverMode:4" aria-label="מסך Create אחרי בחירת Cover, השיר המקורי מופיע למעלה בתיבת Audio"></figure>
   </section>
 
   <section class="step" id="c3">
     <div class="step-head"><span class="step-num">3</span><h3>כותבים מילים אחרות ולוחצים Create</h3></div>
     <p>מתחת לשיר המקורי כותבים מילים חדשות בתיבת <span class="en">Lyrics</span>. אפשר לשנות גם את הסגנון. אחר כך לוחצים <span class="en">Create</span>.</p>
-    <figure class="real" data-shot="covered2" data-marks="coverLyrics:14,coverCreate:15" aria-label="מסך Create במצב Cover: השיר המקורי למעלה, מילים חדשות בתיבת Lyrics, והכפתור Create מסומן"></figure>
+    <figure class="real" data-shot="covered2" data-marks="coverLyrics:5,coverCreate:6" aria-label="מסך Create במצב Cover: השיר המקורי למעלה, מילים חדשות בתיבת Lyrics, והכפתור Create מסומן"></figure>
   </section>
 
   <h2 class="sec" id="tips">טיפים למתקדמים</h2>
   <div class="note">קאבר למעוז צור אפשר לעשות רק בחשבון הראשון, <span class="en">harelll123456</span> (עם 6 בסוף). כל שאר הקאברים אפשר בכל חשבון.</div>
+
+  </div>
 
   <div class="note" style="margin-top:20px">בכל חשבון אפשר ליצור עד 5 שירים ביום.</div>
 

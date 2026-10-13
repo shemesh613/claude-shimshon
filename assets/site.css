@@ -235,3 +235,10 @@ figure.real { margin: 0; }
 .ripple { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #ffd60a; z-index: 2; pointer-events: none; animation: rip .7s ease-out forwards; }
 @keyframes rip { to { transform: scale(3.4); opacity: 0; } }
 .refs-title{margin:2rem 0 .25rem}
+
+.lesson-tabs { margin-top: 18px; }
+.lesson-tabs button { min-height: 52px; display: inline-flex; align-items: center; justify-content: center; padding: 9px 22px; border: 2.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: 600 1em/1.2 var(--font-display); cursor: pointer; }
+.lesson-tabs button:hover { border-color: var(--sky); }
+.lesson-tabs button[aria-selected="true"] { background: var(--sun); border-color: var(--sun); box-shadow: 0 4px 0 #e0a800; }
+@media (max-width: 560px) { .lesson-tabs { display: grid; grid-template-columns: 1fr; } }
+[hidden] { display: none !important; }
