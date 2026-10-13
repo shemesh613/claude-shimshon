@@ -8,7 +8,8 @@
     file:    { img: "img/l2-file.jpg", w: 960, h: 600, url: "suno.com/create" },
     lyrics:  { img: "img/l2-5.jpg", w: 700, h: 695, url: "suno.com/create" },
     style:   { img: "img/l2-6.jpg", w: 700, h: 695, url: "suno.com/create" },
-    remix:   { img: "img/l2-7.jpg", w: 416, h: 435, url: "suno.com/create" }
+    remix:   { img: "img/l2-7.jpg", w: 406, h: 320, url: "suno.com/create" },
+    covered: { img: "img/l2-8.jpg", w: 700, h: 695, url: "suno.com/create" }
   };
   const MARKS = {
     audioBtn:    ["create", 264, 141, 133, 56],
@@ -20,8 +21,10 @@
     lyricsBox:   ["lyrics", 264, 137, 403, 413],
     stylesBox:   ["style", 264, 287, 403, 233],
     createBtn:   ["style", 328, 567, 354, 48],
-    remixItem:   ["remix", 214, 90, 140, 42],
-    coverItem:   ["remix", 28, 90, 172, 34]
+    remixItem:   ["remix", 204, 91, 158, 42],
+    originalSong: ["covered", 264, 213, 403, 207],
+    coverMode:   ["covered", 503, 225, 110, 40],
+    coverItem:   ["remix", 10, 93, 188, 30]
   };
 
   const pct = (v, total) => (v / total * 100) + "%";
@@ -68,28 +71,22 @@
   const progress = document.getElementById("movie-progress");
   const playBtn = document.getElementById("movie-play");
 
-  const LESSON = document.currentScript.dataset.lesson || "2";
-  const SETS = {
-    "2": [
-      { mark: "audioBtn",    cap: "במסך Create לוחצים על Audio", click: true },
-      { mark: "uploadItem",  cap: "בוחרים Upload", click: true },
-      { mark: "filePick",    cap: "נפתחת תיקיית המחשב. בוחרים את הלחן שהורדנו", click: true },
-      { mark: "openBtn",     cap: "לוחצים Open", click: true },
-      { mark: "fullSong",    cap: "בוחרים Full Song", click: true },
-      { mark: "continueBtn", cap: "לוחצים Continue", click: true },
-      { mark: "lyricsBox",   cap: "כותבים מילים חדשות לשיר" },
-      { mark: "stylesBox",   cap: "כותבים סגנון באנגלית" },
-      { mark: "createBtn",   cap: "לוחצים Create", click: true }
-    ],
-    "3": [
-      { mark: "remixItem",   cap: "בשלוש הנקודות ליד השיר בוחרים Remix", click: true },
-      { mark: "coverItem",   cap: "ואז בוחרים Cover", click: true },
-      { mark: "lyricsBox",   cap: "כותבים מילים אחרות" },
-      { mark: "stylesBox",   cap: "אפשר לשנות גם את הסגנון" },
-      { mark: "createBtn",   cap: "לוחצים Create", click: true }
-    ]
-  };
-  const SCENES = SETS[LESSON];
+  const SCENES = [
+    { mark: "audioBtn",     cap: "נושא א: במסך Create לוחצים על Audio", click: true },
+    { mark: "uploadItem",   cap: "בוחרים Upload", click: true },
+    { mark: "filePick",     cap: "נפתחת תיקיית המחשב. בוחרים את הלחן שהורדנו", click: true },
+    { mark: "openBtn",      cap: "לוחצים Open", click: true },
+    { mark: "fullSong",     cap: "בוחרים Full Song", click: true },
+    { mark: "continueBtn",  cap: "לוחצים Continue", click: true },
+    { mark: "lyricsBox",    cap: "כותבים מילים חדשות לשיר" },
+    { mark: "stylesBox",    cap: "כותבים סגנון באנגלית" },
+    { mark: "createBtn",    cap: "לוחצים Create", click: true },
+    { mark: "remixItem",    cap: "נושא ב: קאבר לשיר שיצרנו. בשלוש הנקודות בוחרים Remix", click: true },
+    { mark: "coverItem",    cap: "ואז בוחרים Cover", click: true },
+    { mark: "originalSong", cap: "למעלה רואים את השיר המקורי. מתחתיו כותבים מילים חדשות" },
+    { mark: "createBtn",    cap: "לוחצים Create", click: true }
+  ];
+
 
   host.innerHTML = frame(MARKS[SCENES[0].mark][0]);
   const view = host.querySelector(".win-view");
@@ -151,5 +148,5 @@
   progress.addEventListener("click", (e) => { const i = e.target.dataset.i; if (i !== undefined) playFrom(+i); });
 
   numEl.textContent = 1;
-  captionEl.textContent = LESSON === "3" ? "לוחצים ▶ וצופים איך עושים רמיקס לשיר" : "לוחצים ▶ וצופים איך מעלים לחן ויוצרים עליו שיר";
+  captionEl.textContent = "לוחצים ▶ וצופים: מעלים לחן, ואיך עושים קאבר לשיר";
 })();
