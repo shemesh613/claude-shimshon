@@ -9,7 +9,8 @@
     lyrics:  { img: "img/l2-5.jpg", w: 700, h: 695, url: "suno.com/create" },
     style:   { img: "img/l2-6.jpg", w: 700, h: 695, url: "suno.com/create" },
     remix:   { img: "img/l2-7.jpg", w: 406, h: 320, url: "suno.com/create" },
-    covered: { img: "img/l2-8.jpg", w: 700, h: 695, url: "suno.com/create" }
+    covered: { img: "img/l2-8.jpg", w: 700, h: 695, url: "suno.com/create" },
+    covered2: { img: "img/l2-9.jpg", w: 700, h: 695, url: "suno.com/create" }
   };
   const MARKS = {
     audioBtn:    ["create", 264, 141, 133, 56],
@@ -24,6 +25,8 @@
     remixItem:   ["remix", 204, 91, 158, 42],
     originalSong: ["covered", 264, 213, 403, 207],
     coverMode:   ["covered", 503, 225, 110, 40],
+    coverLyrics: ["covered2", 264, 437, 403, 113],
+    coverCreate: ["covered2", 328, 567, 354, 48],
     coverItem:   ["remix", 10, 93, 188, 30]
   };
 
@@ -83,8 +86,9 @@
     { mark: "createBtn",    cap: "לוחצים Create", click: true },
     { mark: "remixItem",    cap: "נושא ב: קאבר לשיר שיצרנו. בשלוש הנקודות בוחרים Remix", click: true },
     { mark: "coverItem",    cap: "ואז בוחרים Cover", click: true },
-    { mark: "originalSong", cap: "למעלה רואים את השיר המקורי. מתחתיו כותבים מילים חדשות" },
-    { mark: "createBtn",    cap: "לוחצים Create", click: true }
+    { mark: "originalSong", cap: "למעלה רואים את השיר המקורי" },
+    { mark: "coverLyrics",  cap: "מתחתיו כותבים מילים חדשות" },
+    { mark: "coverCreate",  cap: "לוחצים Create", click: true }
   ];
 
 
