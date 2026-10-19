@@ -4,6 +4,13 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור 3: מהקול שלי, ומנגינה בלי מילים",
+      text: "זמזום הופך לשיר, מנגינה פשוטה לסרט, וקול קבוע משלי.",
+      href: "lessons/suno3.html",
+      icon: "music", color: "leaf",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור 2: שיר מלחן, וקאבר",
       text: "מעלים לחן ויוצרים עליו שיר, ועושים קאבר לשיר שיצרנו.",
       href: "lessons/suno2.html",
