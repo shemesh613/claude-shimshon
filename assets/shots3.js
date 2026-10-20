@@ -14,7 +14,7 @@
     audioBtn:     ["audiomenu", 265, 141, 137, 56],
     recordItem:   ["audiomenu", 272, 287, 102, 36],
     recordBtn:    ["record", 208, 452, 100, 100],
-    songDemo:     ["dialog", 162, 298, 112, 28],
+    fullSong:     ["dialog", 48, 298, 106, 28],
     continueBtn:  ["dialog", 216, 536, 286, 56],
     coverLyrics:  ["covered2", 264, 437, 403, 113],
     coverCreate:  ["covered2", 328, 567, 354, 48],
@@ -32,7 +32,7 @@
       { mark: "audioBtn",     cap: "במסך Create לוחצים על Audio", click: true },
       { mark: "recordItem",   cap: "בוחרים Record", click: true },
       { mark: "recordBtn",    cap: "לוחצים על העיגול ושרים או מזמזמים (לפחות 6 שניות)", click: true },
-      { mark: "songDemo",     cap: "בוחרים Song Demo", click: true },
+      { mark: "fullSong",     cap: "בוחרים Full Song", click: true },
       { mark: "continueBtn",  cap: "לוחצים Continue", click: true },
       { mark: "coverLyrics",  cap: "כותבים מילים, או משאירים ריק", click: false },
       { mark: "coverCreate",  cap: "לוחצים Create", click: true }
