@@ -39,7 +39,7 @@
     ],
     B: [
       { mark: "simpleTab",    cap: "לוחצים על Simple", click: true },
-      { mark: "descBox",      cap: "כותבים באנגלית איזו מנגינה רוצים, בלי מילים" },
+      { mark: "descBox",      cap: "כותבים איזו מנגינה רוצים, בלי מילים" },
       { mark: "createSimple", cap: "לוחצים Create", click: true }
     ],
     C: [

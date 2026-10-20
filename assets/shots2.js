@@ -20,7 +20,7 @@
     fullSong:     ["dialog", 48, 298, 106, 28],
     continueBtn:  ["dialog", 216, 536, 286, 56],
     lyricsBox:    ["lyrics", 264, 137, 403, 413],
-    stylesBox:    ["style", 264, 287, 403, 233],
+    stylesBox:    ["style", 264, 201, 403, 232],
     createBtn:    ["style", 328, 567, 354, 48],
     remixItem:    ["remix", 204, 91, 158, 42],
     coverItem:    ["remix", 10, 93, 188, 30],
@@ -38,7 +38,7 @@
       { mark: "fullSong",    cap: "בוחרים Full Song", click: true },
       { mark: "continueBtn", cap: "לוחצים Continue", click: true },
       { mark: "lyricsBox",   cap: "כותבים מילים חדשות לשיר" },
-      { mark: "stylesBox",   cap: "כותבים סגנון באנגלית" },
+      { mark: "stylesBox",   cap: "כותבים את הסגנון, למשל: פופ שמח, מקהלת ילדים" },
       { mark: "createBtn",   cap: "לוחצים Create", click: true }
     ],
     B: [
