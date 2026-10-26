@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-13-tabs">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-26-full">
 </head>
 <body>
 <a class="skip" href="#main">דילוג לתוכן</a>
@@ -38,6 +38,7 @@
     <div class="controls">
       <button class="btn movie-play" type="button">נגן ▶</button>
       <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <button class="btn ghost movie-full" type="button" aria-label="צפייה במסך מלא">⛶ מסך מלא</button>
       <div class="progress movie-progress"></div>
     </div>
   </div>
@@ -83,6 +84,7 @@
     <div class="controls">
       <button class="btn movie-play" type="button">נגן ▶</button>
       <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <button class="btn ghost movie-full" type="button" aria-label="צפייה במסך מלא">⛶ מסך מלא</button>
       <div class="progress movie-progress"></div>
     </div>
   </div>
@@ -126,15 +128,27 @@
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">7</span><h3>מאזינים ופותחים מסך מלא</h3></div>
-    <p>למעלה יש כפתור <b>האזנה</b>, והספר מוקרא בקול. הכפתור עם ארבע הפינות פותח את הספר על <b>מסך מלא</b>, כמו ספר אמיתי.</p>
-    <figure class="real" data-shot="tools" data-marks="listenBtn:7,fullBtn:7" aria-label="כפתור ההאזנה וכפתור המסך המלא מסומנים"></figure>
+    <div class="step-head"><span class="step-num">7</span><h3>מאזינים לספר</h3></div>
+    <p>למעלה יש כפתור <b>האזנה</b>. לוחצים עליו והספר מוקרא בקול.</p>
+    <figure class="real" data-shot="tools" data-marks="listenBtn:7" aria-label="כפתור ההאזנה מסומן"></figure>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">8</span><h3>משתפים את הספר</h3></div>
-    <p>לוחצים על סמל <b>השיתוף</b> שליד כפתור ההורדה. נפתח חלון עם קישור, ולוחצים <b>העתקת הקישור</b>. מי שמקבל את הקישור יכול לדפדף בספר, בלי להתחבר.</p>
-    <figure class="real" data-shot="share" data-marks="copyBtn:8" aria-label="כפתור העתקת הקישור מסומן"></figure>
+    <div class="step-head"><span class="step-num">8</span><h3>פותחים מסך מלא</h3></div>
+    <p>הכפתור עם ארבע הפינות פותח את הספר על <b>מסך מלא</b>, כמו ספר אמיתי. כדי לצאת לוחצים <span class="en">Esc</span>.</p>
+    <figure class="real" data-shot="tools" data-marks="fullBtn:8" aria-label="כפתור המסך המלא מסומן"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">9</span><h3>לוחצים על סמל השיתוף</h3></div>
+    <p>סמל <b>השיתוף</b> נמצא ליד כפתור ההורדה. לוחצים עליו וחלון נפתח.</p>
+    <figure class="real" data-shot="tools" data-marks="shareBtn:9" aria-label="סמל השיתוף מסומן"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">10</span><h3>מעתיקים את הקישור</h3></div>
+    <p>בחלון לוחצים על הכפתור הכחול <b>העתקת הקישור</b>. מי שמקבל את הקישור יכול לדפדף בספר, בלי להתחבר.</p>
+    <figure class="real" data-shot="share" data-marks="copyBtn:10" aria-label="כפתור העתקת הקישור מסומן"></figure>
   </section>
 
   <div class="note"><b>אם Gemini מסרבת או נתקעת:</b> לא נבהלים. מנסחים את ההוראה קצת אחרת ושולחים שוב, ולפעמים הספר מופיע אחרי רענון הדף.</div>

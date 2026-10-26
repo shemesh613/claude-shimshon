@@ -36,6 +36,7 @@
     nextPage: ["pages", 593, 32, 42, 40],
     listenBtn: ["tools", 121, 24, 126, 32],
     fullBtn: ["tools", 353, 25, 28, 28],
+    shareBtn: ["tools", 258, 27, 24, 24],
     copyBtn: ["share", 56, 124, 165, 40],
     plusBtn: ["plus", 657, 328, 46, 42],
     createImg: ["plus", 460, 506, 218, 34],
@@ -61,8 +62,10 @@
       { mark: "storyBox", cap: "כותבים הוראה אחת ושולחים" },
       { mark: "bookCover", cap: "אחרי כמה דקות הספר מוכן" },
       { mark: "nextPage", cap: "לוחצים על החץ ומדפדפים בספר", click: true },
-      { mark: "listenBtn", cap: "אפשר להאזין לספר, ולהגדיל למסך מלא", click: true },
-      { mark: "copyBtn", cap: "לשיתוף לוחצים על העתקת הקישור", click: true }
+      { mark: "listenBtn", cap: "לוחצים על האזנה והספר מוקרא בקול", click: true },
+      { mark: "fullBtn", cap: "ארבע הפינות פותחות מסך מלא", click: true },
+      { mark: "shareBtn", cap: "לשיתוף לוחצים על סמל השיתוף", click: true },
+      { mark: "copyBtn", cap: "לוחצים על העתקת הקישור", click: true }
     ],
     B: [
       { mark: "plusBtn", cap: "לוחצים על +", click: true },
@@ -121,6 +124,17 @@
     const progress = root.querySelector(".movie-progress");
     const playBtn = root.querySelector(".movie-play");
     const restartBtn = root.querySelector(".movie-restart");
+    const fullBtn = root.querySelector(".movie-full");
+    if (fullBtn) {
+      const req = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (!req) fullBtn.hidden = true;
+      else fullBtn.addEventListener("click", () => {
+        if (document.fullscreenElement === root || document.webkitFullscreenElement === root) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        else req.call(root);
+      });
+      const label = () => { fullBtn.textContent = (document.fullscreenElement === root) ? "✕ יציאה ממסך מלא" : "⛶ מסך מלא"; };
+      document.addEventListener("fullscreenchange", label);
+    }
 
     host.innerHTML = frame(MARKS[SCENES[0].mark][0]);
     const view = host.querySelector(".win-view");
