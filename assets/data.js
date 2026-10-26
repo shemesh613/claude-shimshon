@@ -15,21 +15,21 @@ window.SITE = {
       text: "זמזום הופך לשיר, מנגינה פשוטה לסרט, וקול קבוע משלי.",
       href: "lessons/suno3.html",
       icon: "music", color: "leaf",
-      tags: ["חדש"]
+      tags: []
     },
     {
       title: "שיעור 2: שיר מלחן, וקאבר",
       text: "מעלים לחן ויוצרים עליו שיר, ועושים קאבר לשיר שיצרנו.",
       href: "lessons/suno2.html",
       icon: "music", color: "sky",
-      tags: ["חדש"]
+      tags: []
     },
     {
       title: "שיעור: יוצרים שיר עם Suno",
       text: "מתחברים עם חשבון גוגל, כותבים מילים, בוחרים סגנון ומקבלים שיר שלם.",
       href: "lessons/suno.html",
       icon: "music", color: "coral",
-      tags: ["חדש"]
+      tags: []
     }
   ],
 

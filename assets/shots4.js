@@ -124,17 +124,6 @@
     const progress = root.querySelector(".movie-progress");
     const playBtn = root.querySelector(".movie-play");
     const restartBtn = root.querySelector(".movie-restart");
-    const fullBtn = root.querySelector(".movie-full");
-    if (fullBtn) {
-      const req = root.requestFullscreen || root.webkitRequestFullscreen;
-      if (!req) fullBtn.hidden = true;
-      else fullBtn.addEventListener("click", () => {
-        if (document.fullscreenElement === root || document.webkitFullscreenElement === root) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-        else req.call(root);
-      });
-      const label = () => { fullBtn.textContent = (document.fullscreenElement === root) ? "✕ יציאה ממסך מלא" : "⛶ מסך מלא"; };
-      document.addEventListener("fullscreenchange", label);
-    }
 
     host.innerHTML = frame(MARKS[SCENES[0].mark][0]);
     const view = host.querySelector(".win-view");
