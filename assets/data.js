@@ -4,8 +4,8 @@
 window.SITE = {
   lessons: [
     {
-      title: "שיעור: ספרים ותמונות עם Gemini",
-      text: "נכנסים ל-Gemini, יוצרים ספר מהוראה אחת ותמונות בסגנונות שונים.",
+      title: "שיעור: ספר מהוראה אחת עם Gemini",
+      text: "נכנסים ל-Gemini ויוצרים ספר מאויר שלם מהוראה אחת.",
       href: "lessons/gemini.html",
       icon: "star", color: "sun",
       tags: ["חדש"]
