@@ -3,6 +3,7 @@
 (function () {
   const SHOTS = {
     search: { img: "img/n-1.jpg", w: 1340, h: 639, url: "google.com" },
+    loggedout: { img: "img/n-0.jpg", w: 1248, h: 640, url: "gemini.google.com" },
     chooser: { img: "img/n-2.jpg", w: 1140, h: 500, url: "accounts.google.com" },
     pwd: { img: "img/n-3.jpg", w: 1140, h: 420, url: "accounts.google.com" },
     home: { img: "img/n-4.jpg", w: 1236, h: 639, url: "gemini.google.com" },
@@ -21,6 +22,7 @@
   const MARKS = {
     searchBox: ["search", 470, 28, 860, 50],
     searchHit: ["search", 665, 165, 645, 75],
+    loginBtn: ["loggedout", 12, 14, 111, 36],
     account: ["chooser", 36, 320, 508, 70],
     pwdField: ["pwd", 36, 180, 508, 56],
     pwdNext: ["pwd", 36, 332, 76, 40],
@@ -51,6 +53,7 @@
     S: [
       { mark: "searchBox", cap: "בגוגל כותבים Gemini" },
       { mark: "searchHit", cap: "לוחצים על Google Gemini", click: true },
+      { mark: "loginBtn", cap: "בפינה למעלה לוחצים על כניסה לחשבון", click: true },
       { mark: "account", cap: "בוחרים את חשבון הגוגל של החוג", click: true },
       { mark: "pwdField", cap: "כותבים את הסיסמה ולוחצים הבא", click: true },
       { mark: "homeBox", cap: "נכנסנו! זה מסך הבית של Gemini" }
