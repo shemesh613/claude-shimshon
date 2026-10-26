@@ -34,6 +34,7 @@
 
   fill("lessons", SITE.lessons, linkCard, SITE.lessons.length ? "" : "השיעורים יעלו כאן בהמשך.");
   fill("tools", SITE.tools, linkCard);
+  fill("books", SITE.books || [], (it) => `<a class="card book" href="${esc(it.href)}" target="_blank" rel="noopener" aria-label="פתיחת הספר ${esc(it.title)}"><img src="${esc(it.cover)}" alt="כריכת הספר ${esc(it.title)}" loading="lazy"><span class="book-open">לפתוח ולדפדף ←</span></a>`);
 
   const refs = document.getElementById("refs");
   if (refs && SITE.refs) refs.innerHTML = SITE.refs.map((it) =>
@@ -73,4 +74,13 @@
     window.addEventListener("hashchange", activateSection);
     activateSection();
   }
+
+  const subTabs = [["subtab-songs", "sub-songs"], ["subtab-books", "sub-books"]];
+  subTabs.forEach(([t, p]) => {
+    const btn = document.getElementById(t);
+    if (btn) btn.addEventListener("click", () => subTabs.forEach(([t2, p2]) => {
+      document.getElementById(t2).setAttribute("aria-selected", String(t2 === t));
+      document.getElementById(p2).hidden = p2 !== p;
+    }));
+  });
 })();

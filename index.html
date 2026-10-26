@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=2026-10-10-refs2">
+<link rel="stylesheet" href="assets/site.css?v=2026-10-26-books3">
 </head>
 <body>
 <a class="skip" href="#main">דילוג לתוכן</a>
@@ -52,9 +52,19 @@
   <section class="shelf" id="products-shelf" data-section-panel>
     <div class="shelf-head"><span class="icon sm sun">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
-    </span><h2>השירים שלנו</h2></div>
+    </span><h2>תוצרי השיעור</h2></div>
+    <div class="sub-tabs" role="tablist" aria-label="תוצרי השיעור">
+      <button type="button" role="tab" id="subtab-songs" aria-selected="true" aria-controls="sub-songs">שירים</button>
+      <button type="button" role="tab" id="subtab-books" aria-selected="false" aria-controls="sub-books">ספרים</button>
+    </div>
+    <div id="sub-songs" role="tabpanel" aria-labelledby="subtab-songs">
     <p class="fig-note">שיר אחד מכל זוג. בוחרים שיר ומאזינים.</p>
     <div id="products"></div>
+    </div>
+    <div id="sub-books" role="tabpanel" aria-labelledby="subtab-books" hidden>
+    <p class="fig-note">ספרים שיצרנו ב-Gemini. לוחצים על ספר ומדפדפים בו כמו בספר אמיתי.</p>
+    <div class="grid" id="books"></div>
+    </div>
   </section>
 
 
@@ -72,7 +82,7 @@
 </div>
 <script src="assets/a11y.js"></script>
 <script src="assets/icons.js"></script>
-<script src="assets/data.js?v=2026-10-10-refs2"></script>
-<script src="assets/hub.js?v=2026-10-10-refs2"></script>
+<script src="assets/data.js?v=2026-10-10-books1"></script>
+<script src="assets/hub.js?v=2026-10-26-books3"></script>
 </body>
 </html>

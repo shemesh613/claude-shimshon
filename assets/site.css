@@ -242,3 +242,11 @@ figure.real { margin: 0; }
 .lesson-tabs button[aria-selected="true"] { background: var(--sun); border-color: var(--sun); box-shadow: 0 4px 0 #e0a800; }
 @media (max-width: 560px) { .lesson-tabs { display: grid; grid-template-columns: 1fr; } }
 [hidden] { display: none !important; }
+
+.card.book { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+.card.book img { width: 100%; height: auto; display: block; border-radius: 12px; }
+.card.book .book-open { text-align: center; font: 600 1em/1.2 var(--font-display); color: var(--ink); }
+
+.sub-tabs { display: flex; gap: 10px; margin: 0 0 16px; }
+.sub-tabs button { min-height: 48px; padding: 8px 26px; border: 2.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: 600 1em/1.2 var(--font-display); cursor: pointer; }
+.sub-tabs button[aria-selected="true"] { background: var(--sky); border-color: var(--sky); color: #fff; }

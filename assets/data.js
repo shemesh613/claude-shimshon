@@ -4,6 +4,13 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור: ספרים ותמונות עם Gemini",
+      text: "נכנסים ל-Gemini, יוצרים ספר מהוראה אחת ותמונות בסגנונות שונים.",
+      href: "lessons/gemini.html",
+      icon: "star", color: "sun",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור 3: מהקול שלי, ומנגינה בלי מילים",
       text: "זמזום הופך לשיר, מנגינה פשוטה לסרט, וקול קבוע משלי.",
       href: "lessons/suno3.html",
@@ -24,6 +31,44 @@ window.SITE = {
       icon: "music", color: "coral",
       tags: ["חדש"]
     }
+  ],
+
+  books: [
+      {
+          "title": "הבוקר הבלונדיני של שילת",
+          "cover": "assets/books/shilat-school.jpg",
+          "href": "https://share.gemini.google/Vo7SsIxn18Nn"
+      },
+      {
+          "title": "הסקווישי הקסום של נוגה",
+          "cover": "assets/books/noga-squishy.jpg",
+          "href": "https://share.gemini.google/2dpXDSpJbe2o"
+      },
+      {
+          "title": "נוגה וזוהר הלילה",
+          "cover": "assets/books/noga-night.jpg",
+          "href": "https://share.gemini.google/EYMeAyTXOnC1"
+      },
+      {
+          "title": "שילת מלכת הסקווישים",
+          "cover": "assets/books/shilat-queen.jpg",
+          "href": "https://share.gemini.google/57FzKQNcJu9X"
+      },
+      {
+          "title": "מכחול הקסם של בת שבע",
+          "cover": "assets/books/batsheva.jpg",
+          "href": "https://share.gemini.google/WntwONyHATAd"
+      },
+      {
+          "title": "עמליה והבוקר שלא רצה להתחיל",
+          "cover": "assets/books/amalia.jpg",
+          "href": "https://share.gemini.google/s2u5cYfXFT0M"
+      },
+      {
+          "title": "הכוח השקט של דניאל",
+          "cover": "assets/books/daniel.jpg",
+          "href": "https://share.gemini.google/LVLrHf6TnzkS"
+      }
   ],
 
   tools: [
