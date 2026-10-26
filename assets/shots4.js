@@ -11,6 +11,8 @@
     storytyp: { img: "img/n-7.jpg", w: 1236, h: 639, url: "gemini.google.com" },
     book: { img: "img/g-5.jpg", w: 940, h: 590, url: "gemini.google.com" },
     pages: { img: "img/g-6.jpg", w: 940, h: 590, url: "gemini.google.com" },
+    tools: { img: "img/t-1.jpg", w: 930, h: 585, url: "gemini.google.com" },
+    share: { img: "img/t-2.jpg", w: 576, h: 400, url: "gemini.google.com" },
     plus: { img: "img/i-1.jpg", w: 760, h: 695, url: "gemini.google.com" },
     styles: { img: "img/i-2.jpg", w: 760, h: 695, url: "gemini.google.com" },
     typed: { img: "img/i-3.jpg", w: 760, h: 695, url: "gemini.google.com" },
@@ -32,6 +34,9 @@
     bookTools: ["book", 120, 28, 262, 38],
     pagesView: ["pages", 25, 85, 880, 490],
     nextPage: ["pages", 593, 32, 42, 40],
+    listenBtn: ["tools", 121, 24, 126, 32],
+    fullBtn: ["tools", 353, 25, 28, 28],
+    copyBtn: ["share", 56, 124, 165, 40],
     plusBtn: ["plus", 657, 328, 46, 42],
     createImg: ["plus", 460, 506, 218, 34],
     styleTab: ["styles", 334, 88, 60, 34],
@@ -55,7 +60,9 @@
       { mark: "storyCard", cap: "בוחרים את Storybook", click: true },
       { mark: "storyBox", cap: "כותבים הוראה אחת ושולחים" },
       { mark: "bookCover", cap: "אחרי כמה דקות הספר מוכן" },
-      { mark: "nextPage", cap: "לוחצים על החץ ומדפדפים בספר", click: true }
+      { mark: "nextPage", cap: "לוחצים על החץ ומדפדפים בספר", click: true },
+      { mark: "listenBtn", cap: "אפשר להאזין לספר, ולהגדיל למסך מלא", click: true },
+      { mark: "copyBtn", cap: "לשיתוף לוחצים על העתקת הקישור", click: true }
     ],
     B: [
       { mark: "plusBtn", cap: "לוחצים על +", click: true },
