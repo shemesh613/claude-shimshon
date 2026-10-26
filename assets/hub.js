@@ -43,18 +43,9 @@
   const products = document.getElementById("products");
   let selectedSong = 0;
   if (products) {
-    products.innerHTML = !SITE.products.length ? `<div class="card soon"><div class="body"><h3>בקרוב</h3><p>השירים יעלו כאן אחרי השיעור.</p></div></div><div id="selected-song"></div>` : `<div class="song-select-wrap">
-      <label for="song-select">בחרו שיר</label>
-      <select id="song-select" class="song-select">${SITE.products.map((it, i) =>
-        `<option value="${i}">${esc(it.title)}</option>`).join("")}</select>
-    </div><div id="selected-song"></div>`;
+    products.innerHTML = !SITE.products.length ? `<div class="card soon"><div class="body"><h3>בקרוב</h3><p>השירים יעלו כאן אחרי השיעור.</p></div></div><div id="selected-song"></div>` : `<div class="grid" id="selected-song"></div>`;
     const selectedSongHost = document.getElementById("selected-song");
-    const showSong = () => { if (SITE.products.length) selectedSongHost.innerHTML = songPlayer(SITE.products[selectedSong]); };
-    const sel = products.querySelector("#song-select");
-    if (sel) sel.addEventListener("change", (e) => {
-      selectedSong = Number(e.target.value);
-      showSong();
-    });
+    const showSong = () => { if (SITE.products.length) selectedSongHost.innerHTML = SITE.products.map(songPlayer).join(""); };
 
     const panels = [...document.querySelectorAll("[data-section-panel]")];
     const tabs = [...document.querySelectorAll("[data-section-tab]")];
