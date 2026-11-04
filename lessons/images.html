@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ציור בגמיני</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-26-fs">
+<style>
+  .styles-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); margin-top: 16px; }
+  .style-card { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .style-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; display: block; background: var(--line); }
+  .style-card h3 { margin: 0; font: 600 1.15em/1.3 var(--font-display); }
+  .style-card .prompt { margin: 0; font-size: .9em; background: var(--bg, #f6f8fc); border-radius: 12px; padding: 8px 10px; }
+  .style-card .copy { align-self: flex-start; min-height: 44px; padding: 6px 18px; font-size: .9em; }
+  .idea-list { display: grid; gap: 10px; padding: 0; list-style: none; margin: 14px 0 0; }
+  .idea-list li { background: var(--surface); border: 2.5px dashed var(--line); border-radius: 16px; padding: 10px 14px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top"><div class="crumbs"><a href="../index.html">→ חזרה לאתר החוג</a></div><nav aria-label="הגדרות"><button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button></nav></header>
+<main id="main">
+
+  <section class="lesson-hero">
+    <span class="icon sky"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></span>
+    <div>
+      <h1>מציירים בגמיני, בכל סגנון</h1>
+      <p>לוחצים על +, בוחרים יצירת תמונה, ומנסים את אותו ציור בסגנונות שונים.</p>
+    </div>
+  </section>
+
+  <p class="fig-note">עוד לא נכנסתן לגמיני? בשיעור הקודם יש הסבר איך נכנסים: <a href="gemini.html">שיעור ספר מהוראה אחת</a>.</p>
+
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="B" data-intro="לוחצים ▶ וצופים איך יוצרים תמונה">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
+    <div class="controls">
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
+    </div>
+  </div>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">1</span><h3>לוחצים על +</h3></div>
+    <p>בתיבת הכתיבה של גמיני, בצד, יש כפתור <b>+</b>. לוחצים עליו.</p>
+    <figure class="real" data-shot="plus" data-marks="plusBtn:1" aria-label="כפתור הפלוס מסומן"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">2</span><h3>בוחרים יצירת תמונה</h3></div>
+    <p>בתפריט שנפתח בוחרים <b>יצירת תמונה</b>. עכשיו גמיני יודעת שאנחנו רוצות ציור.</p>
+    <figure class="real" data-shot="plus" data-marks="createImg:2" aria-label="האפשרות יצירת תמונה מסומנת"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">3</span><h3>בוחרים סגנון מהגלריה</h3></div>
+    <p>למעלה לוחצים על <b>סגנון</b>, ומופיעה גלריה של סגנונות מוכנים. לוחצים על סגנון שאוהבים.</p>
+    <figure class="real" data-shot="styles" data-marks="styleTab:3,styleTile:3" aria-label="לשונית סגנון וסגנון לדוגמה מסומנים"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">4</span><h3>כותבים מה לצייר ושולחים</h3></div>
+    <p>הסגנון מופיע בתיבה. מתחתיו כותבים מה לצייר, ולוחצים על החץ הכחול.</p>
+    <figure class="real" data-shot="typed" data-marks="descBox:4,sendImg:4" aria-label="תיבת התיאור וכפתור השליחה מסומנים"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">5</span><h3>התמונה מוכנה!</h3></div>
+    <p>אחרי כמה שניות מופיעה התמונה. אפשר לבקש שינוי במילים, למשל <b>תוסיפי לו כובע</b>, או לנסות סגנון אחר.</p>
+    <figure class="real" data-shot="result" data-marks="resultImg:5" aria-label="התמונה שנוצרה"></figure>
+  </section>
+
+  <h2 class="sec">אותו ציור, סגנונות שונים</h2>
+  <p class="fig-note">גם בלי הגלריה אפשר לבחור סגנון: פשוט כותבים אותו בסוף ההוראה. הנה הוראות מוכנות לאותו ינשוף בכמה סגנונות. לוחצים <b>העתקה</b>, מדביקים בגמיני ומנסים!</p>
+  <div class="styles-grid" id="styles"></div>
+
+  <h2 class="sec">תורכן לנסות</h2>
+  <p class="fig-note">בוחרים נושא משלכן, ומוסיפים בסוף אחד מהסגנונות:</p>
+  <ul class="idea-list">
+    <li>🎨 <b>בצבעי מים</b> · <b>בסגנון סרט אנימציה תלת-ממדי</b> · <b>בפיקסל ארט</b></li>
+    <li>🧸 <b>עשוי מפלסטלינה</b> · <b>כמדבקה חמודה</b> · <b>כמו צעצוע מעץ</b></li>
+    <li>✏️ <b>ציור בעיפרון</b> · <b>בסגנון קומיקס</b> · <b>דף צביעה בשחור-לבן</b></li>
+  </ul>
+
+  <div class="note"><b>טיפ:</b> אם התמונה לא יוצאת כמו שרצינו, לא מתייאשות! מוסיפים עוד פרטים: צבעים, מה ברקע, ואיזו הבעה יש לדמות.</div>
+
+</main>
+  <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
+</div>
+<script>
+(function () {
+  const SUBJECT = "ינשוף קטן וחמוד קורא ספר על ענף עץ, בלילה עם ירח";
+  const STYLES = [
+    { name: "צבעי מים", add: "בסגנון ציור בצבעי מים", img: "img/style-watercolor.jpg" },
+    { name: "סרט אנימציה", add: "בסגנון סרט אנימציה תלת-ממדי", img: "img/style-3d.jpg" },
+    { name: "פיקסל ארט", add: "בסגנון פיקסל ארט של משחק מחשב ישן", img: "img/style-pixel.jpg" },
+    { name: "פלסטלינה", add: "עשוי מפלסטלינה, כמו בסרט סטופ-מושן", img: "img/style-clay.jpg" },
+    { name: "קומיקס", add: "בסגנון קומיקס עם קווים שחורים עבים וצבעים חזקים", img: "img/style-comic.jpg" },
+    { name: "דף צביעה", add: "דף צביעה בשחור-לבן לילדים, קווים ברורים בלי צבע", img: "img/style-coloring.jpg" }
+  ];
+  const host = document.getElementById("styles");
+  host.innerHTML = STYLES.map((s, i) => {
+    const prompt = `${SUBJECT}, ${s.add}`;
+    return `<div class="style-card">
+      <img src="${s.img}" alt="ינשוף ${s.name}" loading="lazy" width="512" height="512" onerror="this.remove()">
+      <h3>${s.name}</h3>
+      <p class="prompt" id="p${i}">${prompt}</p>
+      <button class="btn ghost copy" type="button" data-i="${i}">העתקה</button>
+    </div>`;
+  }).join("");
+  host.addEventListener("click", (e) => {
+    const b = e.target.closest(".copy"); if (!b) return;
+    const text = document.getElementById("p" + b.dataset.i).textContent;
+    const done = () => { b.textContent = "הועתק ✓"; setTimeout(() => (b.textContent = "העתקה"), 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+  });
+})();
+</script>
+<script src="../assets/a11y.js"></script>
+<script src="../assets/shots4.js"></script>
+</body>
+</html>
