@@ -9,9 +9,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="../assets/site.css?v=2026-10-26-fs">
 <style>
-  .styles-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); margin-top: 16px; }
+  .styles-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; max-width: 760px; }
+  @media (max-width: 560px) { .styles-grid { grid-template-columns: minmax(0, 1fr); } }
   .style-card { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .style-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; display: block; background: var(--line); }
+  .style-card img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 14px; display: block; background: var(--line); }
   .style-card h3 { margin: 0; font: 600 1.15em/1.3 var(--font-display); }
   .style-card .prompt { margin: 0; font-size: .9em; background: var(--bg, #f6f8fc); border-radius: 12px; padding: 8px 10px; }
   .style-card .copy { align-self: flex-start; min-height: 44px; padding: 6px 18px; font-size: .9em; }
