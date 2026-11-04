@@ -77,7 +77,7 @@
   </section>
 
   <h2 class="sec">אותו ציור, סגנונות שונים</h2>
-  <p class="fig-note">גם בלי הגלריה אפשר לבחור סגנון: פשוט כותבים אותו בסוף ההוראה. הנה הוראות מוכנות לאותו ינשוף בכמה סגנונות. לוחצים <b>העתקה</b>, מדביקים בגמיני ומנסים!</p>
+  <p class="fig-note">גם בלי הגלריה אפשר לבחור סגנון: פשוט כותבים אותו בסוף ההוראה. הנה אותו ינשוף בארבעה סגנונות. לוחצים <b>העתקה</b>, מדביקים בגמיני ומנסים!</p>
   <div class="styles-grid" id="styles"></div>
 
   <h2 class="sec">תורכן לנסות</h2>
@@ -99,14 +99,12 @@
   const STYLES = [
     { name: "צבעי מים", add: "בסגנון ציור בצבעי מים", img: "img/style-watercolor.jpg" },
     { name: "סרט אנימציה", add: "בסגנון סרט אנימציה תלת-ממדי", img: "img/style-3d.jpg" },
-    { name: "פיקסל ארט", add: "בסגנון פיקסל ארט של משחק מחשב ישן", img: "img/style-pixel.jpg" },
-    { name: "פלסטלינה", add: "עשוי מפלסטלינה, כמו בסרט סטופ-מושן", img: "img/style-clay.jpg" },
-    { name: "קומיקס", add: "בסגנון קומיקס עם קווים שחורים עבים וצבעים חזקים", img: "img/style-comic.jpg" },
-    { name: "דף צביעה", add: "דף צביעה בשחור-לבן לילדים, קווים ברורים בלי צבע", img: "img/style-coloring.jpg" }
+    { name: "פיקסל ארט", add: "בסגנון פיקסל ארט 8-ביט של משחק מחשב ישן, עם פיקסלים גדולים וברורים", img: "img/style-pixel.jpg" },
+    { name: "פלסטלינה", add: "הכול עשוי מפלסטלינה, כמו בסרט סטופ-מושן", img: "img/style-clay.jpg" }
   ];
   const host = document.getElementById("styles");
   host.innerHTML = STYLES.map((s, i) => {
-    const prompt = `${SUBJECT}, ${s.add}`;
+    const prompt = `צרי תמונה: ${SUBJECT}, ${s.add}`;
     return `<div class="style-card">
       <img src="${s.img}" alt="ינשוף ${s.name}" loading="lazy" width="512" height="512" onerror="this.remove()">
       <h3>${s.name}</h3>
