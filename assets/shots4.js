@@ -17,7 +17,10 @@
     plus: { img: "img/i-1.jpg", w: 760, h: 695, url: "gemini.google.com" },
     styles: { img: "img/i-2.jpg", w: 760, h: 695, url: "gemini.google.com" },
     typed: { img: "img/i-3.jpg", w: 760, h: 695, url: "gemini.google.com" },
-    result: { img: "img/i-4.jpg", w: 760, h: 695, url: "gemini.google.com" }
+    result: { img: "img/i-4.jpg", w: 760, h: 695, url: "gemini.google.com" },
+    eplus: { img: "img/e-1.jpg", w: 1093, h: 609, url: "gemini.google.com" },
+    etyped: { img: "img/e-2.jpg", w: 1093, h: 609, url: "gemini.google.com" },
+    eresult: { img: "img/e-3.jpg", w: 1093, h: 609, url: "gemini.google.com" }
   };
   const MARKS = {
     searchBox: ["search", 470, 28, 860, 50],
@@ -47,7 +50,13 @@
     styleChip: ["typed", 590, 368, 112, 112],
     descBox: ["typed", 490, 490, 215, 30],
     sendImg: ["typed", 70, 538, 36, 34],
-    resultImg: ["result", 30, 38, 708, 386]
+    resultImg: ["result", 30, 38, 708, 386],
+    ePlus: ["eplus", 859, 287, 36, 36],
+    eUpload: ["eplus", 630, 344, 248, 33],
+    eThumb: ["etyped", 789, 281, 98, 126],
+    eText: ["etyped", 300, 416, 593, 56],
+    eSend: ["etyped", 201, 497, 36, 36],
+    eResult: ["eresult", 158, 0, 781, 414]
   };
   const SETS = {
     S: [
@@ -76,6 +85,14 @@
       { mark: "styleTile", cap: "בוחרים סגנון מהגלריה", click: true },
       { mark: "descBox", cap: "כותבים מה לצייר, או משאירים ריק ושולחים" },
       { mark: "resultImg", cap: "התמונה מוכנה" }
+    ],
+    E: [
+      { mark: "ePlus", cap: "לוחצים על +", click: true },
+      { mark: "eUpload", cap: "בוחרים העלאת קבצים, ובוחרים תמונה מהמחשב", click: true },
+      { mark: "eThumb", cap: "התמונה מופיעה בתוך התיבה" },
+      { mark: "eText", cap: "כותבים מה לשנות בתמונה" },
+      { mark: "eSend", cap: "לוחצים על החץ ושולחים", click: true },
+      { mark: "eResult", cap: "התמונה החדשה מוכנה!" }
     ]
   };
 

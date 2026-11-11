@@ -49,6 +49,17 @@
 
   <p class="fig-note">עוד לא נכנסתן לגמיני? בשיעור ספר מהוראה אחת יש הסבר איך נכנסים: <a href="gemini.html">שיעור ספר מהוראה אחת</a>.</p>
 
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="E" data-intro="לוחצים ▶ וצופים איך משנים תמונה">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
+    <div class="controls">
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
+    </div>
+  </div>
+
   <section class="step">
     <div class="step-head"><span class="step-num">1</span><h3>מביאות תמונה</h3></div>
     <p>מצלמות משהו שיש לנו, למשל את הסלון, החדר או הרחוב. אפשר גם לשמור תמונה מהאינטרנט.</p>
@@ -57,16 +68,19 @@
   <section class="step">
     <div class="step-head"><span class="step-num">2</span><h3>מעלות את התמונה לגמיני</h3></div>
     <p>בתיבת הכתיבה לוחצים על <b>+</b>, בוחרים <b>העלאת קבצים</b>, ובוחרים את התמונה. התמונה מופיעה קטנה בתוך התיבה.</p>
+    <figure class="real" data-shot="eplus" data-marks="ePlus:2,eUpload:2" aria-label="כפתור הפלוס והאפשרות העלאת קבצים מסומנים"></figure>
   </section>
 
   <section class="step">
     <div class="step-head"><span class="step-num">3</span><h3>כותבות מה לשנות</h3></div>
     <p>מתחת לתמונה כותבים בדיוק מה רוצים. למשל: <b>שימי קוף שיושב על הספה שלנו</b>. לוחצים על החץ הכחול.</p>
+    <figure class="real" data-shot="etyped" data-marks="eText:3,eSend:3" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
   </section>
 
   <section class="step">
     <div class="step-head"><span class="step-num">4</span><h3>ממשיכות לשנות</h3></div>
     <p>התמונה החדשה מוכנה! אפשר להמשיך באותה שיחה ולבקש עוד שינוי, צעד אחרי צעד. גמיני זוכרת את התמונה הקודמת.</p>
+    <figure class="real" data-shot="eresult" data-marks="eResult:4" aria-label="התמונה החדשה"></figure>
   </section>
 
   <h2 class="sec">מה עשינו בשיעור</h2>
@@ -93,12 +107,7 @@
     { title: "דובים על הכיסאות", prompt: "שים על הכסאות דובים יושבים", before: "img/ed-bears-before.jpg", after: "img/ed-bears-after.jpg", alt: "חדר אוכל עם כיסאות ריקים, ואחר כך עם דובוני פרווה על הכיסאות" },
     { title: "דב רוקד סמבה ברחוב", prompt: "שים כאן דב רוקד סמבה", before: "img/ed-samba-before.jpg", after: "img/ed-samba-after.jpg", alt: "רחבה ליד העירייה, ואחר כך עם דב בתלבושת סמבה צבעונית" },
     { title: "הזמנה ליום הולדת, עם כתב", prompt: "עצב לי הזמנה ליום הולדת של ילדה כל שהיא שכל רגע מתחלפת, ביום ראשון הבא, בכתב גדול ועגול", single: "img/ed-invite.jpg", alt: "הזמנה צבעונית ליום הולדת עם בלונים וכתב בעברית" },
-    { title: "המורה על קופסת קורנפלקס", prompt: "שים אותי במקום הדמות שעל הקונפלקס", chain: [
-        ["img/ed-shirt-before.jpg", "התמונה המקורית"],
-        ["img/ed-shirt-after.jpg", "החלפנו חולצה"],
-        ["img/ed-cereal-after.jpg", "על הקופסה"],
-        ["img/ed-comic.jpg", "ובסוף קומיקס!"]
-      ], alt: "המורה בחולצה לבנה, אחר כך בחולצה פרחונית, על קופסת קורנפלקס, ובקומיקס" }
+    { title: "קוף על קופסת הקורנפלקס", prompt: "שימי קוף חמוד שמחזיק כדורסל במקום השחקן שעל קופסת הקורנפלקס, ותשאירי את כל השאר בדיוק אותו דבר", before: "img/ed-cereal-before.jpg", after: "img/ed-cereal-after.jpg", alt: "קופסת קורנפלקס עם שחקן כדורסל, ואחר כך עם קוף שמחזיק כדורסל" }
   ];
   const host = document.getElementById("examples");
   host.innerHTML = EX.map((e, i) => {
@@ -117,5 +126,7 @@
 })();
 </script>
 <script src="../assets/a11y.js"></script>
+<script src="../assets/shots4.js?v=2026-11-11-edit"></script>
+<script src="../assets/fullscreen.js"></script>
 </body>
 </html>
