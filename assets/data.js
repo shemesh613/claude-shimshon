@@ -4,11 +4,18 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור: משנים תמונה אמיתית בגמיני",
+      text: "מעלים תמונה שצילמנו, ומבקשים להוסיף לה דובים, קוף על הספה או כתב.",
+      href: "lessons/edit.html",
+      icon: "star", color: "coral",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור: מציירים בגמיני, בכל סגנון",
       text: "לוחצים על +, בוחרים יצירת תמונה, ומנסים את אותו ציור בסגנונות שונים.",
       href: "lessons/images.html",
       icon: "star", color: "sky",
-      tags: ["חדש"]
+      tags: []
     },
     {
       title: "שיעור: ספר מהוראה אחת עם Gemini",
