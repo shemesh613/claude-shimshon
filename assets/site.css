@@ -306,3 +306,4 @@ body.no-scroll { overflow: hidden; }
 .win-clip { overflow: hidden; position: relative; }
 .player:fullscreen .win-clip, .player.pseudo-full .win-clip { line-height: 0; }
 .today-lesson, .today-lesson small, .today-lesson strong { color: #1d2433; }
+.section-tabs a[aria-current], .lesson-tabs button[aria-selected="true"] { color: #1d2433; }
