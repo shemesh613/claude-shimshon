@@ -7,9 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-26-fs">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-kids">
 <style>
-  .ex-list { display: grid; gap: 22px; margin-top: 16px; max-width: 860px; }
+  .ex-list { display: grid; gap: 22px; margin: 16px auto 0; max-width: 860px; }
   .ex { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
   .ex h3 { margin: 0; font: 600 1.2em/1.3 var(--font-display); }
   .pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; }
@@ -47,7 +47,15 @@
     </div>
   </section>
 
-  <p class="fig-note">עוד לא נכנסתן לגמיני? בשיעור ספר מהוראה אחת יש הסבר איך נכנסים: <a href="gemini.html">שיעור ספר מהוראה אחת</a>.</p>
+  <section class="today">
+    <h2>🎯 מה נעשה היום?</h2>
+    <ol>
+      <li>מצלמות תמונה</li>
+      <li>מעלות אותה לגמיני</li>
+      <li>מבקשות לשנות בה משהו מצחיק</li>
+    </ol>
+  </section>
+  <p class="fig-note">צריכות תזכורת איך נכנסים לגמיני? <a href="gemini.html">לשיעור הכניסה לגמיני</a></p>
 
   <h2 class="sec">צופים בסרטון</h2>
   <div class="player" data-set="E" data-intro="לוחצים ▶ וצופים איך משנים תמונה">
@@ -60,53 +68,55 @@
     </div>
   </div>
 
+  <h2 class="sec">עכשיו אתן!</h2>
   <section class="step">
-    <div class="step-head"><span class="step-num">1</span><h3>מביאות תמונה</h3></div>
-    <p>מצלמות משהו שיש לנו, למשל את הסלון, החדר או הרחוב. אפשר גם לשמור תמונה מהאינטרנט.</p>
+    <div class="step-head"><span class="step-num">1</span><h3>מצלמות תמונה</h3></div>
+    <p>מצלמות את הסלון, החדר או הרחוב. אפשר גם תמונה מהאינטרנט.</p>
+    <div class="note"><b>חשוב:</b> רק תמונות שלנו. מצלמות חברה? שואלות אותה קודם.</div>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">2</span><h3>מעלות את התמונה לגמיני</h3></div>
-    <p>בתיבת הכתיבה לוחצים על <b>+</b>, בוחרים <b>העלאת קבצים</b>, ובוחרים את התמונה. התמונה מופיעה קטנה בתוך התיבה.</p>
+    <div class="step-head"><span class="step-num">2</span><h3>מעלות לגמיני</h3></div>
+    <p>לוחצים על <b>+</b> ובוחרים <b>העלאת קבצים</b>.</p>
     <figure class="real" data-shot="eplus" data-marks="ePlus:2,eUpload:2" aria-label="כפתור הפלוס והאפשרות העלאת קבצים מסומנים"></figure>
   </section>
 
   <section class="step">
     <div class="step-head"><span class="step-num">3</span><h3>כותבות מה לשנות</h3></div>
-    <p>מתחת לתמונה כותבים בדיוק מה רוצים. למשל: <b>שימי קוף שיושב על הספה שלנו</b>. לוחצים על החץ הכחול.</p>
+    <p>כותבים מה רוצים, ולוחצים על החץ הכחול.</p>
     <figure class="real" data-shot="etyped" data-marks="eText:3,eSend:3" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">4</span><h3>ממשיכות לשנות</h3></div>
-    <p>התמונה החדשה מוכנה! אפשר להמשיך באותה שיחה ולבקש עוד שינוי, צעד אחרי צעד. גמיני זוכרת את התמונה הקודמת.</p>
+    <div class="step-head"><span class="step-num">4</span><h3>מקבלות תמונה חדשה!</h3></div>
+    <p>רוצות עוד שינוי? כותבים עוד הוראה באותה שיחה.</p>
     <figure class="real" data-shot="eresult" data-marks="eResult:4" aria-label="התמונה החדשה"></figure>
   </section>
 
-  <h2 class="sec">מה עשינו בשיעור</h2>
-  <p class="fig-note">אלה תמונות אמיתיות מהחוג: מימין התמונה המקורית, משמאל מה שגמיני יצרה. לוחצים <b>העתקה</b> כדי לנסות את אותה הוראה על תמונה משלכן.</p>
+  <h2 class="sec">🏆 האתגר שלכן</h2>
+  <p>מצלמות את הסלון, וכותבות: <b>שימי קוף שיושב על הספה שלנו</b>. הצלחתן? נסו גם אחד מאלה:</p>
+  <ul class="idea-list">
+    <li>🦒 בחצר: <b>תוסיפי ג׳ירפה שמציצה מעל הגדר</b></li>
+    <li>❄️ ברחוב: <b>תהפכי את זה ליום עם שלג</b></li>
+    <li>🎨 בחדר: <b>תצבעי את הקירות בוורוד ותוסיפי בלונים</b></li>
+  </ul>
+  <div class="note"><b>טיפ:</b> כותבים גם מה <b>לא</b> לשנות: <b>תשאירי את כל השאר אותו דבר</b>.</div>
+
+  <h2 class="sec">👀 דוגמאות מהחוג</h2>
+  <p class="fig-note">רק להסתכל ולקבל רעיונות. אפשר ללחוץ <b>העתקה</b> ולנסות על תמונה משלכן.</p>
   <div class="ex-list" id="examples"></div>
 
-  <h2 class="sec">תורכן לנסות</h2>
-  <ul class="idea-list">
-    <li>🐒 מצלמות את הסלון: <b>שימי קוף שיושב על הספה שלנו</b></li>
-    <li>🦒 מצלמות את החצר: <b>תוסיפי ג׳ירפה שמציצה מעל הגדר</b></li>
-    <li>❄️ מצלמות את הרחוב: <b>תהפכי את זה ליום עם שלג</b></li>
-    <li>🎨 מצלמות את החדר: <b>תצבעי את הקירות בוורוד ותוסיפי בלונים</b></li>
-  </ul>
-
-  <div class="note"><b>טיפ:</b> כדאי לכתוב גם מה <b>לא</b> לשנות, למשל: <b>תשאירי את כל השאר בדיוק אותו דבר</b>. ואם רוצות כתב על התמונה, כותבים את המילים בדיוק כמו שהן צריכות להופיע.</div>
-  <div class="note"><b>חשוב:</b> מעלים רק תמונות שלנו, או של מי שהסכים. לא מעלים תמונות של חברות בלי לשאול אותן קודם.</div>
+  <div class="lesson-end"><a class="btn ghost" href="../index.html">→ לכל השיעורים</a></div>
 
 </main>
-  <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
+  <footer class="footer"><a class="back" href="../index.html">→ חזרה לאתר החוג</a></footer>
 </div>
 <script>
 (function () {
   const EX = [
     { title: "דובים על הכיסאות", prompt: "שים על הכסאות דובים יושבים", before: "img/ed-bears-before.jpg", after: "img/ed-bears-after.jpg", alt: "חדר אוכל עם כיסאות ריקים, ואחר כך עם דובוני פרווה על הכיסאות" },
     { title: "דב רוקד סמבה ברחוב", prompt: "שים כאן דב רוקד סמבה", before: "img/ed-samba-before.jpg", after: "img/ed-samba-after.jpg", alt: "רחבה ליד העירייה, ואחר כך עם דב בתלבושת סמבה צבעונית" },
-    { title: "הזמנה ליום הולדת, עם כתב", prompt: "עצב לי הזמנה ליום הולדת של ילדה כל שהיא שכל רגע מתחלפת, ביום ראשון הבא, בכתב גדול ועגול", single: "img/ed-invite.jpg", alt: "הזמנה צבעונית ליום הולדת עם בלונים וכתב בעברית" },
+    { title: "הזמנה ליום הולדת, עם כתב", prompt: "תעצבי הזמנה ליום הולדת לילדה, ביום ראשון הבא, בכתב גדול ועגול", single: "img/ed-invite.jpg", alt: "הזמנה צבעונית ליום הולדת עם בלונים וכתב בעברית" },
     { title: "קוף על קופסת הקורנפלקס", prompt: "שימי קוף חמוד שמחזיק כדורסל במקום השחקן שעל קופסת הקורנפלקס, ותשאירי את כל השאר בדיוק אותו דבר", before: "img/ed-cereal-before.jpg", after: "img/ed-cereal-after.jpg", alt: "קופסת קורנפלקס עם שחקן כדורסל, ואחר כך עם קוף שמחזיק כדורסל" }
   ];
   const host = document.getElementById("examples");
@@ -126,7 +136,8 @@
 })();
 </script>
 <script src="../assets/a11y.js"></script>
-<script src="../assets/shots4.js?v=2026-11-11-edit"></script>
-<script src="../assets/fullscreen.js"></script>
+<script src="../assets/shots4.js?v=2026-11-16-kids"></script>
+<script src="../assets/player-plus.js?v=2026-11-16-kids"></script>
+<script src="../assets/fullscreen.js?v=2026-11-16-kids"></script>
 </body>
 </html>

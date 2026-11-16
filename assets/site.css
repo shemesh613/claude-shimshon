@@ -257,3 +257,51 @@ figure.real { margin: 0; }
 .player:fullscreen .movie-host { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
 .player:fullscreen .win { width: fit-content; max-width: 100%; }
 .player:fullscreen .win-view img { width: auto; max-width: 100%; max-height: calc(100vh - 300px); }
+
+/* ===== kid-friendly upgrade (2026-11-16) ===== */
+.fig-note { font-size: 1em; color: var(--ink); opacity: .82; }
+.note { font-size: 1em; }
+.crumbs a, .footer a, .fig-note a { display: inline-flex; align-items: center; min-height: 44px; }
+.crumbs a, .footer a.back { padding: 8px 20px; border-radius: 999px; background: var(--surface); border: 2.5px solid var(--line); color: var(--ink); text-decoration: none; font: 600 1em/1.2 var(--font-display); }
+.crumbs a:hover, .footer a.back:hover { border-color: var(--sky); }
+/* screenshots: not huge, centered, zoomed on the important spot */
+figure.real { max-width: 760px; margin-inline: auto; }
+.win-view { transform-origin: 0 0; transition: transform .7s cubic-bezier(.4,0,.2,1); will-change: transform; }
+.win-view .ring { border-width: calc(4px / var(--z, 1)); }
+.win-view .ring[data-n]::before { transform: scale(calc(1 / var(--z, 1))); transform-origin: top right; }
+.win-view .cursor svg { transform: scale(calc(1 / var(--z, 1))); transform-origin: top left; }
+/* player */
+.player { max-width: 860px; margin-inline: auto; }
+.player .caption { font-size: 1.2em; font-weight: 600; }
+.progress { min-height: 44px; align-items: center; }
+.progress span { height: 14px; position: relative; }
+.progress span::after { content: ""; position: absolute; inset: -15px 0; }
+.step-nav { display: flex; gap: 10px; width: 100%; }
+.step-nav .btn { flex: 1; }
+.big-play { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 0; cursor: pointer; background: rgba(20,26,46,.35); color: #fff; font: 600 1.2em/1.2 var(--font-display); border-radius: 12px; }
+.big-play span { width: 96px; height: 96px; border-radius: 50%; background: var(--coral); display: grid; place-items: center; font-size: 42px; box-shadow: 0 6px 0 #d9584a; padding-inline-start: 8px; box-sizing: border-box; }
+.big-play b { background: rgba(0,0,0,.55); padding: 6px 16px; border-radius: 999px; }
+.big-play:hover span { transform: scale(1.06); }
+/* fullscreen fallback for phones without real fullscreen (iPhone) */
+.player.pseudo-full { position: fixed; inset: 0; z-index: 9999; max-width: none; margin: 0; border-radius: 0; border: 0; overflow: auto; display: flex; flex-direction: column; padding: 14px; gap: 10px; }
+.player.pseudo-full .movie-host { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.player.pseudo-full .win { width: 100%; }
+body.no-scroll { overflow: hidden; }
+/* lesson page helpers */
+.today { background: var(--surface); border: 2.5px solid var(--sky); border-radius: 22px; padding: 14px 18px; margin: 18px 0 6px; }
+.today h2 { margin: 0 0 6px; font: 600 1.25em/1.3 var(--font-display); }
+.today ol { margin: 0; padding-inline-start: 22px; display: grid; gap: 4px; }
+.lesson-end { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.lesson-end a { flex: 1; min-width: 200px; text-align: center; text-decoration: none; }
+/* home: today's lesson + numbers */
+.today-lesson { display: flex; align-items: center; gap: 18px; text-decoration: none; color: var(--ink); background: var(--sun); border-radius: 28px; padding: 18px 22px; margin: 22px 0 8px; box-shadow: 0 6px 0 #e0a800; }
+.today-lesson:hover { transform: translateY(-3px); }
+.today-lesson .tl-play { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--coral); color: #fff; display: grid; place-items: center; font-size: 28px; box-shadow: 0 4px 0 #d9584a; }
+.today-lesson small { display: block; font: 600 .9em/1.2 var(--font-body); opacity: .8; }
+.today-lesson strong { display: block; font: 600 clamp(1.25em, 3.5vw, 1.7em)/1.25 var(--font-display); }
+.card { position: relative; }
+.card .chip.new { position: absolute; top: -10px; left: 14px; font-size: 14px; padding: 7px 12px; }
+.lesson-num { display: inline-block; font: 700 .8em/1 var(--font-display); background: var(--bg); border: 2px solid var(--line); border-radius: 999px; padding: 5px 10px; margin-bottom: 6px; color: var(--ink); }
+.ex .pair .arrow { font-size: 2em; }
+.win-clip { overflow: hidden; position: relative; }
+.player:fullscreen .win-clip, .player.pseudo-full .win-clip { line-height: 0; }

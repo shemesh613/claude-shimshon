@@ -7,9 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-26-fs">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-kids">
 <style>
-  .styles-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; max-width: 760px; }
+  .styles-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px auto 0; max-width: 760px; }
   @media (max-width: 560px) { .styles-grid { grid-template-columns: minmax(0, 1fr); } }
   .style-card { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
   .style-card img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 14px; display: block; background: var(--line); }
@@ -34,7 +34,15 @@
     </div>
   </section>
 
-  <p class="fig-note">עוד לא נכנסתן לגמיני? בשיעור הקודם יש הסבר איך נכנסים: <a href="gemini.html">שיעור ספר מהוראה אחת</a>.</p>
+  <section class="today">
+    <h2>🎯 מה נעשה היום?</h2>
+    <ol>
+      <li>מבקשות מגמיני לצייר ציור</li>
+      <li>בוחרות לו סגנון: צבעי מים, פלסטלינה, פיקסלים...</li>
+      <li>משווות: איזה סגנון הכי יפה?</li>
+    </ol>
+  </section>
+  <p class="fig-note">צריכות תזכורת איך נכנסים לגמיני? <a href="gemini.html">לשיעור הכניסה לגמיני</a></p>
 
   <h2 class="sec">צופים בסרטון</h2>
   <div class="player" data-set="B" data-intro="לוחצים ▶ וצופים איך יוצרים תמונה">
@@ -47,6 +55,7 @@
     </div>
   </div>
 
+  <h2 class="sec">עכשיו אתן!</h2>
   <section class="step">
     <div class="step-head"><span class="step-num">1</span><h3>לוחצים על +</h3></div>
     <p>בתיבת הכתיבה של גמיני, בצד, יש כפתור <b>+</b>. לוחצים עליו.</p>
@@ -81,8 +90,8 @@
   <p class="fig-note">גם בלי הגלריה אפשר לבחור סגנון: פשוט כותבים אותו בסוף ההוראה. הנה אותו ינשוף בארבעה סגנונות. לוחצים <b>העתקה</b>, מדביקים בגמיני ומנסים!</p>
   <div class="styles-grid" id="styles"></div>
 
-  <h2 class="sec">תורכן לנסות</h2>
-  <p class="fig-note">בוחרים נושא משלכן, ומוסיפים בסוף אחד מהסגנונות:</p>
+  <h2 class="sec">🏆 האתגר שלכן</h2>
+  <p>ציירו את <b>החיה שאתן הכי אוהבות</b> בשני סגנונות שונים. איזה יצא יותר יפה? בסוף ההוראה מוסיפים סגנון:</p>
   <ul class="idea-list">
     <li>🎨 <b>בצבעי מים</b> · <b>בסגנון סרט אנימציה תלת-ממדי</b> · <b>בפיקסל ארט</b></li>
     <li>🧸 <b>עשוי מפלסטלינה</b> · <b>כמדבקה חמודה</b> · <b>כמו צעצוע מעץ</b></li>
@@ -91,8 +100,10 @@
 
   <div class="note"><b>טיפ:</b> אם התמונה לא יוצאת כמו שרצינו, לא מתייאשות! מוסיפים עוד פרטים: צבעים, מה ברקע, ואיזו הבעה יש לדמות.</div>
 
+  <div class="lesson-end"><a class="btn ghost" href="../index.html">→ לכל השיעורים</a><a class="btn" href="edit.html">לשיעור הבא: משנים תמונה ←</a></div>
+
 </main>
-  <footer class="footer"><a href="../index.html">→ חזרה לאתר החוג</a></footer>
+  <footer class="footer"><a class="back" href="../index.html">→ חזרה לאתר החוג</a></footer>
 </div>
 <script>
 (function () {
@@ -122,7 +133,8 @@
 })();
 </script>
 <script src="../assets/a11y.js"></script>
-<script src="../assets/shots4.js"></script>
-<script src="../assets/fullscreen.js"></script>
+<script src="../assets/shots4.js?v=2026-11-16-kids"></script>
+<script src="../assets/player-plus.js?v=2026-11-16-kids"></script>
+<script src="../assets/fullscreen.js?v=2026-11-16-kids"></script>
 </body>
 </html>

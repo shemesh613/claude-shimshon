@@ -98,14 +98,14 @@ window.SITE = {
   // שיר אחד מכל זוג יצירות של הילדים. sunoId = מזהה הנגן הרשמי של Suno.
   products: [
     {
-      title: "בננה בנוני — 0:38",
+      title: "בננה בנוני (גרסה 1)",
       sunoId: "831ac23e-e7fe-4f71-81f1-597a4ba50d98",
       audio: "assets/audio/banana-038.mp3",
       icon: "star", color: "sun",
       tags: []
     },
     {
-      title: "בננה בנוני — 1:17",
+      title: "בננה בנוני (גרסה 2)",
       sunoId: "064f5312-4735-4dd7-921c-09b3f7775668",
       audio: "assets/audio/banana-117.mp3",
       icon: "star", color: "sun",

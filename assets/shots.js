@@ -122,7 +122,7 @@
       r.className = "ripple"; r.style.left = cursor.style.left; r.style.top = cursor.style.top;
       view.appendChild(r);
     }
-    await sleep(2200, id);
+    await sleep(reduced ? 2200 : 4300, id);
   }
 
   async function playFrom(i) {
