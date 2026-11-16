@@ -305,3 +305,4 @@ body.no-scroll { overflow: hidden; }
 .ex .pair .arrow { font-size: 2em; }
 .win-clip { overflow: hidden; position: relative; }
 .player:fullscreen .win-clip, .player.pseudo-full .win-clip { line-height: 0; }
+.today-lesson, .today-lesson small, .today-lesson strong { color: #1d2433; }
