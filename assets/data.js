@@ -54,6 +54,14 @@ window.SITE = {
     }
   ],
 
+  worlds: [
+      { "title": "ארמון ענק עם חדר לנסיכה", "cover": "lessons/img/ex3d-palace.jpg", "href": "worlds/palace.html" },
+      { "title": "טירה מפוארת עם חצר", "cover": "lessons/img/ex3d-castle.jpg", "href": "worlds/castle.html" },
+      { "title": "חדר ברבי", "cover": "lessons/img/ex3d-barbie.jpg", "href": "worlds/barbie.html" },
+      { "title": "ארמון ורוד", "cover": "lessons/img/ex3d-pink.jpg", "href": "worlds/pink.html" },
+      { "title": "כדור הארץ והחלל", "cover": "lessons/img/ex3d-globe.jpg", "href": "worlds/globe.html" }
+  ],
+
   books: [
       {
           "title": "הבוקר הבלונדיני של שילת",

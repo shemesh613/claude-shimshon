@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>עולם תלת ממד אינטראקטיבי - כדור הארץ, שמש, ירח ובתים</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Heebo -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            overflow: hidden;
+            background-color: #030712;
+            color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+        }
+        .ui-layer {
+            position: relative;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        /* Custom glow & glassmorphism */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-custom {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        .btn-custom:active {
+            transform: translateY(1px);
+        }
+        /* Pulsing animation for house markers */
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.25); opacity: 1; }
+        }
+        .marker-pulse {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen select-none">
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="ui-layer absolute inset-0 flex flex-col justify-between p-4 md:p-6 pointer-events-none">
+        
+        <!-- Top Header & Status -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-auto">
+            <div class="glass-panel px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl">
+                <div class="w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
+                <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                    מסע אל כדור הארץ והחלל
+                </h1>
+            </div>
+
+            <!-- Context Banner / Current View status -->
+            <div id="view-status-badge" class="glass-panel px-5 py-2.5 rounded-xl text-sm font-bold text-amber-300 shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-earth-europe"></i>
+                <span id="status-text">מבט על כדור הארץ (אירופה והבתים)</span>
+            </div>
+        </header>
+
+        <!-- Center Notification / Instructions Toast -->
+        <div id="instruction-toast" class="self-center glass-panel px-6 py-3 rounded-2xl text-center shadow-2xl max-w-lg pointer-events-auto transition-all duration-300 border-indigo-500/30">
+            <p id="instruction-message" class="text-sm md:text-base font-medium text-slate-200">
+                💡 <span class="text-cyan-300 font-bold">טיפ:</span> כדור הארץ מציג את כל יבשות העולם (אירופה, אפריקה, אסיה, אמריקה ואוסטרליה)! לחצו על סמני הבתים באירופה כדי להיכנס פנימה.
+            </p>
+        </div>
+
+        <!-- Bottom Controls & Action Toolbar -->
+        <footer class="flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-auto">
+            
+            <!-- Simulation Controls (Speed & Lighting) -->
+            <div class="glass-panel p-3 md:p-4 rounded-2xl flex flex-wrap items-center gap-3 shadow-2xl">
+                <button id="btn-toggle-orbit" onclick="toggleOrbitSpeed()" class="btn-custom bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span id="orbit-speed-label">מהירות מסלול: מהיר</span>
+                </button>
+
+                <button id="btn-toggle-light" onclick="toggleDayNight()" class="btn-custom bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-sun" id="light-icon"></i>
+                    <span id="light-label">מצב תאורה: שמש זורחת</span>
+                </button>
+            </div>
+
+            <!-- Navigation & House Entry / Exit Controls -->
+            <div class="glass-panel p-3 md:p-4 rounded-2xl flex items-center gap-3 shadow-2xl">
+                <button id="btn-enter-house" onclick="enterHouseDirect()" class="btn-custom bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-house-chimney"></i>
+                    כניסה מהירה לבית
+                </button>
+
+                <button id="btn-exit-house" onclick="exitHouse()" class="hidden btn-custom bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-earth-americas"></i>
+                    חזרה לכדור הארץ
+                </button>
+            </div>
+
+        </footer>
+
+    </div>
+
+    <!-- Message Modal / Dialog (No alert() used) -->
+    <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden pointer-events-auto">
+        <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-md w-full mx-4 shadow-2xl border border-white/20 text-center">
+            <div id="modal-icon" class="text-4xl text-cyan-400 mb-3">
+                <i class="fa-solid fa-house"></i>
+            </div>
+            <h3 id="modal-title" class="text-xl font-bold mb-2 text-white">ברוכים הבאים לבית!</h3>
+            <p id="modal-desc" class="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">כעת נכנסתם לתוך חדר מעוצב בתלת-ממד עם רהיטים ותאורה פנימית.</p>
+            <button onclick="closeModal()" class="btn-custom bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold w-full">
+                הבנתי, תודה!
+            </button>
+        </div>
+    </div>
+
+    <!-- Three.js Application Logic -->
+    <script>
+        // --- Global Variables ---
+        let scene, camera, renderer, controls;
+        let earthGroup, earthMesh, cloudsMesh, atmosphereMesh;
+        let sunMesh, sunLight, moonMesh;
+        let houseGroup, roomGroup;
+        let raycaster, mouse;
+        
+        // Interactive state
+        let isInsideHouse = false;
+        let orbitSpeedMultiplier = 2.0; // Fast orbit speed
+        let dayNightMode = 'day'; // 'day' or 'night'
+        let houseMarkers = [];
+        let clock = new THREE.Clock();
+
+        // Animation tracking for Sun and Moon orbits
+        let sunOrbitAngle = 0;
+        let moonOrbitAngle = Math.PI;
+
+        // Initialize Application on Window Load
+        window.onload = function() {
+            initThreeScene();
+            setupInteractions();
+            animate();
+
+            // Welcome modal on start
+            showModal(
+                '<i class="fa-solid fa-earth-europe"></i>',
+                'ברוכים הבאים לעולם התלת-ממד!',
+                'כדור הארץ מסתובב עם יבשת אירופה בחזית. השמש והירח נעים במסלולים מהירים סביבו. תוכלו ללחוץ על סמני הבתיפ באירופה או להשתמש בכפתור "כניסה מהירה לבית" כדי לחקור את פנים הבית!'
+            );
+        };
+
+        // --- Three.js Scene Setup ---
+        function initThreeScene() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030712, 0.015);
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 18);
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // 4. Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 60;
+
+            // 5. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            sunLight.position.set(25, 10, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            scene.add(sunLight);
+
+            // 6. Build Universe Elements
+            createStarfield();
+            createSunAndMoon();
+            createEarthWithAllContinents();
+            createInteriorRoom();
+
+            // Raycaster for clicking houses
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Window resize listener
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // --- Starfield Background ---
+        function createStarfield() {
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsCount = 2000;
+            const starPositions = new Float32Array(starsCount * 3);
+
+            for (let i = 0; i < starsCount * 3; i += 3) {
+                starPositions[i] = (Math.random() - 0.5) * 400;
+                starPositions[i + 1] = (Math.random() - 0.5) * 400;
+                starPositions[i + 2] = (Math.random() - 0.5) * 400;
+            }
+
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.8,
+                transparent: true,
+                opacity: 0.8
+            });
+            const starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+        }
+
+        // --- Sun and Moon Creation ---
+        function createSunAndMoon() {
+            // Sun Sphere with glowing effect
+            const sunGeo = new THREE.SphereGeometry(1.8, 32, 32);
+            const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+            sunMesh = new THREE.Mesh(sunGeo, sunMat);
+            
+            // Sun Glow aura
+            const sunGlowGeo = new THREE.SphereGeometry(2.4, 32, 32);
+            const sunGlowMat = new THREE.MeshBasicMaterial({
+                color: 0xffaa00,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+            const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
+            sunMesh.add(sunGlow);
+            scene.add(sunMesh);
+
+            // Moon Sphere
+            const moonGeo = new THREE.SphereGeometry(0.8, 32, 32);
+            const moonMat = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            moonMesh = new THREE.Mesh(moonGeo, moonMat);
+            scene.add(moonMesh);
+
+            // Orbital Path visualizers (rings)
+            const orbitRingMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.15 });
+            
+            const sunOrbitGeo = new THREE.BufferGeometry();
+            const sunPoints = [];
+            for(let i=0; i<=64; i++) {
+                const theta = (i/64) * Math.PI * 2;
+                sunPoints.push(new THREE.Vector3(Math.cos(theta) * 22, 0, Math.sin(theta) * 14));
+            }
+            sunOrbitGeo.setFromPoints(sunPoints);
+            const sunOrbitLine = new THREE.Line(sunOrbitGeo, orbitRingMat);
+            scene.add(sunOrbitLine);
+        }
+
+        // --- Earth & All Continents Creation via Procedural Canvas Texture ---
+        function createEarthWithAllContinents() {
+            earthGroup = new THREE.Group();
+            scene.add(earthGroup);
+
+            // Create a procedural 2D canvas texture representing world continents (blue ocean, green/tan landmasses)
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Fill ocean background
+            ctx.fillStyle = '#1e3a8a'; // Deep blue ocean
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Helper function to draw procedural continent blobs on the equirectangular map
+            function drawContinent(x, y, w, h, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Americas (West)
+            drawContinent(500, 350, 180, 280, '#15803d'); // North America
+            drawContinent(600, 700, 140, 220, '#16a34a'); // South America
+
+            // Draw Europe & Africa (Center)
+            drawContinent(1050, 300, 130, 90, '#22c55e');  // Europe
+            drawContinent(1080, 550, 160, 200, '#ca8a04');  // Africa (Sahara/Savanna tan-green)
+
+            // Draw Asia (East)
+            drawContinent(1450, 280, 280, 180, '#16a34a');  // Asia main
+            drawContinent(1600, 500, 100, 120, '#15803d');  // Southeast Asia
+
+            // Draw Australia & Antarctica
+            drawContinent(1680, 780, 110, 80, '#ca8a04');   // Australia
+            ctx.fillStyle = '#f8fafc'; // Antarctica snow
+            ctx.fillRect(0, 950, canvas.width, 74);
+
+            const earthTexture = new THREE.CanvasTexture(canvas);
+            earthTexture.wrapS = THREE.RepeatWrapping;
+            earthTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+            // Earth Core Sphere with texture
+            const earthGeo = new THREE.SphereGeometry(5, 64, 64);
+            const earthMat = new THREE.MeshStandardMaterial({
+                map: earthTexture,
+                roughness: 0.6,
+                metalness: 0.1
+            });
+            earthMesh = new THREE.Mesh(earthGeo, earthMat);
+            earthMesh.receiveShadow = true;
+            earthMesh.castShadow = true;
+            earthGroup.add(earthMesh);
+
+            // Atmosphere Glow
+            const atmosGeo = new THREE.SphereGeometry(5.2, 64, 64);
+            const atmosMat = new THREE.MeshStandardMaterial({
+                color: 0x60a5fa,
+                transparent: true,
+                opacity: 0.2,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide
+            });
+            atmosphereMesh = new THREE.Mesh(atmosGeo, atmosMat);
+            earthGroup.add(atmosphereMesh);
+
+            // --- Build 3D Houses / Cities on Europe surface ---
+            houseGroup = new THREE.Group();
+            
+            // House coordinates in spherical space (positioned in Europe)
+            const houseSpots = [
+                { lat: 48.85, lon: 2.35, name: "פאריס, צרפת" },     // Paris
+                { lat: 51.50, lon: -0.12, name: "לונדון, בריטניה" }, // London
+                { lat: 52.52, lon: 13.40, name: "ברלין, גרמניה" },   // Berlin
+                { lat: 41.90, lon: 12.49, name: "רומא, איטליה" }     // Rome
+            ];
+
+            houseSpots.forEach((spot, idx) => {
+                const houseContainer = new THREE.Group();
+                
+                const latRad = THREE.MathUtils.degToRad(spot.lat);
+                const lonRad = THREE.MathUtils.degToRad(spot.lon);
+                const r = 5.15; // Just above earth surface
+
+                const hx = r * Math.cos(latRad) * Math.sin(lonRad);
+                const hy = r * Math.sin(latRad);
+                const hz = r * Math.cos(latRad) * Math.cos(lonRad);
+
+                houseContainer.position.set(hx, hy, hz);
+                houseContainer.lookAt(0, 0, 0);
+                houseContainer.rotateX(Math.PI / 2);
+
+                // 3D Miniature House geometry
+                const baseGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
+                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                baseMesh.position.y = 0.15;
+                baseMesh.castShadow = true;
+                houseContainer.add(baseMesh);
+
+                const roofGeo = new THREE.ConeGeometry(0.28, 0.25, 4);
+                const roofMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
+                const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+                roofMesh.position.y = 0.42;
+                roofMesh.rotation.y = Math.PI / 4;
+                houseContainer.add(roofMesh);
+
+                // Glowing beacon ring above house
+                const ringGeo = new THREE.RingGeometry(0.35, 0.45, 16);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                ringMesh.rotation.x = Math.PI / 2;
+                ringMesh.position.y = 0.02;
+                houseContainer.add(ringMesh);
+
+                houseContainer.userData = { isHouse: true, name: spot.name, index: idx };
+                houseMarkers.push(houseContainer);
+                earthGroup.add(houseContainer);
+            });
+
+            // Initial rotation to showcase Europe and Africa prominently
+            earthGroup.rotation.y = Math.PI * 0.75;
+            earthGroup.rotation.x = 0.2;
+        }
+
+        // --- Interior Room Creation (Inside House View) ---
+        function createInteriorRoom() {
+            roomGroup = new THREE.Group();
+            roomGroup.position.set(0, -100, 0); // Hidden initially deep underground / off-screen
+            scene.add(roomGroup);
+
+            // Room Walls (Box inverted or panels)
+            const roomMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, side: THREE.BackSide });
+            const roomGeo = new THREE.BoxGeometry(16, 10, 16);
+            const roomBox = new THREE.Mesh(roomGeo, roomMat);
+            roomBox.position.y = 5;
+            roomGroup.add(roomBox);
+
+            // Wooden Floor
+            const floorGeo = new THREE.PlaneGeometry(16, 16);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.4 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            roomGroup.add(floor);
+
+            // Cozy Fireplace / Sofa / Furniture
+            // Sofa Base
+            const sofaGeo = new THREE.BoxGeometry(6, 1.2, 2);
+            const sofaMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+            const sofa = new THREE.Mesh(sofaGeo, sofaMat);
+            sofa.position.set(0, 0.6, -6);
+            roomGroup.add(sofa);
+
+            // Sofa Backrest
+            const backGeo = new THREE.BoxGeometry(6, 3, 0.8);
+            const back = new THREE.Mesh(backGeo, sofaMat);
+            back.position.set(0, 2.1, -6.8);
+            roomGroup.add(back);
+
+            // Coffee Table in Center
+            const tableGeo = new THREE.BoxGeometry(3, 0.8, 2);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
+            const table = new THREE.Mesh(tableGeo, tableMat);
+            table.position.set(0, 0.4, -2);
+            roomGroup.add(table);
+
+            // Warm interior lighting
+            const roomLight = new THREE.PointLight(0xffedd5, 2.5, 20);
+            roomLight.position.set(0, 8, 0);
+            roomGroup.add(roomLight);
+        }
+
+        // --- Interaction & Raycasting ---
+        function setupInteractions() {
+            window.addEventListener('pointerdown', (event) => {
+                // Only trigger if clicking on canvas and not dragging excessively
+                if (event.target.tagName !== 'CANVAS') return;
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                if (!isInsideHouse) {
+                    raycaster.setFromCamera(mouse, camera);
+                    // Check intersection with house markers
+                    const intersects = raycaster.intersectObjects(earthGroup.children, true);
+
+                    for (let hit of intersects) {
+                        let obj = hit.object;
+                        // Traverse up to find house container
+                        while (obj && parent !== scene) {
+                            if (obj.userData && obj.userData.isHouse) {
+                                enterHouse(obj.userData.name);
+                                return;
+                            }
+                            obj = obj.parent;
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Enter / Exit House Logic ---
+        function enterHouse(houseName) {
+            isInsideHouse = true;
+
+            // Smooth transition camera inside room coordinates
+            camera.position.set(0, 3, 4);
+            controls.target.set(0, 3, -6);
+            controls.maxDistance = 12;
+            controls.minDistance = 1;
+
+            // Update UI elements
+            document.getElementById('view-status-badge').className = "glass-panel px-5 py-2.5 rounded-xl text-sm font-bold text-emerald-300 shadow-lg flex items-center gap-2";
+            document.getElementById('status-text').innerText = `בתוך הבית ב-${houseName}`;
+            document.getElementById('instruction-message').innerHTML = `🏠 <span class="text-emerald-300 font-bold">ברוכים הבאים!</span> אתם צופים כעת בעיצוב הפנימי של הבית התלת-ממדי. לחצו על "חזרה לכדור הארץ" ליציאה.`;
+            
+            document.getElementById('btn-enter-house').classList.add('hidden');
+            document.getElementById('btn-exit-house').classList.remove('hidden');
+
+            showModal(
+                '<i class="fa-solid fa-house-chimney"></i>',
+                `כניסה לבית ב-${houseName}`,
+                'הצלחתם להיכנס מתוך כדור הארץ אל תוך המרחב התלת-ממדי של הבית! תיהנו מהעיצוב הפנימי והתאורה החמימה.'
+            );
+        }
+
+        function enterHouseDirect() {
+            enterHouse("פאריס (בחירה מהירה)");
+        }
+
+        function exitHouse() {
+            isInsideHouse = false;
+
+            // Reset camera back to outer space orbit view
+            camera.position.set(0, 5, 18);
+            controls.target.set(0, 0, 0);
+            controls.maxDistance = 60;
+            controls.minDistance = 3;
+
+            // Update UI elements
+            document.getElementById('view-status-badge').className = "glass-panel px-5 py-2.5 rounded-xl text-sm font-bold text-amber-300 shadow-lg flex items-center gap-2";
+            document.getElementById('status-text').innerText = "מבט על כדור הארץ (אירופה והבתים)";
+            document.getElementById('instruction-message').innerHTML = `💡 <span class="text-cyan-300 font-bold">טיפ:</span> סובבו את כדור הארץ, צפו בשמש ובירח המקיפים אותו מהר, ולחצו על סמן בית באירופה כדי להיכנס פנימה!`;
+            
+            document.getElementById('btn-enter-house').classList.remove('hidden');
+            document.getElementById('btn-exit-house').classList.add('hidden');
+        }
+
+        // --- Simulation Toggles ---
+        function toggleOrbitSpeed() {
+            if (orbitSpeedMultiplier === 2.0) {
+                orbitSpeedMultiplier = 5.0;
+                document.getElementById('orbit-speed-label').innerText = 'מהירות מסלול: סופר מהיר';
+            } else if (orbitSpeedMultiplier === 5.0) {
+                orbitSpeedMultiplier = 0.5;
+                document.getElementById('orbit-speed-label').innerText = 'מהירות מסלול: איטי';
+            } else {
+                orbitSpeedMultiplier = 2.0;
+                document.getElementById('orbit-speed-label').innerText = 'מהירות מסלול: מהיר';
+            }
+        }
+
+        function toggleDayNight() {
+            if (dayNightMode === 'day') {
+                dayNightMode = 'night';
+                sunLight.intensity = 0.2;
+                document.getElementById('light-icon').className = "fa-solid fa-moon";
+                document.getElementById('light-label').innerText = 'מצב תאורה: לילה חשוך';
+            } else {
+                dayNightMode = 'day';
+                sunLight.intensity = 2.0;
+                document.getElementById('light-icon').className = "fa-solid fa-sun";
+                document.getElementById('light-label').innerText = 'מצב תאורה: שמש זורחת';
+            }
+        }
+
+        // --- Modal Dialog Helpers ---
+        function showModal(iconHtml, title, desc) {
+            document.getElementById('modal-icon').innerHTML = iconHtml;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        // --- Window Resize ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Rotate Earth slowly on its axis
+            if (earthGroup && !isInsideHouse) {
+                earthGroup.rotation.y += 0.05 * delta;
+            }
+
+            // Rapid Sun & Moon Orbits around Earth
+            sunOrbitAngle += 0.4 * orbitSpeedMultiplier * delta;
+            moonOrbitAngle += 0.6 * orbitSpeedMultiplier * delta;
+
+            if (sunMesh) {
+                const sunDist = 22;
+                sunMesh.position.x = Math.cos(sunOrbitAngle) * sunDist;
+                sunMesh.position.z = Math.sin(sunOrbitAngle) * (sunDist * 0.7);
+                sunMesh.position.y = Math.sin(sunOrbitAngle * 0.5) * 5;
+
+                // Sync directional light with sun sphere position
+                sunLight.position.copy(sunMesh.position);
+            }
+
+            if (moonMesh) {
+                const moonDist = 14;
+                moonMesh.position.x = Math.cos(moonOrbitAngle) * moonDist;
+                moonMesh.position.z = Math.sin(moonOrbitAngle) * moonDist;
+                moonMesh.position.y = Math.cos(moonOrbitAngle * 0.7) * 3;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

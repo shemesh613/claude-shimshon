@@ -307,3 +307,5 @@ body.no-scroll { overflow: hidden; }
 .player:fullscreen .win-clip, .player.pseudo-full .win-clip { line-height: 0; }
 .today-lesson, .today-lesson small, .today-lesson strong { color: #1d2433; }
 .section-tabs a[aria-current], .lesson-tabs button[aria-selected="true"] { color: #1d2433; }
+.card.world .world-go { align-self: center; background: var(--coral); color: #fff; border-radius: 999px; padding: 8px 18px; font: 600 .95em/1.2 var(--font-display); box-shadow: 0 4px 0 #d9584a; }
+.sub-tabs { flex-wrap: wrap; }

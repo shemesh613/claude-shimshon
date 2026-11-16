@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הדמיית תלת ממד - טירה מלכותית, חצר וחדרים פנימיים</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Heebo & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Heebo', 'Inter', sans-serif;
+            background-color: #0f172a;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            touch-action: none;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        }
+        .btn-pill {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-pill:hover {
+            transform: translateY(-1px);
+        }
+        .btn-pill:active {
+            transform: scale(0.96);
+        }
+        .active-tab {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+            color: #ffffff !important;
+            border-color: #fbbf24 !important;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+        }
+        .active-room {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: #ffffff !important;
+            border-color: #34d399 !important;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Viewport Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 text-white transition-opacity duration-500">
+        <div class="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="text-2xl font-bold text-amber-400">בונה את הטירה והחדרים המלכותיים...</h2>
+        <p class="text-slate-400 text-sm mt-1">מכין את החצר, שולחן המשתאות והמטבח</p>
+    </div>
+
+    <!-- Top Header & Lighting Controls -->
+    <header class="fixed top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <!-- Title Badge -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 text-white pointer-events-auto flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl">
+                🏰
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-amber-300 leading-tight">טירת האבן והכתר</h1>
+                <p id="location-subtitle" class="text-xs text-slate-300">תצפית פנורמית על הטירה והחצר</p>
+            </div>
+        </div>
+
+        <!-- Time of Day & Auto-Orbit Controls -->
+        <div class="glass-panel rounded-2xl p-1.5 flex items-center gap-1.5 pointer-events-auto">
+            <button id="btn-day" onclick="setLighting('day')" class="btn-pill active-tab px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 border border-transparent">
+                ☀️ יום
+            </button>
+            <button id="btn-sunset" onclick="setLighting('sunset')" class="btn-pill px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 border border-transparent hover:bg-white/10">
+                🌅 שקיעה
+            </button>
+            <button id="btn-night" onclick="setLighting('night')" class="btn-pill px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 border border-transparent hover:bg-white/10">
+                🌙 לילה
+            </button>
+            <div class="w-px h-5 bg-white/15 mx-0.5"></div>
+            <button id="btn-orbit" onclick="toggleAutoOrbit()" class="btn-pill px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500/25 text-amber-200 border border-amber-400/40">
+                🔄 סיבוב
+            </button>
+        </div>
+    </header>
+
+    <!-- Walk Mode On-Screen Controls (Mobile & Quick Move) -->
+    <div id="walk-controls" class="hidden fixed bottom-24 right-4 z-20 glass-panel rounded-2xl p-2.5 pointer-events-auto">
+        <div class="text-[11px] text-amber-300 font-bold text-center mb-1.5">תנועה בתוך הטירה</div>
+        <div class="grid grid-cols-3 gap-1.5 w-32">
+            <div></div>
+            <button id="pad-up" class="bg-slate-800/90 hover:bg-amber-600 active:bg-amber-500 text-white rounded-xl py-2.5 font-bold text-sm border border-white/15">▲</button>
+            <div></div>
+            <button id="pad-left" class="bg-slate-800/90 hover:bg-amber-600 active:bg-amber-500 text-white rounded-xl py-2.5 font-bold text-sm border border-white/15">◀</button>
+            <button id="pad-down" class="bg-slate-800/90 hover:bg-amber-600 active:bg-amber-500 text-white rounded-xl py-2.5 font-bold text-sm border border-white/15">▼</button>
+            <button id="pad-right" class="bg-slate-800/90 hover:bg-amber-600 active:bg-amber-500 text-white rounded-xl py-2.5 font-bold text-sm border border-white/15">▶</button>
+        </div>
+        <div class="text-[10px] text-slate-400 text-center mt-1.5">WASD / חצים + גרירה למבט</div>
+    </div>
+
+    <!-- Bottom Camera & Room Navigation Bar -->
+    <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center gap-2 pointer-events-none">
+        <!-- Quick Guide Pill -->
+        <div id="hint-banner" class="glass-panel rounded-full px-4 py-1 text-[11px] sm:text-xs text-slate-200 pointer-events-auto text-center">
+            🖱️ גררו כדי להסתובב • גלגלת לזום • בחרו חדר למטה כדי להיכנס פנימה!
+        </div>
+
+        <!-- Room & Viewpoint Selector -->
+        <div class="glass-panel rounded-2xl p-1.5 max-w-full overflow-x-auto no-scrollbar flex items-center gap-1.5 pointer-events-auto">
+            <button id="view-panorama" onclick="setCameraPreset('panorama')" class="btn-pill active-room whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 border border-white/10 hover:bg-white/10">
+                🔭 מבט מרחוק (חצר וטירה)
+            </button>
+            <button id="view-courtyard" onclick="setCameraPreset('courtyard')" class="btn-pill whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 border border-white/10 hover:bg-white/10">
+                ⛲ מרכז החצר והמזרקה
+            </button>
+            <button id="view-dining" onclick="setCameraPreset('dining')" class="btn-pill whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 border border-white/10 hover:bg-white/10">
+                🍽️ חדר האוכל והשולחן
+            </button>
+            <button id="view-kitchen" onclick="setCameraPreset('kitchen')" class="btn-pill whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 border border-white/10 hover:bg-white/10">
+                🍳 המטבח המלכותי
+            </button>
+            <button id="view-throne" onclick="setCameraPreset('throne')" class="btn-pill whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 border border-white/10 hover:bg-white/10">
+                👑 אולם הכס
+            </button>
+            <div class="w-px h-6 bg-white/20 mx-0.5 shrink-0"></div>
+            <button id="view-walk" onclick="toggleWalkMode()" class="btn-pill whitespace-nowrap px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-indigo-600/80 hover:bg-indigo-500 text-white border border-indigo-400/50">
+                🚶 מצב הליכה חופשית
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. GLOBAL VARIABLES & SCENE CONFIGURATION
+        // ==========================================
+        let scene, camera, renderer, clock;
+        let ambientLight, sunLight, hemiLight;
+        let torchLights = [];
+        let flags = [];
+        let waterDrops = [];
+        let fireMeshes = [];
+        let textures = {};
+
+        const keysPressed = {};
+        const touchPad = { forward: false, backward: false, left: false, right: false };
+
+        // Camera State (Supports both Orbit & First-Person Walk Mode)
+        const camState = {
+            mode: 'orbit', // 'orbit' | 'walk'
+            autoOrbit: true,
+            isDragging: false,
+            prevX: 0,
+            prevY: 0,
+            pinchDist: 0,
+            // Orbit spherical coordinates (Starts far away showing full castle & courtyard)
+            theta: 0.58,
+            phi: 0.96,
+            radius: 138,
+            targetTheta: 0.58,
+            targetPhi: 0.96,
+            targetRadius: 138,
+            targetLookAt: new THREE.Vector3(0, 7, 2),
+            currentLookAt: new THREE.Vector3(0, 7, 2),
+            // First-person walk coordinates
+            walkPos: new THREE.Vector3(0, 2.7, 26),
+            walkYaw: 0, // Facing North (-Z) toward the Keep entrance
+            walkPitch: 0
+        };
+
+        // ==========================================
+        // 2. PROCEDURAL TEXTURES (NO EXTERNAL URLS)
+        // ==========================================
+        function createProceduralTextures() {
+            // 1. Stone Brick Texture
+            const stoneCanvas = document.createElement('canvas');
+            stoneCanvas.width = 256;
+            stoneCanvas.height = 256;
+            const sCtx = stoneCanvas.getContext('2d');
+            sCtx.fillStyle = '#8b8d8f';
+            sCtx.fillRect(0, 0, 256, 256);
+
+            const rows = 8;
+            const rowH = 256 / rows;
+            for (let r = 0; r < rows; r++) {
+                const cols = 4;
+                const colW = 256 / cols;
+                const offset = (r % 2) * (colW / 2);
+                for (let c = -1; c <= cols; c++) {
+                    const shade = 122 + Math.floor(Math.random() * 34);
+                    sCtx.fillStyle = `rgb(${shade}, ${shade - 2}, ${shade - 5})`;
+                    sCtx.fillRect(c * colW + offset + 2, r * rowH + 2, colW - 4, rowH - 4);
+                }
+            }
+            textures.stone = new THREE.CanvasTexture(stoneCanvas);
+            textures.stone.wrapS = THREE.RepeatWrapping;
+            textures.stone.wrapT = THREE.RepeatWrapping;
+            textures.stone.repeat.set(3, 3);
+
+            // 2. Wood Planks Texture
+            const woodCanvas = document.createElement('canvas');
+            woodCanvas.width = 256;
+            woodCanvas.height = 256;
+            const wCtx = woodCanvas.getContext('2d');
+            wCtx.fillStyle = '#6b3e26';
+            wCtx.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 16; i++) {
+                const y = i * 16;
+                wCtx.fillStyle = i % 2 === 0 ? '#784427' : '#5e341e';
+                wCtx.fillRect(0, y + 1, 256, 14);
+                wCtx.fillStyle = 'rgba(30, 15, 5, 0.28)';
+                wCtx.fillRect(0, y, 256, 1.5);
+            }
+            textures.wood = new THREE.CanvasTexture(woodCanvas);
+            textures.wood.wrapS = THREE.RepeatWrapping;
+            textures.wood.wrapT = THREE.RepeatWrapping;
+
+            // 3. Interior Checkered Stone Tile Texture
+            const tileCanvas = document.createElement('canvas');
+            tileCanvas.width = 256;
+            tileCanvas.height = 256;
+            const tCtx = tileCanvas.getContext('2d');
+            const tileSize = 64;
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    tCtx.fillStyle = (x + y) % 2 === 0 ? '#cbd5e1' : '#64748b';
+                    tCtx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                    tCtx.strokeStyle = '#334155';
+                    tCtx.lineWidth = 2;
+                    tCtx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+            textures.floorTile = new THREE.CanvasTexture(tileCanvas);
+            textures.floorTile.wrapS = THREE.RepeatWrapping;
+            textures.floorTile.wrapT = THREE.RepeatWrapping;
+            textures.floorTile.repeat.set(6, 5);
+        }
+
+        // ==========================================
+        // 3. INITIALIZATION & MAIN LOOP
+        // ==========================================
+        function init() {
+            try {
+                clock = new THREE.Clock();
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x7dd3fc);
+                scene.fog = new THREE.FogExp2(0xbae6fd, 0.0024);
+
+                const container = document.getElementById('canvas-container');
+                camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.25, 650);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.08;
+                container.appendChild(renderer.domElement);
+
+                createProceduralTextures();
+                setupLights();
+                buildWorld();
+                buildOuterCastle();
+                buildCourtyard();
+                buildGrandKeepWithRooms();
+                setupInputControls();
+                updateCameraTransform(1);
+
+                window.addEventListener('resize', onWindowResize);
+
+                // Hide loading screen smoothly
+                setTimeout(() => {
+                    const loader = document.getElementById('loading-screen');
+                    if (loader) {
+                        loader.style.opacity = '0';
+                        setTimeout(() => loader.remove(), 500);
+                    }
+                }, 350);
+
+                animate();
+            } catch (err) {
+                console.error('Initialization error:', err);
+            }
+        }
+
+        function setupLights() {
+            hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x3f6212, 0.72);
+            scene.add(hemiLight);
+
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+            sunLight.position.set(75, 115, 65);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 10;
+            sunLight.shadow.camera.far = 280;
+            const d = 75;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
+        }
+
+        // ==========================================
+        // 4A. OUTER CASTLE WALLS, TOWERS & GATEHOUSE
+        // ==========================================
+        function buildOuterCastle() {
+            const castleGroup = new THREE.Group();
+            const stoneMat = new THREE.MeshStandardMaterial({
+                map: textures.stone,
+                roughness: 0.82,
+                metalness: 0.08
+            });
+            const darkStoneMat = new THREE.MeshStandardMaterial({
+                color: 0x475569,
+                roughness: 0.85
+            });
+            const roofMat = new THREE.MeshStandardMaterial({
+                color: 0x991b1b,
+                roughness: 0.55
+            });
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                metalness: 0.75,
+                roughness: 0.25
+            });
+
+            // Perimeter Dimensions (X: -38..38, Z: -38..38)
+            const wallDist = 38;
+            const wallHeight = 11;
+            const wallThick = 2.6;
+
+            // North, West, East Curtain Walls
+            addWallSegment(castleGroup, 0, -wallDist, 76, wallHeight, wallThick, true, stoneMat, darkStoneMat);
+            addWallSegment(castleGroup, -wallDist, 0, 76, wallHeight, wallThick, false, stoneMat, darkStoneMat);
+            addWallSegment(castleGroup, wallDist, 0, 76, wallHeight, wallThick, false, stoneMat, darkStoneMat);
+
+            // South Wall Split for Grand Gatehouse Entrance (Gap X: -6..6)
+            addWallSegment(castleGroup, -22, wallDist, 32, wallHeight, wallThick, true, stoneMat, darkStoneMat);
+            addWallSegment(castleGroup, 22, wallDist, 32, wallHeight, wallThick, true, stoneMat, darkStoneMat);
+
+            // 4 Corner Towers with Conical Roofs & Flags
+            const corners = [
+                [-wallDist, -wallDist],
+                [wallDist, -wallDist],
+                [-wallDist, wallDist],
+                [wallDist, wallDist]
+            ];
+            corners.forEach(([cx, cz]) => {
+                const tower = createTower(4.4, 17, stoneMat, roofMat, goldMat, true);
+                tower.position.set(cx, 0.8, cz);
+                castleGroup.add(tower);
+            });
+
+            // South Gatehouse Twin Towers & Archway
+            [-6.5, 6.5].forEach(gx => {
+                const gateTower = createTower(3.1, 15.5, stoneMat, roofMat, goldMat, true);
+                gateTower.position.set(gx, 0.8, wallDist + 0.5);
+                castleGroup.add(gateTower);
+            });
+
+            // Gatehouse Bridge Arch over Entrance
+            const gateArch = new THREE.Mesh(new THREE.BoxGeometry(13, 4.5, 4.5), stoneMat);
+            gateArch.position.set(0, 10.5, wallDist + 0.5);
+            gateArch.castShadow = true;
+            castleGroup.add(gateArch);
+
+            // Raised Iron Portcullis Grille
+            for (let px = -4; px <= 4; px += 1.3) {
+                const bar = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.12, 0.12, 5, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 })
+                );
+                bar.position.set(px, 7.8, wallDist + 1.8);
+                castleGroup.add(bar);
+            }
+
+            // Gatehouse Torches
+            addTorch(castleGroup, -4.5, 5.2, wallDist + 3.2);
+            addTorch(castleGroup, 4.5, 5.2, wallDist + 3.2);
+
+            scene.add(castleGroup);
+        }
+
+        // ==========================================
+        // 4B. COURTYARD, FOUNTAIN, GARDENS & STABLES
+        // ==========================================
+        function buildCourtyard() {
+            const courtGroup = new THREE.Group();
+
+            // Cobblestone Main Plaza & Pathways
+            const pathMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.88 });
+            const mainPath = new THREE.Mesh(new THREE.BoxGeometry(10, 0.15, 52), pathMat);
+            mainPath.position.set(0, 0.9, 12);
+            mainPath.receiveShadow = true;
+            courtGroup.add(mainPath);
+
+            const crossPath = new THREE.Mesh(new THREE.BoxGeometry(56, 0.15, 8), pathMat);
+            crossPath.position.set(0, 0.9, 14);
+            crossPath.receiveShadow = true;
+            courtGroup.add(crossPath);
+
+            // Central Royal Fountain (at Z = 14)
+            const fountainGroup = new THREE.Group();
+            fountainGroup.position.set(0, 0.95, 14);
+
+            const stoneFountainMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.6 });
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                roughness: 0.1,
+                metalness: 0.3,
+                transparent: true,
+                opacity: 0.88
+            });
+
+            const basinOuter = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.0, 1.1, 24), stoneFountainMat);
+            basinOuter.position.y = 0.55;
+            basinOuter.castShadow = true;
+            basinOuter.receiveShadow = true;
+            fountainGroup.add(basinOuter);
+
+            const basinWater = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 4.1, 0.9, 24), waterMat);
+            basinWater.position.y = 0.58;
+            fountainGroup.add(basinWater);
+
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.0, 2.8, 16), stoneFountainMat);
+            pillar.position.y = 1.6;
+            pillar.castShadow = true;
+            fountainGroup.add(pillar);
+
+            const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 0.8, 0.6, 20), stoneFountainMat);
+            topBowl.position.y = 2.9;
+            fountainGroup.add(topBowl);
+
+            // Animated Fountain Water Droplets
+            for (let i = 0; i < 24; i++) {
+                const drop = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.11, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: 0xe0f2fe })
+                );
+                drop.userData = {
+                    angle: (i / 24) * Math.PI * 2,
+                    phase: (i % 6) / 6
+                };
+                fountainGroup.add(drop);
+                waterDrops.push(drop);
+            }
+            courtGroup.add(fountainGroup);
+
+            // Lush Courtyard Gardens (Left & Right of Main Path)
+            [-17, 17].forEach(gx => {
+                const gardenBed = new THREE.Mesh(
+                    new THREE.BoxGeometry(16, 0.35, 14),
+                    new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 })
+                );
+                gardenBed.position.set(gx, 0.98, 25);
+                gardenBed.receiveShadow = true;
+                courtGroup.add(gardenBed);
+
+                // Bushes & Flower Clusters
+                for (let bx = -5; bx <= 5; bx += 5) {
+                    for (let bz = -4; bz <= 4; bz += 4) {
+                        const bush = new THREE.Mesh(
+                            new THREE.DodecahedronGeometry(1.1, 1),
+                            new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.8 })
+                        );
+                        bush.position.set(gx + bx, 1.6, 25 + bz);
+                        bush.castShadow = true;
+                        courtGroup.add(bush);
+                    }
+                }
+            });
+
+            // Courtyard Side Armory & Stables (West & East)
+            buildCourtyardSideBuilding(courtGroup, -26, 2, 'אורוות המלך');
+            buildCourtyardSideBuilding(courtGroup, 26, 2, 'נשקיית האבירים');
+
+            // Courtyard Lantern Posts
+            [[-6, 24], [6, 24], [-6, 4], [6, 4]].forEach(([lx, lz]) => {
+                addTorch(courtGroup, lx, 3.6, lz);
+            });
+
+            scene.add(courtGroup);
+        }
+
+        function buildCourtyardSideBuilding(parent, x, z) {
+            const bGroup = new THREE.Group();
+            bGroup.position.set(x, 0.85, z);
+            const wallMat = new THREE.MeshStandardMaterial({ map: textures.stone, color: 0xa8a29e, roughness: 0.85 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.7 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(9, 5.2, 14), wallMat);
+            body.position.y = 2.6;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            bGroup.add(body);
+
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(8.5, 4.2, 4), roofMat);
+            roof.position.y = 7.3;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            bGroup.add(roof);
+
+            parent.add(bGroup);
+        }
+
+        // ==========================================
+        // 4C. GRAND KEEP WITH WALKABLE INTERIOR ROOMS!
+        // ==========================================
+        function buildGrandKeepWithRooms() {
+            const keepGroup = new THREE.Group();
+            // Keep spans X: -18 to +18 (width 36), Z: -26 to -4 (depth 22), Ground floor Y = 1.0
+            const stoneMat = new THREE.MeshStandardMaterial({ map: textures.stone, roughness: 0.8 });
+            const innerWallMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.85 });
+            const woodMat = new THREE.MeshStandardMaterial({ map: textures.wood, roughness: 0.7 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.5 });
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8, roughness: 0.2 });
+
+            // 1. Checkered Stone Floor (Y = 1.0)
+            const floor = new THREE.Mesh(
+                new THREE.BoxGeometry(36, 0.4, 22),
+                new THREE.MeshStandardMaterial({ map: textures.floorTile, roughness: 0.65 })
+            );
+            floor.position.set(0, 0.85, -15);
+            floor.receiveShadow = true;
+            keepGroup.add(floor);
+
+            // 2. Exterior Keep Walls (with Wide Open Front Entrance at Z = -4, X = -3.2..3.2)
+            const h1 = 7.5; // Ground floor height (Y: 1.0 to 8.5)
+            // Back Wall (Z = -26)
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(36, h1, 1.2), stoneMat);
+            backWall.position.set(0, 1 + h1 / 2, -26);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            keepGroup.add(backWall);
+
+            // Left & Right Outer Walls (X = -18, +18)
+            [-18, 18].forEach(wx => {
+                const sideWall = new THREE.Mesh(new THREE.BoxGeometry(1.2, h1, 22), stoneMat);
+                sideWall.position.set(wx, 1 + h1 / 2, -15);
+                sideWall.castShadow = true;
+                sideWall.receiveShadow = true;
+                keepGroup.add(sideWall);
+            });
+
+            // Front Wall Left & Right of Main Open Double Doors (Z = -4)
+            [-10.6, 10.6].forEach(fx => {
+                const frontPart = new THREE.Mesh(new THREE.BoxGeometry(14.8, h1, 1.2), stoneMat);
+                frontPart.position.set(fx, 1 + h1 / 2, -4);
+                frontPart.castShadow = true;
+                frontPart.receiveShadow = true;
+                keepGroup.add(frontPart);
+            });
+
+            // Arch Lintel above Front Entrance
+            const frontLintel = new THREE.Mesh(new THREE.BoxGeometry(6.8, 2.3, 1.4), stoneMat);
+            frontLintel.position.set(0, 7.35, -4);
+            frontLintel.castShadow = true;
+            keepGroup.add(frontLintel);
+
+            // Swung-Open Heavy Wooden Entrance Doors
+            [-3.3, 3.3].forEach((dx, idx) => {
+                const door = new THREE.Mesh(new THREE.BoxGeometry(3.1, 5.1, 0.25), woodMat);
+                door.position.set(dx, 3.55, -5.4);
+                door.rotation.y = idx === 0 ? Math.PI / 2.2 : -Math.PI / 2.2;
+                door.castShadow = true;
+                keepGroup.add(door);
+            });
+
+            // 3. Interior Partition Walls (Dividing into 3 Connected Rooms!)
+            // Left Partition at X = -6: Separates Kitchen (X: -18..-6) from Center Hall (X: -6..6)
+            // Leaves wide open doorway at Z: -14..-9
+            const partLeftFront = new THREE.Mesh(new THREE.BoxGeometry(0.8, h1, 5.5), innerWallMat);
+            partLeftFront.position.set(-6, 1 + h1 / 2, -6.75);
+            keepGroup.add(partLeftFront);
+
+            const partLeftBack = new THREE.Mesh(new THREE.BoxGeometry(0.8, h1, 11.5), innerWallMat);
+            partLeftBack.position.set(-6, 1 + h1 / 2, -20.25);
+            keepGroup.add(partLeftBack);
+
+            const partLeftLintel = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 5.0), innerWallMat);
+            partLeftLintel.position.set(-6, 7.25, -12.0);
+            keepGroup.add(partLeftLintel);
+
+            // Right Partition at X = +6: Separates Center Hall (X: -6..6) from Dining Room (X: 6..18)
+            // Leaves wide open doorway at Z: -14..-9
+            const partRightFront = new THREE.Mesh(new THREE.BoxGeometry(0.8, h1, 5.5), innerWallMat);
+            partRightFront.position.set(6, 1 + h1 / 2, -6.75);
+            keepGroup.add(partRightFront);
+
+            const partRightBack = new THREE.Mesh(new THREE.BoxGeometry(0.8, h1, 11.5), innerWallMat);
+            partRightBack.position.set(6, 1 + h1 / 2, -20.25);
+            keepGroup.add(partRightBack);
+
+            const partRightLintel = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 5.0), innerWallMat);
+            partRightLintel.position.set(6, 7.25, -12.0);
+            keepGroup.add(partRightLintel);
+
+            // 4. Upper Castle Floors, Turrets & Royal Roofs (Above Y = 8.5)
+            const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(36.4, 0.8, 22.4), stoneMat);
+            ceilingSlab.position.set(0, 8.7, -15);
+            ceilingSlab.castShadow = true;
+            keepGroup.add(ceilingSlab);
+
+            const upperKeep = new THREE.Mesh(new THREE.BoxGeometry(30, 9.5, 17), stoneMat);
+            upperKeep.position.set(0, 13.8, -15);
+            upperKeep.castShadow = true;
+            keepGroup.add(upperKeep);
+
+            const mainRoof = new THREE.Mesh(new THREE.ConeGeometry(23.5, 9, 4), roofMat);
+            mainRoof.position.set(0, 23.0, -15);
+            mainRoof.rotation.y = Math.PI / 4;
+            mainRoof.castShadow = true;
+            keepGroup.add(mainRoof);
+
+            // 4 Keep Corner Turrets
+            [[-17, -25], [17, -25], [-17, -5], [17, -5]].forEach(([tx, tz]) => {
+                const turret = createTower(2.5, 21, stoneMat, roofMat, goldMat, true);
+                turret.position.set(tx, 1, tz);
+                keepGroup.add(turret);
+            });
+
+            // Build Detailed Interior Furniture for all 3 Rooms
+            buildDiningRoomFurniture(keepGroup, woodMat, goldMat);
+            buildKitchenFurniture(keepGroup, woodMat, stoneMat);
+            buildThroneRoomFurniture(keepGroup, woodMat, goldMat);
+
+            scene.add(keepGroup);
+        }
+
+        // ------------------------------------------
+        // ROOM 1: ROYAL DINING HALL (X: 6..18, Z: -26..-4)
+        // ------------------------------------------
+        function buildDiningRoomFurniture(parent, woodMat, goldMat) {
+            const room = new THREE.Group();
+            const crimsonMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7 });
+
+            // Red Woven Rug under Table
+            const rug = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.06, 13.5), crimsonMat);
+            rug.position.set(12, 1.08, -15);
+            room.add(rug);
+
+            // Long Royal Banquet Table (X = 12, Z = -15)
+            const tableTop = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.25, 10.5), woodMat);
+            tableTop.position.set(12, 2.35, -15);
+            tableTop.castShadow = true;
+            room.add(tableTop);
+
+            // Crimson Table Runner
+            const runner = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.04, 10.6), crimsonMat);
+            runner.position.set(12, 2.49, -15);
+            room.add(runner);
+
+            // Table Legs
+            [-4.4, 0, 4.4].forEach(lz => {
+                [-1.1, 1.1].forEach(lx => {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.3, 0.28), woodMat);
+                    leg.position.set(12 + lx, 1.7, -15 + lz);
+                    room.add(leg);
+                });
+            });
+
+            // 8 High-Back Wooden Dining Chairs (4 on Left, 4 on Right) + 2 Head Chairs
+            const chairPositions = [
+                [9.9, -18.5, Math.PI / 2], [9.9, -16.2, Math.PI / 2],
+                [9.9, -13.8, Math.PI / 2], [9.9, -11.5, Math.PI / 2],
+                [14.1, -18.5, -Math.PI / 2], [14.1, -16.2, -Math.PI / 2],
+                [14.1, -13.8, -Math.PI / 2], [14.1, -11.5, -Math.PI / 2],
+                [12, -20.9, 0], [12, -9.1, Math.PI]
+            ];
+            chairPositions.forEach(([cx, cz, rotY]) => {
+                const chair = new THREE.Group();
+                chair.position.set(cx, 1.05, cz);
+                chair.rotation.y = rotY;
+
+                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.14, 0.95), woodMat);
+                seat.position.y = 0.75;
+                chair.add(seat);
+
+                const back = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.35, 0.14), crimsonMat);
+                back.position.set(0, 1.45, -0.4);
+                chair.add(back);
+
+                [[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]].forEach(([lx, lz]) => {
+                    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.75, 0.12), woodMat);
+                    leg.position.set(lx, 0.375, lz);
+                    chair.add(leg);
+                });
+                room.add(chair);
+            });
+
+            // Tableware: Golden Plates, Goblets, Feast Platters & Candelabras
+            for (let z = -18.5; z <= -11.5; z += 2.3) {
+                [-1.0, 1.0].forEach(px => {
+                    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.05, 16), goldMat);
+                    plate.position.set(12 + px, 2.51, z);
+                    room.add(plate);
+
+                    const goblet = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.07, 0.24, 12), goldMat);
+                    goblet.position.set(12 + px * 0.72, 2.6, z + 0.28);
+                    room.add(goblet);
+                });
+            }
+
+            // Center Candelabras & Roasted Feast Platter
+            [-17.2, -12.8].forEach(cz => {
+                const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.22, 0.65, 12), goldMat);
+                stand.position.set(12, 2.82, cz);
+                room.add(stand);
+
+                const candle = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.06, 0.35, 10),
+                    new THREE.MeshBasicMaterial({ color: 0xfef08a })
+                );
+                candle.position.set(12, 3.25, cz);
+                room.add(candle);
+            });
+
+            // Warm Dining Room Chandelier Light
+            const diningLight = new THREE.PointLight(0xffb74d, 1.35, 22);
+            diningLight.position.set(12, 6.5, -15);
+            room.add(diningLight);
+
+            // Chandelier Ring
+            const chandelier = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 8, 24), goldMat);
+            chandelier.rotation.x = Math.PI / 2;
+            chandelier.position.set(12, 6.8, -15);
+            room.add(chandelier);
+
+            parent.add(room);
+        }
+
+        // ------------------------------------------
+        // ROOM 2: ROYAL KITCHEN (X: -18..-6, Z: -26..-4)
+        // ------------------------------------------
+        function buildKitchenFurniture(parent, woodMat, stoneMat) {
+            const room = new THREE.Group();
+            const brickMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.85 });
+            const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.35 });
+            const copperMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.25 });
+
+            // 1. Large Stone & Brick Hearth Oven against Back Wall (X = -12, Z = -24.2)
+            const hearthBase = new THREE.Mesh(new THREE.BoxGeometry(5.8, 3.6, 2.6), brickMat);
+            hearthBase.position.set(-12, 2.8, -24.2);
+            room.add(hearthBase);
+
+            const chimney = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.2, 2.0), stoneMat);
+            chimney.position.set(-12, 6.4, -24.4);
+            room.add(chimney);
+
+            // Glowing Hearth Fire & Hanging Iron Cauldron
+            const fireGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(0.85, 12, 12),
+                new THREE.MeshBasicMaterial({ color: 0xff5722 })
+            );
+            fireGlow.position.set(-12, 1.8, -23.1);
+            room.add(fireGlow);
+            fireMeshes.push(fireGlow);
+
+            const cauldron = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 12), ironMat);
+            cauldron.position.set(-12, 2.75, -23.1);
+            room.add(cauldron);
+
+            // 2. Center Wooden Prep Island / Kitchen Table (X = -11.8, Z = -14.5)
+            const islandTop = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.25, 6.4), woodMat);
+            islandTop.position.set(-11.8, 2.35, -14.5);
+            room.add(islandTop);
+
+            [[-1.1, -2.7], [1.1, -2.7], [-1.1, 2.7], [1.1, 2.7]].forEach(([lx, lz]) => {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.3, 0.25), woodMat);
+                leg.position.set(-11.8 + lx, 1.7, -14.5 + lz);
+                room.add(leg);
+            });
+
+            // Food Items on Kitchen Island: Bread Loaves, Cheese Wheel, Copper Pots
+            const breadMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.75 });
+            [-16.2, -15.4].forEach(bz => {
+                const loaf = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), breadMat);
+                loaf.scale.set(1.2, 0.65, 1.8);
+                loaf.position.set(-12.2, 2.6, bz);
+                room.add(loaf);
+            });
+
+            const cheese = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.45, 0.45, 0.25, 16),
+                new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 })
+            );
+            cheese.position.set(-11.3, 2.6, -13.6);
+            room.add(cheese);
+
+            const copperPot = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.45, 16), copperMat);
+            copperPot.position.set(-12.1, 2.7, -12.3);
+            room.add(copperPot);
+
+            // 3. West Wall Kitchen Counters & Shelves (X = -16.6)
+            const counter = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.3, 12), woodMat);
+            counter.position.set(-16.5, 1.68, -14.5);
+            room.add(counter);
+
+            [4.0, 5.3].forEach(sy => {
+                const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.15, 10), woodMat);
+                shelf.position.set(-16.9, sy, -14.5);
+                room.add(shelf);
+
+                for (let jz = -18.5; jz <= -10.5; jz += 2.0) {
+                    const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.55, 12), copperMat);
+                    jar.position.set(-16.85, sy + 0.35, jz);
+                    room.add(jar);
+                }
+            });
+
+            // 4. Wine & Ale Oak Barrels in Corner (X = -16.2, Z = -6.5)
+            [[-16.2, -6.2], [-14.4, -6.2]].forEach(([bx, bz]) => {
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.6, 16), woodMat);
+                barrel.position.set(bx, 1.85, bz);
+                room.add(barrel);
+            });
+
+            // Warm Kitchen Hearth Light
+            const kitchenLight = new THREE.PointLight(0xff9e40, 1.45, 22);
+            kitchenLight.position.set(-12, 5.8, -16);
+            room.add(kitchenLight);
+
+            parent.add(room);
+        }
+
+        // ------------------------------------------
+        // ROOM 3: CENTRAL THRONE HALL (X: -6..6, Z: -26..-4)
+        // ------------------------------------------
+        function buildThroneRoomFurniture(parent, woodMat, goldMat) {
+            const room = new THREE.Group();
+            const royalRed = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.65 });
+
+            // Royal Entrance Carpet leading from Main Door (Z = -4) to Throne (Z = -22)
+            const carpet = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.06, 18), royalRed);
+            carpet.position.set(0, 1.08, -13.5);
+            room.add(carpet);
+
+            // Raised Dais Platform
+            const dais = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.45, 4.2), woodMat);
+            dais.position.set(0, 1.25, -22.8);
+            room.add(dais);
+
+            // Golden Royal Throne
+            const throneSeat = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.75, 1.5), goldMat);
+            throneSeat.position.set(0, 1.85, -23.0);
+            room.add(throneSeat);
+
+            const throneBack = new THREE.Mesh(new THREE.BoxGeometry(1.9, 3.1, 0.35), goldMat);
+            throneBack.position.set(0, 3.3, -23.65);
+            room.add(throneBack);
+
+            const throneCushion = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.3, 0.2), royalRed);
+            throneCushion.position.set(0, 3.2, -23.45);
+            room.add(throneCushion);
+
+            // Throne Hall Chandelier Light
+            const hallLight = new THREE.PointLight(0xffe082, 1.35, 22);
+            hallLight.position.set(0, 6.6, -14);
+            room.add(hallLight);
+
+            parent.add(room);
+        }
+
+        // ==========================================
+        // 4D. SURROUNDING WORLD, MOAT & DRAWBRIDGE
+        // ==========================================
+        function buildWorld() {
+            // Rolling Green Landscape
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(600, 600),
+                new THREE.MeshStandardMaterial({ color: 0x3b6e22, roughness: 0.9 })
+            );
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Water Moat surrounding Castle Island
+            const moat = new THREE.Mesh(
+                new THREE.RingGeometry(52, 66, 48),
+                new THREE.MeshStandardMaterial({
+                    color: 0x0284c7,
+                    roughness: 0.15,
+                    metalness: 0.45
+                })
+            );
+            moat.rotation.x = -Math.PI / 2;
+            moat.position.y = 0.08;
+            moat.receiveShadow = true;
+            scene.add(moat);
+
+            // Raised Castle Courtyard Island
+            const island = new THREE.Mesh(
+                new THREE.CylinderGeometry(52.5, 54, 0.85, 48),
+                new THREE.MeshStandardMaterial({ color: 0x4d7c2b, roughness: 0.85 })
+            );
+            island.position.y = 0.425;
+            island.receiveShadow = true;
+            scene.add(island);
+
+            // Wooden Drawbridge across the South Moat (Z = 38 to Z = 68)
+            const bridgeMat = new THREE.MeshStandardMaterial({ map: textures.wood, color: 0x78350f, roughness: 0.8 });
+            const drawbridge = new THREE.Mesh(new THREE.BoxGeometry(9.5, 0.6, 30), bridgeMat);
+            drawbridge.position.set(0, 0.65, 53);
+            drawbridge.castShadow = true;
+            drawbridge.receiveShadow = true;
+            scene.add(drawbridge);
+
+            // Bridge Side Railings
+            [-4.4, 4.4].forEach(rx => {
+                const rail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.4, 30), bridgeMat);
+                rail.position.set(rx, 1.4, 53);
+                rail.castShadow = true;
+                scene.add(rail);
+            });
+
+            // Approach Dirt Road South of Moat
+            const road = new THREE.Mesh(
+                new THREE.PlaneGeometry(11, 140),
+                new THREE.MeshStandardMaterial({ color: 0xa89984, roughness: 0.9 })
+            );
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0.04, 136);
+            road.receiveShadow = true;
+            scene.add(road);
+
+            // Distant Hills & Surrounding Forest Trees
+            const hillMat = new THREE.MeshStandardMaterial({ color: 0x2f5a1c, roughness: 0.95 });
+            [[-140, -130, 38], [135, -145, 44], [-160, 45, 32], [155, 60, 36]].forEach(([hx, hz, hr]) => {
+                const hill = new THREE.Mesh(new THREE.ConeGeometry(hr * 1.8, hr, 16), hillMat);
+                hill.position.set(hx, hr / 2 - 1, hz);
+                scene.add(hill);
+            });
+
+            for (let i = 0; i < 42; i++) {
+                const ang = (i / 42) * Math.PI * 2;
+                if (Math.abs(Math.sin(ang)) < 0.22 && Math.cos(ang) > 0) continue; // Keep South road clear
+                const dist = 76 + (i % 5) * 14;
+                createTree(Math.sin(ang) * dist, Math.cos(ang) * dist, 0.85 + (i % 3) * 0.25);
+            }
+        }
+
+        function createTree(x, z, scale = 1) {
+            const tree = new THREE.Group();
+            tree.position.set(x, 0, z);
+            tree.scale.setScalar(scale);
+
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.45, 0.7, 3.8, 8),
+                new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 })
+            );
+            trunk.position.y = 1.9;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1e5622, roughness: 0.85 });
+            [[0, 5.2, 2.8, 4.5], [0, 7.6, 2.1, 3.8]].forEach(([fx, fy, r, h]) => {
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), foliageMat);
+                cone.position.set(fx, fy, 0);
+                cone.castShadow = true;
+                tree.add(cone);
+            });
+            scene.add(tree);
+        }
+
+        // ==========================================
+        // 4E. REUSABLE ARCHITECTURAL HELPERS
+        // ==========================================
+        function addWallSegment(parent, x, z, width, height, depth, alongX, stoneMat, trimMat) {
+            const wall = new THREE.Mesh(
+                new THREE.BoxGeometry(alongX ? width : depth, height, alongX ? depth : width),
+                stoneMat
+            );
+            wall.position.set(x, 0.8 + height / 2, z);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            parent.add(wall);
+
+            // Battlements (Crenellations) along top
+            const count = Math.floor(width / 3.2);
+            const start = -width / 2 + 1.6;
+            for (let i = 0; i < count; i++) {
+                const offset = start + i * 3.2;
+                const merlon = new THREE.Mesh(
+                    new THREE.BoxGeometry(alongX ? 1.5 : depth + 0.3, 1.3, alongX ? depth + 0.3 : 1.5),
+                    trimMat
+                );
+                merlon.position.set(
+                    alongX ? x + offset : x,
+                    0.8 + height + 0.65,
+                    alongX ? z : z + offset
+                );
+                merlon.castShadow = true;
+                parent.add(merlon);
+            }
+        }
+
+        function createTower(radius, height, stoneMat, roofMat, goldMat, hasFlag) {
+            const tower = new THREE.Group();
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.06, height, 20), stoneMat);
+            body.position.y = height / 2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            tower.add(body);
+
+            const crown = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.14, radius * 1.05, 1.4, 20), stoneMat);
+            crown.position.y = height + 0.4;
+            tower.add(crown);
+
+            const roofHeight = radius * 2.1;
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(radius * 1.22, roofHeight, 20), roofMat);
+            roof.position.y = height + 1.0 + roofHeight / 2;
+            roof.castShadow = true;
+            tower.add(roof);
+
+            if (hasFlag) {
+                const poleY = height + 1.0 + roofHeight;
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.6, 8), goldMat);
+                pole.position.y = poleY + 1.6;
+                tower.add(pole);
+
+                const flagGeo = new THREE.PlaneGeometry(2.6, 1.3, 8, 2);
+                const flagMat = new THREE.MeshStandardMaterial({
+                    color: 0xf59e0b,
+                    side: THREE.DoubleSide,
+                    roughness: 0.5
+                });
+                const flag = new THREE.Mesh(flagGeo, flagMat);
+                flag.position.set(1.3, poleY + 2.6, 0);
+                tower.add(flag);
+                flags.push(flag);
+            }
+
+            return tower;
+        }
+
+        function addTorch(parent, x, y, z) {
+            const holder = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.1, 0.14, 1.2, 8),
+                new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 })
+            );
+            holder.position.set(x, y - 0.5, z);
+            parent.add(holder);
+
+            const flame = new THREE.Mesh(
+                new THREE.SphereGeometry(0.24, 10, 10),
+                new THREE.MeshBasicMaterial({ color: 0xff9800 })
+            );
+            flame.position.set(x, y + 0.25, z);
+            parent.add(flame);
+            fireMeshes.push(flame);
+
+            const light = new THREE.PointLight(0xff8f00, 0.4, 16);
+            light.position.set(x, y + 0.6, z);
+            parent.add(light);
+            torchLights.push(light);
+        }
+
+        // ==========================================
+        // 5. CAMERA PRESETS, WALK MODE & LIGHTING
+        // ==========================================
+        function setCameraPreset(preset) {
+            camState.autoOrbit = false;
+            updateOrbitButtonUI();
+
+            // Highlight active room button
+            ['panorama', 'courtyard', 'dining', 'kitchen', 'throne'].forEach(id => {
+                const el = document.getElementById('view-' + id);
+                if (el) el.classList.remove('active-room');
+            });
+            const activeBtn = document.getElementById('view-' + preset);
+            if (activeBtn) activeBtn.classList.add('active-room');
+
+            const subtitle = document.getElementById('location-subtitle');
+
+            if (preset === 'panorama') {
+                exitWalkModeUI();
+                camState.mode = 'orbit';
+                camState.targetLookAt.set(0, 7, 2);
+                camState.targetRadius = 138;
+                camState.targetTheta = 0.58;
+                camState.targetPhi = 0.96;
+                if (subtitle) subtitle.textContent = 'תצפית פנורמית מרחוק על הטירה והחצר';
+            } else if (preset === 'courtyard') {
+                exitWalkModeUI();
+                camState.mode = 'orbit';
+                camState.targetLookAt.set(0, 3.5, 12);
+                camState.targetRadius = 26;
+                camState.targetTheta = 0.45;
+                camState.targetPhi = 1.25;
+                if (subtitle) subtitle.textContent = 'מרכז חצר הטירה ליד המזרקה והגנים';
+            } else if (preset === 'dining') {
+                // Enter Walk Mode inside Dining Room facing the Banquet Table!
+                enterWalkMode(new THREE.Vector3(12.0, 3.2, -7.2), 0, -0.14);
+                if (subtitle) subtitle.textContent = 'בתוך חדר האוכל המלכותי • שולחן המשתאות';
+            } else if (preset === 'kitchen') {
+                // Enter Walk Mode inside Royal Kitchen facing Hearth & Prep Island!
+                enterWalkMode(new THREE.Vector3(-11.8, 3.2, -7.2), 0, -0.12);
+                if (subtitle) subtitle.textContent = 'בתוך המטבח המלכותי • תנור הלבנים ושולחן העבודה';
+            } else if (preset === 'throne') {
+                // Enter Walk Mode inside Central Throne Hall facing Golden Throne!
+                enterWalkMode(new THREE.Vector3(0.0, 3.2, -8.5), 0, -0.06);
+                if (subtitle) subtitle.textContent = 'בתוך אולם הכס המלכותי';
+            }
+        }
+
+        function enterWalkMode(pos, yaw, pitch) {
+            camState.mode = 'walk';
+            camState.autoOrbit = false;
+            updateOrbitButtonUI();
+            camState.walkPos.copy(pos);
+            camState.walkYaw = yaw;
+            camState.walkPitch = pitch;
+
+            document.getElementById('walk-controls')?.classList.remove('hidden');
+            const walkBtn = document.getElementById('view-walk');
+            if (walkBtn) {
+                walkBtn.textContent = '🚪 יציאה ממצב הליכה';
+                walkBtn.classList.add('active-tab');
+            }
+            const hint = document.getElementById('hint-banner');
+            if (hint) hint.textContent = '🚶 מצב הליכה: השתמשו בחצים / WASD או בלחצני המסך כדי לטייל בחדרים ובחצר';
+        }
+
+        function exitWalkModeUI() {
+            document.getElementById('walk-controls')?.classList.add('hidden');
+            const walkBtn = document.getElementById('view-walk');
+            if (walkBtn) {
+                walkBtn.textContent = '🚶 מצב הליכה חופשית';
+                walkBtn.classList.remove('active-tab');
+            }
+            const hint = document.getElementById('hint-banner');
+            if (hint) hint.textContent = '🖱️ גררו כדי להסתובב • גלגלת לזום • בחרו חדר למטה כדי להיכנס פנימה!';
+        }
+
+        function toggleWalkMode() {
+            if (camState.mode === 'walk') {
+                setCameraPreset('panorama');
+            } else {
+                ['panorama', 'courtyard', 'dining', 'kitchen', 'throne'].forEach(id => {
+                    document.getElementById('view-' + id)?.classList.remove('active-room');
+                });
+                // Start right in front of the open Keep doors looking inside
+                enterWalkMode(new THREE.Vector3(0, 2.9, 4.0), 0, -0.02);
+                const subtitle = document.getElementById('location-subtitle');
+                if (subtitle) subtitle.textContent = 'הליכה חופשית • היכנסו דרך הדלתות הפתוחות לחדרים!';
+            }
+        }
+
+        function setLighting(mode) {
+            ['day', 'sunset', 'night'].forEach(id => {
+                document.getElementById('btn-' + id)?.classList.remove('active-tab');
+            });
+            document.getElementById('btn-' + mode)?.classList.add('active-tab');
+
+            if (mode === 'day') {
+                scene.background = new THREE.Color(0x7dd3fc);
+                scene.fog.color = new THREE.Color(0xbae6fd);
+                sunLight.color.setHex(0xfffbeb);
+                sunLight.intensity = 1.35;
+                sunLight.position.set(75, 115, 65);
+                hemiLight.intensity = 0.72;
+                ambientLight.intensity = 0.35;
+                torchLights.forEach(l => l.intensity = 0.35);
+            } else if (mode === 'sunset') {
+                scene.background = new THREE.Color(0xf97316);
+                scene.fog.color = new THREE.Color(0xfdba74);
+                sunLight.color.setHex(0xffedd5);
+                sunLight.intensity = 1.25;
+                sunLight.position.set(-95, 38, 55);
+                hemiLight.intensity = 0.55;
+                ambientLight.intensity = 0.32;
+                torchLights.forEach(l => l.intensity = 1.2);
+            } else if (mode === 'night') {
+                scene.background = new THREE.Color(0x090d16);
+                scene.fog.color = new THREE.Color(0x0f172a);
+                sunLight.color.setHex(0x93c5fd);
+                sunLight.intensity = 0.32;
+                sunLight.position.set(-55, 85, -45);
+                hemiLight.intensity = 0.25;
+                ambientLight.intensity = 0.22;
+                torchLights.forEach(l => l.intensity = 2.4);
+            }
+        }
+
+        function toggleAutoOrbit() {
+            if (camState.mode === 'walk') {
+                setCameraPreset('panorama');
+            }
+            camState.autoOrbit = !camState.autoOrbit;
+            updateOrbitButtonUI();
+        }
+
+        function updateOrbitButtonUI() {
+            const btn = document.getElementById('btn-orbit');
+            if (!btn) return;
+            if (camState.autoOrbit && camState.mode === 'orbit') {
+                btn.classList.add('bg-amber-500/25', 'text-amber-200', 'border-amber-400/40');
+                btn.classList.remove('text-slate-300', 'border-transparent');
+            } else {
+                btn.classList.remove('bg-amber-500/25', 'text-amber-200', 'border-amber-400/40');
+                btn.classList.add('text-slate-300', 'border-transparent');
+            }
+        }
+
+        // ==========================================
+        // 6. CAMERA MOVEMENT & INPUT HANDLING
+        // ==========================================
+        function clamp(val, min, max) {
+            return Math.max(min, Math.min(max, val));
+        }
+
+        function getTouchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.hypot(dx, dy);
+        }
+
+        function updateCameraTransform(dt) {
+            if (camState.mode === 'orbit') {
+                if (camState.autoOrbit && !camState.isDragging) {
+                    camState.targetTheta += dt * 0.14;
+                }
+                const lerpFactor = Math.min(1, dt * 6.5);
+                camState.theta += (camState.targetTheta - camState.theta) * lerpFactor;
+                camState.phi += (camState.targetPhi - camState.phi) * lerpFactor;
+                camState.radius += (camState.targetRadius - camState.radius) * lerpFactor;
+                camState.currentLookAt.lerp(camState.targetLookAt, lerpFactor);
+
+                const sinPhi = Math.sin(camState.phi);
+                camera.position.set(
+                    camState.currentLookAt.x + camState.radius * sinPhi * Math.sin(camState.theta),
+                    camState.currentLookAt.y + camState.radius * Math.cos(camState.phi),
+                    camState.currentLookAt.z + camState.radius * sinPhi * Math.cos(camState.theta)
+                );
+                camera.lookAt(camState.currentLookAt);
+            } else {
+                // First-Person Walk Movement
+                const moveSpeed = 13.5 * dt;
+                const turnSpeed = 1.9 * dt;
+
+                if (keysPressed['KeyQ'] || keysPressed['ArrowLeft']) camState.walkYaw += turnSpeed;
+                if (keysPressed['KeyE'] || keysPressed['ArrowRight']) camState.walkYaw -= turnSpeed;
+
+                const forwardX = -Math.sin(camState.walkYaw);
+                const forwardZ = -Math.cos(camState.walkYaw);
+                const rightX = Math.cos(camState.walkYaw);
+                const rightZ = -Math.sin(camState.walkYaw);
+
+                if (keysPressed['KeyW'] || keysPressed['ArrowUp'] || touchPad.forward) {
+                    camState.walkPos.x += forwardX * moveSpeed;
+                    camState.walkPos.z += forwardZ * moveSpeed;
+                }
+                if (keysPressed['KeyS'] || keysPressed['ArrowDown'] || touchPad.backward) {
+                    camState.walkPos.x -= forwardX * moveSpeed;
+                    camState.walkPos.z -= forwardZ * moveSpeed;
+                }
+                if (keysPressed['KeyA'] || touchPad.left) {
+                    camState.walkPos.x -= rightX * moveSpeed;
+                    camState.walkPos.z -= rightZ * moveSpeed;
+                }
+                if (keysPressed['KeyD'] || touchPad.right) {
+                    camState.walkPos.x += rightX * moveSpeed;
+                    camState.walkPos.z += rightZ * moveSpeed;
+                }
+
+                // Keep player within safe Castle & Drawbridge bounds
+                camState.walkPos.x = clamp(camState.walkPos.x, -34, 34);
+                camState.walkPos.z = clamp(camState.walkPos.z, -24.2, 62);
+                camState.walkPos.y = camState.walkPos.z < -3.5 ? 2.95 : 2.75;
+
+                camera.position.copy(camState.walkPos);
+                const lookTarget = new THREE.Vector3(
+                    camState.walkPos.x - Math.sin(camState.walkYaw) * Math.cos(camState.walkPitch),
+                    camState.walkPos.y + Math.sin(camState.walkPitch),
+                    camState.walkPos.z - Math.cos(camState.walkYaw) * Math.cos(camState.walkPitch)
+                );
+                camera.lookAt(lookTarget);
+            }
+        }
+
+        function setupInputControls() {
+            const dom = renderer.domElement;
+
+            // Mouse Drag & Wheel
+            dom.addEventListener('mousedown', (e) => {
+                camState.isDragging = true;
+                camState.autoOrbit = false;
+                updateOrbitButtonUI();
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!camState.isDragging) return;
+                const dx = e.clientX - camState.prevX;
+                const dy = e.clientY - camState.prevY;
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+
+                if (camState.mode === 'walk') {
+                    camState.walkYaw -= dx * 0.0045;
+                    camState.walkPitch = clamp(camState.walkPitch - dy * 0.0038, -0.75, 0.75);
+                } else {
+                    camState.targetTheta -= dx * 0.0065;
+                    camState.targetPhi = clamp(camState.targetPhi - dy * 0.0065, 0.12, Math.PI / 2 - 0.04);
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                camState.isDragging = false;
+            });
+
+            dom.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                if (camState.mode === 'orbit') {
+                    camState.targetRadius = clamp(camState.targetRadius + e.deltaY * 0.08, 4.5, 230);
+                }
+            }, { passive: false });
+
+            // Touch Support (Single drag rotate + Two-finger pinch zoom)
+            dom.addEventListener('touchstart', (e) => {
+                camState.autoOrbit = false;
+                updateOrbitButtonUI();
+                if (e.touches.length === 1) {
+                    camState.isDragging = true;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    camState.isDragging = false;
+                    camState.pinchDist = getTouchDistance(e.touches);
+                }
+            }, { passive: false });
+
+            dom.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1 && camState.isDragging) {
+                    const dx = e.touches[0].clientX - camState.prevX;
+                    const dy = e.touches[0].clientY - camState.prevY;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+
+                    if (camState.mode === 'walk') {
+                        camState.walkYaw -= dx * 0.0055;
+                        camState.walkPitch = clamp(camState.walkPitch - dy * 0.0045, -0.75, 0.75);
+                    } else {
+                        camState.targetTheta -= dx * 0.0075;
+                        camState.targetPhi = clamp(camState.targetPhi - dy * 0.0075, 0.12, Math.PI / 2 - 0.04);
+                    }
+                } else if (e.touches.length === 2 && camState.mode === 'orbit') {
+                    const dist = getTouchDistance(e.touches);
+                    const delta = camState.pinchDist - dist;
+                    camState.pinchDist = dist;
+                    camState.targetRadius = clamp(camState.targetRadius + delta * 0.35, 4.5, 230);
+                }
+            }, { passive: false });
+
+            dom.addEventListener('touchend', () => {
+                camState.isDragging = false;
+            });
+
+            // Keyboard Navigation
+            window.addEventListener('keydown', (e) => { keysPressed[e.code] = true; });
+            window.addEventListener('keyup', (e) => { keysPressed[e.code] = false; });
+
+            // On-screen D-Pad buttons
+            const bindPad = (id, prop) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const start = (e) => { e.preventDefault(); touchPad[prop] = true; };
+                const end = (e) => { e.preventDefault(); touchPad[prop] = false; };
+                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mouseup', end);
+                btn.addEventListener('mouseleave', end);
+                btn.addEventListener('touchstart', start, { passive: false });
+                btn.addEventListener('touchend', end);
+            };
+            bindPad('pad-up', 'forward');
+            bindPad('pad-down', 'backward');
+            bindPad('pad-left', 'left');
+            bindPad('pad-right', 'right');
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ==========================================
+        // 7. ANIMATION LOOP
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const elapsed = clock.getElapsedTime();
+
+            // 1. Wave Royal Banners in the Breeze
+            flags.forEach((flag, idx) => {
+                const pos = flag.geometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i);
+                    const wave = Math.sin(elapsed * 4.5 + x * 1.6 + idx) * 0.18 * ((x + 1.3) / 2.6);
+                    pos.setZ(i, wave);
+                }
+                pos.needsUpdate = true;
+            });
+
+            // 2. Animate Courtyard Fountain Water Arcs
+            waterDrops.forEach((drop) => {
+                const t = (elapsed * 0.9 + drop.userData.phase) % 1;
+                const r = 0.6 + t * 2.8;
+                const y = 3.1 + Math.sin(t * Math.PI) * 1.2 - t * t * 2.1;
+                drop.position.set(
+                    Math.cos(drop.userData.angle) * r,
+                    Math.max(1.0, y),
+                    Math.sin(drop.userData.angle) * r
+                );
+            });
+
+            // 3. Flicker Torches & Hearth Fire
+            fireMeshes.forEach((flame, idx) => {
+                const s = 0.9 + Math.sin(elapsed * 14 + idx * 2.1) * 0.16;
+                flame.scale.set(s, s * 1.15, s);
+            });
+
+            updateCameraTransform(dt);
+            renderer.render(scene, camera);
+        }
+
+        // Start simulation on window load
+        window.onload = function () {
+            init();
+        };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

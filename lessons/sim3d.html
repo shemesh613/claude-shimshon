@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-3d">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-worlds">
 <style>
   .ex-list { display: grid; gap: 22px; margin: 16px auto 0; max-width: 860px; }
   .ex { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -16,6 +16,14 @@
   .ex .prompt { margin: 0; font-size: 1em; background: var(--bg, #f6f8fc); border-radius: 12px; padding: 8px 12px; }
   .ex .more { margin: 0; font-size: .95em; color: var(--muted); }
   .ex .copy { align-self: flex-start; min-height: 44px; padding: 6px 18px; font-size: .9em; }
+  .live { position: relative; border-radius: 14px; overflow: hidden; background: #111; aspect-ratio: 1019 / 520; }
+  .live img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .live iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .live.on img, .live.on .live-play { display: none; }
+  .live-play { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 0; cursor: pointer; background: rgba(20,26,46,.35); color: #fff; font: 600 1.15em/1.2 var(--font-display); }
+  .live-play span { width: 84px; height: 84px; border-radius: 50%; background: var(--coral); display: grid; place-items: center; font-size: 36px; box-shadow: 0 6px 0 #d9584a; }
+  .live-play b { background: rgba(0,0,0,.55); padding: 6px 16px; border-radius: 999px; }
+  .open-full { align-self: flex-start; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
   .idea-list { display: grid; gap: 10px; padding: 0; list-style: none; margin: 14px 0 0; }
   .idea-list li { background: var(--surface); border: 2.5px dashed var(--line); border-radius: 16px; padding: 10px 14px; }
 </style>
@@ -37,8 +45,7 @@
   <section class="today">
     <h2>🎯 מה נעשה היום?</h2>
     <ol>
-      <li>בוחרות Canvas בגמיני</li>
-      <li>מבקשות הדמיה תלת־ממדית של חדר או ארמון</li>
+      <li>מבקשות מגמיני הדמיה תלת־ממדית של חדר או ארמון</li>
       <li>מסתובבות בעולם שגמיני בנתה, ומשפרות אותו</li>
     </ol>
   </section>
@@ -57,33 +64,27 @@
 
   <h2 class="sec">עכשיו אתן!</h2>
   <section class="step">
-    <div class="step-head"><span class="step-num">1</span><h3>בוחרות Canvas</h3></div>
-    <p>לוחצים על <b>+</b> ובוחרים <b>Canvas</b>. זה המקום שבו גמיני כותבת קוד ומראה אותו.</p>
-    <figure class="real" data-shot="tmenu" data-marks="tPlus:1,tCanvas:1" aria-label="כפתור הפלוס והאפשרות Canvas מסומנים"></figure>
+    <div class="step-head"><span class="step-num">1</span><h3>כותבות מה לבנות</h3></div>
+    <p>בצ׳אט הרגיל של גמיני כותבים: <b>צור בקוד הדמיה תלת מימדית של...</b> ושולחים.</p>
+    <figure class="real" data-shot="ttyped" data-marks="tText:1,tSend:1" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">2</span><h3>כותבות מה לבנות</h3></div>
-    <p>מתחילים ב: <b>צור בקוד הדמיה תלת מימדית של...</b> ושולחים.</p>
-    <figure class="real" data-shot="ttyped" data-marks="tText:2,tSend:2" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
-  </section>
-
-  <section class="step">
-    <div class="step-head"><span class="step-num">3</span><h3>פותחות במסך מלא</h3></div>
+    <div class="step-head"><span class="step-num">2</span><h3>פותחות במסך מלא</h3></div>
     <p>גמיני כותבת את הקוד לבד. לוחצים על <b>מסך מלא</b> כדי לראות את העולם בגדול.</p>
-    <figure class="real" data-shot="tchat" data-marks="tFull:3" aria-label="כפתור המסך המלא מסומן"></figure>
+    <figure class="real" data-shot="tchat" data-marks="tFull:2" aria-label="כפתור המסך המלא מסומן"></figure>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">4</span><h3>מסתובבות בעולם</h3></div>
+    <div class="step-head"><span class="step-num">3</span><h3>מסתובבות בעולם</h3></div>
     <p>גוררים עם העכבר כדי להסתובב. בגלגלת מתקרבים ומתרחקים. לוחצים על הכפתורים שגמיני הוסיפה.</p>
-    <figure class="real" data-shot="tview" data-marks="t3d:4" aria-label="הטירה התלת־ממדית"></figure>
+    <figure class="real" data-shot="tview" data-marks="t3d:3" aria-label="הטירה התלת־ממדית"></figure>
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="step-num">5</span><h3>לא עובד? מבקשות לתקן</h3></div>
+    <div class="step-head"><span class="step-num">4</span><h3>לא עובד? מבקשות לתקן</h3></div>
     <p>לפעמים המסך ריק או משהו נשבר. זה קורה גם למתכנתים! פשוט כותבים: <b>תתקן, זה לא עובד</b>.</p>
-    <figure class="real" data-shot="tfix" data-marks="tFix:5" aria-label="הבקשה לתקן מסומנת"></figure>
+    <figure class="real" data-shot="tfix" data-marks="tFix:4" aria-label="הבקשה לתקן מסומנת"></figure>
   </section>
 
   <h2 class="sec">🏆 האתגר שלכן</h2>
@@ -97,7 +98,7 @@
   <div class="note"><b>טיפ:</b> כל בקשה חדשה כותבים באותה שיחה. גמיני משפרת את אותו עולם, ולא מתחילה מהתחלה.</div>
 
   <h2 class="sec">👀 מה בנינו בחוג</h2>
-  <p class="fig-note">עולמות אמיתיים שבנות החוג בנו. לוחצים <b>העתקה</b> ומנסים בעצמכן.</p>
+  <p class="fig-note">עולמות אמיתיים שבנות החוג בנו. לוחצים ▶, ואז גוררים עם העכבר ומסתובבים! אפשר גם ללחוץ <b>העתקה</b> ולנסות בעצמכן.</p>
   <div class="ex-list" id="examples"></div>
 
   <div class="lesson-end"><a class="btn ghost" href="../index.html">→ לכל השיעורים</a></div>
@@ -108,15 +109,24 @@
 <script>
 (function () {
   const EX = [
-    { title: "ארמון ענק עם חדר לנסיכה", img: "img/ex3d-palace.jpg", prompt: "צור בקוד הדמיה תלת מימדית של ארמון ענק עם הרבה קומות, עם נסיכה, ולנסיכה יש חדר פרטי" },
-    { title: "טירה מפוארת עם חצר", img: "img/ex3d-castle.jpg", prompt: "צור בקוד הדמיית תלת ממד של טירה מפוארת, ותתחיל מרחוק שיראו גם את החצר", more: "ואחר כך: תעשה שאפשר להיכנס לחדרים, לשולחן ולמטבח" },
-    { title: "חדר ברבי", img: "img/ex3d-barbie.jpg", prompt: "צור בקוד חדר של ברבי" },
-    { title: "ארמון ורוד", img: "img/ex3d-pink.jpg", prompt: "צור בקוד ארמון ענק של בנות בתלת מימד" },
-    { title: "כדור הארץ והחלל", img: "img/ex3d-globe.jpg", prompt: "צור בקוד הדמיה תלת מימדית של כדור הארץ, שאפשר להיכנס לבתים ולראות את אירופה", more: "ואחר כך: שכל הכדור יהיה עם יבשות" }
+    { title: "ארמון ענק עם חדר לנסיכה", img: "img/ex3d-palace.jpg", world: "palace", prompt: "צור בקוד הדמיה תלת מימדית של ארמון ענק עם הרבה קומות, עם נסיכה, ולנסיכה יש חדר פרטי" },
+    { title: "טירה מפוארת עם חצר", img: "img/ex3d-castle.jpg", world: "castle", prompt: "צור בקוד הדמיית תלת ממד של טירה מפוארת, ותתחיל מרחוק שיראו גם את החצר", more: "ואחר כך: תעשה שאפשר להיכנס לחדרים, לשולחן ולמטבח" },
+    { title: "חדר ברבי", img: "img/ex3d-barbie.jpg", world: "barbie", prompt: "צור בקוד חדר של ברבי" },
+    { title: "ארמון ורוד", img: "img/ex3d-pink.jpg", world: "pink", prompt: "צור בקוד ארמון ענק של בנות בתלת מימד" },
+    { title: "כדור הארץ והחלל", img: "img/ex3d-globe.jpg", world: "globe", prompt: "צור בקוד הדמיה תלת מימדית של כדור הארץ, שאפשר להיכנס לבתים ולראות את אירופה", more: "ואחר כך: שכל הכדור יהיה עם יבשות" }
   ];
   const host = document.getElementById("examples");
-  host.innerHTML = EX.map((e, i) => `<div class="ex"><h3>${e.title}</h3><img src="${e.img}" alt="${e.title}, הדמיה תלת־ממדית שנבנתה בגמיני" loading="lazy" width="1019" height="361"><p class="prompt" id="p${i}">${e.prompt}</p>${e.more ? `<p class="more">${e.more}</p>` : ""}<button class="btn ghost copy" type="button" data-i="${i}">העתקה</button></div>`).join("");
+  host.innerHTML = EX.map((e, i) => `<div class="ex"><h3>${e.title}</h3><div class="live" data-world="${e.world}"><img src="${e.img}" alt="${e.title}, הדמיה תלת־ממדית שנבנתה בגמיני" loading="lazy" width="1019" height="361"><button class="live-play" type="button"><span aria-hidden="true">▶</span><b>להיכנס לעולם בתלת־ממד</b></button></div><a class="open-full" href="../worlds/${e.world}.html" target="_blank" rel="noopener">⛶ לפתוח במסך מלא</a><p class="prompt" id="p${i}">${e.prompt}</p>${e.more ? `<p class="more">${e.more}</p>` : ""}<button class="btn ghost copy" type="button" data-i="${i}">העתקה</button></div>`).join("");
   host.addEventListener("click", (ev) => {
+    const lp = ev.target.closest(".live-play");
+    if (lp) {
+      const box = lp.closest(".live");
+      host.querySelectorAll(".live iframe").forEach((f) => f.closest(".live").classList.remove("on") || f.remove());
+      const fr = document.createElement("iframe");
+      fr.src = "../worlds/" + box.dataset.world + ".html"; fr.title = "עולם תלת־ממד"; fr.allow = "fullscreen";
+      box.appendChild(fr); box.classList.add("on");
+      return;
+    }
     const b = ev.target.closest(".copy"); if (!b) return;
     const text = document.getElementById("p" + b.dataset.i).textContent;
     const done = () => { b.textContent = "הועתק ✓"; setTimeout(() => (b.textContent = "העתקה"), 1500); };
@@ -125,7 +135,7 @@
 })();
 </script>
 <script src="../assets/a11y.js"></script>
-<script src="../assets/shots4.js?v=2026-11-16-3d"></script>
+<script src="../assets/shots4.js?v=2026-11-16-worlds"></script>
 <script src="../assets/player-plus.js?v=2026-11-16-3d"></script>
 <script src="../assets/fullscreen.js?v=2026-11-16-3d"></script>
 </body>

@@ -66,7 +66,9 @@
     activateSection();
   }
 
-  const subTabs = [["subtab-songs", "sub-songs"], ["subtab-books", "sub-books"]];
+  fill("worlds", SITE.worlds || [], (it) => `<a class="card book world" href="${esc(it.href)}" aria-label="כניסה לעולם ${esc(it.title)}"><img src="${esc(it.cover)}" alt="${esc(it.title)}" loading="lazy"><span class="book-open">${esc(it.title)}</span><span class="world-go">▶ להיכנס לעולם</span></a>`);
+
+  const subTabs = [["subtab-songs", "sub-songs"], ["subtab-books", "sub-books"], ["subtab-worlds", "sub-worlds"]];
   subTabs.forEach(([t, p]) => {
     const btn = document.getElementById(t);
     if (btn) btn.addEventListener("click", () => subTabs.forEach(([t2, p2]) => {

@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbie Dreamhouse Bedroom 3D</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for gorgeous UI icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Barbie-esque typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for smooth 3D navigation -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            overflow: hidden;
+            background-color: #ffd1dc;
+            user-select: none;
+        }
+        .barbie-font {
+            font-family: 'Pacifico', cursive;
+        }
+        /* Custom smooth scrollbars & styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff69b4;
+            border-radius: 9999px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 182, 193, 0.6);
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.25);
+        }
+        .glow-pink {
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.7);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: floatSlow 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI Overlay Header -->
+    <header class="absolute top-4 left-4 right-4 z-10 flex flex-col sm:flex-row justify-between items-center pointer-events-none gap-3">
+        <div class="glass-panel px-6 py-3 rounded-full pointer-events-auto flex items-center space-x-3 glow-pink">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md animate-spin" style="animation-duration: 12s;">
+                <i class="fa-solid fa-gem text-lg"></i>
+            </div>
+            <div>
+                <h1 class="barbie-font text-2xl text-pink-600 tracking-wide drop-shadow-sm">Barbie's Dreamhouse</h1>
+                <p class="text-xs text-pink-500 font-bold uppercase tracking-widest">Interactive 3D Suite</p>
+            </div>
+        </div>
+
+        <!-- Quick Interaction Banner -->
+        <div class="glass-panel px-5 py-2.5 rounded-full pointer-events-auto flex items-center space-x-2 text-pink-700 font-semibold text-sm shadow-md">
+            <i class="fa-solid fa-hand-pointer text-pink-500 animate-bounce"></i>
+            <span id="interaction-hint">Tip: Click objects in the room to interact!</span>
+        </div>
+    </header>
+
+    <!-- Floating UI Control Panel (Right Side) -->
+    <div class="absolute right-4 top-24 bottom-6 z-10 w-80 max-h-[calc(100vh-120px)] overflow-y-auto pointer-events-auto flex flex-col gap-4">
+        
+        <!-- Lighting & Atmosphere Card -->
+        <div class="glass-panel p-5 rounded-3xl shadow-xl flex flex-col gap-4">
+            <h2 class="text-pink-700 font-bold text-lg flex items-center gap-2 border-b border-pink-200 pb-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i> Lighting & Vibe
+            </h2>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="setLightingMode('dreamy')" class="lighting-btn bg-pink-100 hover:bg-pink-200 text-pink-700 border-2 border-pink-300 font-bold py-2.5 px-3 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-cloud-moon text-pink-500"></i> Dreamy Pink
+                </button>
+                <button onclick="setLightingMode('party')" class="lighting-btn bg-purple-100 hover:bg-purple-200 text-purple-700 border-2 border-purple-300 font-bold py-2.5 px-3 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-compact-disc text-purple-500 animate-spin"></i> Party Neon
+                </button>
+                <button onclick="setLightingMode('sunset')" class="lighting-btn bg-amber-100 hover:bg-amber-200 text-amber-700 border-2 border-amber-300 font-bold py-2.5 px-3 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-sun text-amber-500"></i> Sunset Glow
+                </button>
+                <button onclick="setLightingMode('spa')" class="lighting-btn bg-teal-100 hover:bg-teal-200 text-teal-700 border-2 border-teal-300 font-bold py-2.5 px-3 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-spa text-teal-500"></i> Malibu Spa
+                </button>
+            </div>
+        </div>
+
+        <!-- Room Features & Toggles Card -->
+        <div class="glass-panel p-5 rounded-3xl shadow-xl flex flex-col gap-4">
+            <h2 class="text-pink-700 font-bold text-lg flex items-center gap-2 border-b border-pink-200 pb-2">
+                <i class="fa-solid fa-house-chimney text-pink-500"></i> Room Controls
+            </h2>
+            
+            <div class="flex flex-col gap-3">
+                <!-- Hollywood Mirror Toggle -->
+                <div class="flex items-center justify-between bg-white/60 p-3 rounded-2xl border border-pink-200">
+                    <span class="text-xs font-bold text-pink-800 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-yellow-500"></i> Vanity Mirror Lights
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="mirror-toggle" checked onchange="toggleVanityLights(this.checked)" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                    </label>
+                </div>
+
+                <!-- Closet Doors Toggle -->
+                <div class="flex items-center justify-between bg-white/60 p-3 rounded-2xl border border-pink-200">
+                    <span class="text-xs font-bold text-pink-800 flex items-center gap-2">
+                        <i class="fa-solid fa-door-open text-pink-500"></i> Wardrobe Closet
+                    </span>
+                    <button onclick="toggleCloset()" id="closet-btn" class="bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition-all shadow">
+                        Open
+                    </button>
+                </div>
+
+                <!-- Sparkle Particles Toggle -->
+                <div class="flex items-center justify-between bg-white/60 p-3 rounded-2xl border border-pink-200">
+                    <span class="text-xs font-bold text-pink-800 flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic text-pink-500"></i> Magic Sparkles
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="sparkle-toggle" checked onchange="toggleSparkles(this.checked)" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                    </label>
+                </div>
+
+                <!-- Camera Reset -->
+                <button onclick="resetCamera()" class="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-2xl text-xs transition-all shadow-md flex items-center justify-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-video"></i> Reset Camera View
+                </button>
+            </div>
+        </div>
+
+        <!-- Fun Barbie Sound / Affirmation Generator -->
+        <div class="glass-panel p-5 rounded-3xl shadow-xl flex flex-col gap-3">
+            <h2 class="text-pink-700 font-bold text-sm flex items-center gap-2">
+                <i class="fa-solid fa-crown text-pink-500"></i> Barbie Affirmation
+            </h2>
+            <p id="affirmation-text" class="text-xs text-pink-900 font-semibold italic bg-pink-50/80 p-3 rounded-2xl border border-pink-200 text-center">
+                "You can be anything!"
+            </p>
+            <button onclick="newAffirmation()" class="bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold py-2 rounded-xl text-xs transition-all border border-pink-300">
+                ✨ New Affirmation
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Bottom Instructions / Credits Overlay -->
+    <div class="absolute bottom-4 left-4 z-10 pointer-events-none hidden sm:block">
+        <div class="glass-panel px-4 py-2 rounded-2xl text-xs text-pink-700 font-semibold flex items-center gap-3">
+            <span><i class="fa-solid fa-rotate text-pink-500 mr-1"></i> Rotate: Click + Drag</span>
+            <span><i class="fa-solid fa-magnifying-glass text-pink-500 mr-1"></i> Zoom: Scroll</span>
+            <span><i class="fa-solid fa-hand text-pink-500 mr-1"></i> Pan: Right Click + Drag</span>
+        </div>
+    </div>
+
+    <!-- Notification Custom Toast -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-pink-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-3 border-2 border-pink-300">
+            <i class="fa-solid fa-heart text-pink-200 animate-pulse"></i>
+            <span id="toast-msg">Action performed!</span>
+        </div>
+    </div>
+
+    <!-- Three.js Scene and Interaction Logic -->
+    <script>
+        // --- Affirmations List ---
+        const affirmations = [
+            "“You can be anything!”",
+            "“Dream big, sparkle more, shine bright!”",
+            "“Barbie energy is all about confidence and style!”",
+            "“Life in plastic, it's fantastic!”",
+            "“Embrace your pink powerhouse self today!”",
+            "“Radiate positivity and fabulousness everywhere you go!”"
+        ];
+        function newAffirmation() {
+            const randomIndex = Math.floor(Math.random() * affirmations.length);
+            document.getElementById('affirmation-text').innerText = affirmations[randomIndex];
+            showToast("New Barbie Vibe Unlocked! ✨");
+        }
+
+        // --- Toast Notification ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // --- Three.js Globals ---
+        let scene, camera, renderer, controls;
+        let sparkleParticles;
+        let vanityLightsGroup = [];
+        let closetDoors = [];
+        let closetIsOpen = false;
+        let mirrorLightsOn = true;
+        let sparklesActive = true;
+        let currentLightingMode = 'dreamy';
+        let interactiveObjects = [];
+        let raycaster, mouse;
+
+        // --- Init Three.js Scene ---
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffe4ec);
+            scene.fog = new THREE.FogExp2(0xffe4ec, 0.015);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 14);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go below floor
+            controls.minDistance = 5;
+            controls.maxDistance = 25;
+            controls.target.set(0, 2, 0);
+
+            // Raycaster for Clicking 3D Objects
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Lighting Setup
+            setupLighting('dreamy');
+
+            // Build Room and Furniture
+            buildRoom();
+            buildSparkles();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onDocumentClick);
+
+            // Start Animation Loop
+            animate();
+        }
+
+        // --- Lighting Modes ---
+        let ambientLight, directionalLight, pointLight1, pointLight2;
+        function setupLighting(mode) {
+            currentLightingMode = mode;
+            
+            // Remove existing lights if any
+            if (ambientLight) scene.remove(ambientLight);
+            if (directionalLight) scene.remove(directionalLight);
+            if (pointLight1) scene.remove(pointLight1);
+            if (pointLight2) scene.remove(pointLight2);
+
+            if (mode === 'dreamy') {
+                scene.background = new THREE.Color(0xffe4ec);
+                scene.fog = new THREE.FogExp2(0xffe4ec, 0.015);
+                ambientLight = new THREE.AmbientLight(0xffb6c1, 0.9);
+                directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(5, 12, 7);
+                pointLight1 = new THREE.PointLight(0xff69b4, 2, 20);
+                pointLight1.position.set(-4, 6, -3);
+                pointLight2 = new THREE.PointLight(0xffc0cb, 1.5, 20);
+                pointLight2.position.set(4, 5, 3);
+            } else if (mode === 'party') {
+                scene.background = new THREE.Color(0x1a0518);
+                scene.fog = new THREE.FogExp2(0x1a0518, 0.02);
+                ambientLight = new THREE.AmbientLight(0xff00ff, 0.7);
+                directionalLight = new THREE.DirectionalLight(0x00ffff, 1.5);
+                directionalLight.position.set(5, 12, 7);
+                pointLight1 = new THREE.PointLight(0xff007f, 3, 25);
+                pointLight1.position.set(-4, 6, -3);
+                pointLight2 = new THREE.PointLight(0x00ffff, 3, 25);
+                pointLight2.position.set(4, 6, 3);
+            } else if (mode === 'sunset') {
+                scene.background = new THREE.Color(0xffdab9);
+                scene.fog = new THREE.FogExp2(0xffdab9, 0.015);
+                ambientLight = new THREE.AmbientLight(0xffa07a, 0.8);
+                directionalLight = new THREE.DirectionalLight(0xff4500, 1.3);
+                directionalLight.position.set(6, 10, 6);
+                pointLight1 = new THREE.PointLight(0xff6347, 2.5, 20);
+                pointLight1.position.set(-4, 5, -2);
+                pointLight2 = new THREE.PointLight(0xff1493, 1.5, 20);
+                pointLight2.position.set(4, 5, 2);
+            } else if (mode === 'spa') {
+                scene.background = new THREE.Color(0xe0f7fa);
+                scene.fog = new THREE.FogExp2(0xe0f7fa, 0.015);
+                ambientLight = new THREE.AmbientLight(0xb2ebf2, 0.9);
+                directionalLight = new THREE.DirectionalLight(0xffffff, 1.1);
+                directionalLight.position.set(5, 12, 7);
+                pointLight1 = new THREE.PointLight(0x00bcd4, 2, 20);
+                pointLight1.position.set(-4, 5, -2);
+                pointLight2 = new THREE.PointLight(0xff69b4, 1.5, 20);
+                pointLight2.position.set(4, 5, 2);
+            }
+
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+
+            scene.add(ambientLight);
+            scene.add(directionalLight);
+            scene.add(pointLight1);
+            scene.add(pointLight2);
+        }
+
+        function setLightingMode(mode) {
+            setupLighting(mode);
+            showToast(`Switched to ${mode.toUpperCase()} Vibe! 🌸`);
+        }
+
+        // --- Build 3D Room and Barbie Furniture ---
+        function buildRoom() {
+            // Materials
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xffd1dc, roughness: 0.3, metalness: 0.1 });
+            const wallPinkMat = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.5 });
+            const wallBackMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.4 });
+            const whiteWoodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+            const velvetPinkMat = new THREE.MeshStandardMaterial({ color: 0xe91e63, roughness: 0.8 });
+            const mirrorMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.1 });
+
+            // 1. Room Floor & Walls
+            const floorGeo = new THREE.PlaneGeometry(16, 16);
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Back Wall
+            const backWallGeo = new THREE.PlaneGeometry(16, 10);
+            const backWall = new THREE.Mesh(backWallGeo, wallBackMat);
+            backWall.position.set(0, 5, -8);
+            backWall.receiveShadow = true;
+            scene.add(backWall);
+
+            // Left Wall
+            const leftWallGeo = new THREE.PlaneGeometry(16, 10);
+            const leftWall = new THREE.Mesh(leftWallGeo, wallPinkMat);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.position.set(-8, 5, 0);
+            leftWall.receiveShadow = true;
+            scene.add(leftWall);
+
+            // Fluffy White / Pink Rug
+            const rugGeo = new THREE.CylinderGeometry(3.5, 3.5, 0.1, 32);
+            const rugMat = new THREE.MeshStandardMaterial({ color: 0xfff0f5, roughness: 0.9 });
+            const rug = new THREE.Mesh(rugGeo, rugMat);
+            rug.position.set(0, 0.05, 1);
+            rug.receiveShadow = true;
+            scene.add(rug);
+
+            // 2. Glamorous Barbie Bed
+            const bedGroup = new THREE.Group();
+            
+            // Bed Frame
+            const bedBaseGeo = new THREE.BoxGeometry(4.2, 0.8, 5.2);
+            const bedBase = new THREE.Mesh(bedBaseGeo, whiteWoodMat);
+            bedBase.position.set(-4, 0.4, -2);
+            bedBase.castShadow = true;
+            bedBase.receiveShadow = true;
+            bedGroup.add(bedBase);
+
+            // Velvet Headboard (Heart-shaped or Tall Stylish)
+            const headboardGeo = new THREE.BoxGeometry(4.4, 3.2, 0.4);
+            const headboard = new THREE.Mesh(headboardGeo, velvetPinkMat);
+            headboard.position.set(-4, 2, -4.4);
+            headboard.castShadow = true;
+            bedGroup.add(headboard);
+
+            // Headboard Gold Trim
+            const trimGeo = new THREE.BoxGeometry(4.6, 3.4, 0.1);
+            const trim = new THREE.Mesh(trimGeo, goldMat);
+            trim.position.set(-4, 2, -4.5);
+            bedGroup.add(trim);
+
+            // Mattress & Pillows
+            const mattressGeo = new THREE.BoxGeometry(3.8, 0.6, 4.8);
+            const mattressMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+            const mattress = new THREE.Mesh(mattressGeo, mattressMat);
+            mattress.position.set(-4, 1.0, -2);
+            mattress.castShadow = true;
+            bedGroup.add(mattress);
+
+            // Pink Silky Duvet
+            const duvetGeo = new THREE.BoxGeometry(3.9, 0.5, 3.5);
+            const duvetMat = new THREE.MeshStandardMaterial({ color: 0xff85a2, roughness: 0.4 });
+            const duvet = new THREE.Mesh(duvetGeo, duvetMat);
+            duvet.position.set(-4, 1.15, -1.25);
+            duvet.castShadow = true;
+            bedGroup.add(duvet);
+
+            // Pillows (Fluffy)
+            for (let i = 0; i < 2; i++) {
+                const pillowGeo = new THREE.BoxGeometry(1.4, 0.4, 1.0);
+                const pillowMat = new THREE.MeshStandardMaterial({ color: 0xffc0cb, roughness: 0.8 });
+                const pillow = new THREE.Mesh(pillowGeo, pillowMat);
+                pillow.position.set(-4.9 + i * 1.8, 1.45, -3.8);
+                pillow.rotation.x = 0.2;
+                pillow.castShadow = true;
+                bedGroup.add(pillow);
+            }
+            scene.add(bedGroup);
+
+            // 3. Vanity Table & Hollywood Mirror (Interactive)
+            const vanityGroup = new THREE.Group();
+            vanityGroup.userData = { name: "Vanity Table", info: "Click to turn on/off glowing mirror lights!" };
+
+            // Table Base
+            const tableTopGeo = new THREE.BoxGeometry(3.5, 0.2, 1.8);
+            const tableTop = new THREE.Mesh(tableTopGeo, whiteWoodMat);
+            tableTop.position.set(4, 1.8, -6.8);
+            tableTop.castShadow = true;
+            tableTop.receiveShadow = true;
+            vanityGroup.add(tableTop);
+
+            // Vanity Legs
+            for (let x of [-1.5, 1.5]) {
+                const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.8);
+                const leg = new THREE.Mesh(legGeo, goldMat);
+                leg.position.set(4 + x, 0.9, -6.8);
+                leg.castShadow = true;
+                vanityGroup.add(leg);
+            }
+
+            // Mirror Frame & Glass
+            const mirrorFrameGeo = new THREE.BoxGeometry(2.6, 2.6, 0.2);
+            const mirrorFrame = new THREE.Mesh(mirrorFrameGeo, goldMat);
+            mirrorFrame.position.set(4, 3.3, -7.5);
+            vanityGroup.add(mirrorFrame);
+
+            const mirrorGlassGeo = new THREE.BoxGeometry(2.2, 2.2, 0.1);
+            const mirrorGlass = new THREE.Mesh(mirrorGlassGeo, mirrorMat);
+            mirrorGlass.position.set(4, 3.3, -7.4);
+            vanityGroup.add(mirrorGlass);
+
+            // Hollywood Glow Bulbs around Mirror
+            const bulbPositions = [
+                [-1.1, 1.1], [0, 1.1], [1.1, 1.1],
+                [-1.1, 0], [1.1, 0],
+                [-1.1, -1.1], [0, -1.1], [1.1, -1.1]
+            ];
+            
+            bulbPositions.forEach(pos => {
+                const bulbGeo = new THREE.SphereGeometry(0.12, 16, 16);
+                const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfffae6 });
+                const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+                bulb.position.set(4 + pos[0], 3.3 + pos[1], -7.3);
+                vanityGroup.add(bulb);
+                vanityLightsGroup.push(bulb);
+            });
+
+            // Cute Vanity Stool
+            const stoolSeatGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.3, 32);
+            const stoolSeat = new THREE.Mesh(stoolSeatGeo, velvetPinkMat);
+            stoolSeat.position.set(4, 0.9, -5.2);
+            stoolSeat.castShadow = true;
+            vanityGroup.add(stoolSeat);
+
+            for (let i = 0; i < 3; i++) {
+                const angle = (i / 3) * Math.PI * 2;
+                const stoolLegGeo = new THREE.CylinderGeometry(0.06, 0.04, 0.9);
+                const stoolLeg = new THREE.Mesh(stoolLegGeo, goldMat);
+                stoolLeg.position.set(
+                    4 + Math.cos(angle) * 0.5,
+                    0.45,
+                    -5.2 + Math.sin(angle) * 0.5
+                );
+                stoolLeg.rotation.z = (i % 2 === 0 ? 0.2 : -0.2);
+                stoolLeg.castShadow = true;
+                vanityGroup.add(stoolLeg);
+            }
+
+            scene.add(vanityGroup);
+            interactiveObjects.push(vanityGroup);
+
+            // 4. Modern Wardrobe / Closet (Interactive Doors)
+            const closetGroup = new THREE.Group();
+            closetGroup.userData = { name: "Wardrobe", info: "Click to open/close closet doors!" };
+
+            const closetBodyGeo = new THREE.BoxGeometry(4.0, 6.0, 2.0);
+            const closetBody = new THREE.Mesh(closetBodyGeo, whiteWoodMat);
+            closetBody.position.set(6, 3.0, -1);
+            closetBody.castShadow = true;
+            closetBody.receiveShadow = true;
+            closetGroup.add(closetBody);
+
+            // Closet Interior Gold Trim
+            const cTrimGeo = new THREE.BoxGeometry(4.2, 6.2, 0.1);
+            const cTrim = new THREE.Mesh(cTrimGeo, goldMat);
+            cTrim.position.set(6, 3.0, 0.05);
+            closetGroup.add(cTrim);
+
+            // Left Door
+            const doorGeo = new THREE.BoxGeometry(1.9, 5.8, 0.2);
+            const leftDoorPivot = new THREE.Group();
+            leftDoorPivot.position.set(4.05, 3.0, 0.1);
+            
+            const leftDoor = new THREE.Mesh(doorGeo, new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.3 }));
+            leftDoor.position.set(-0.95, 0, 0);
+            leftDoor.castShadow = true;
+            leftDoorPivot.add(leftDoor);
+
+            // Door Handle
+            const handleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.6);
+            const handle = new THREE.Mesh(handleGeo, goldMat);
+            handle.rotation.x = Math.PI / 2;
+            handle.position.set(-1.6, 0, 0.15);
+            leftDoorPivot.add(handle);
+
+            closetGroup.add(leftDoorPivot);
+            closetDoors.push(leftDoorPivot);
+
+            // Right Door
+            const rightDoorPivot = new THREE.Group();
+            rightDoorPivot.position.set(7.95, 3.0, 0.1);
+            
+            const rightDoor = new THREE.Mesh(doorGeo, new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.3 }));
+            rightDoor.position.set(0.95, 0, 0);
+            rightDoor.castShadow = true;
+            rightDoorPivot.add(rightDoor);
+
+            const handleRight = new THREE.Mesh(handleGeo, goldMat);
+            handleRight.rotation.x = Math.PI / 2;
+            handleRight.position.set(1.6, 0, 0.15);
+            rightDoorPivot.add(handleRight);
+
+            closetGroup.add(rightDoorPivot);
+            closetDoors.push(rightDoorPivot);
+
+            scene.add(closetGroup);
+            interactiveObjects.push(closetGroup);
+
+            // 5. Cute Accessories & Laptop (Desk side table)
+            const nightstandGeo = new THREE.BoxGeometry(1.6, 1.4, 1.6);
+            const nightstand = new THREE.Mesh(nightstandGeo, whiteWoodMat);
+            nightstand.position.set(-6.5, 0.7, -4.5);
+            nightstand.castShadow = true;
+            nightstand.receiveShadow = true;
+            scene.add(nightstand);
+
+            // Barbie Laptop (Interactive)
+            const laptopGroup = new THREE.Group();
+            laptopGroup.position.set(-6.5, 1.45, -4.5);
+            laptopGroup.userData = { name: "Barbie Laptop", info: "Sparkling up Barbie's blog!" };
+
+            const laptopBaseGeo = new THREE.BoxGeometry(0.9, 0.05, 0.7);
+            const laptopBase = new THREE.Mesh(laptopBaseGeo, new THREE.MeshStandardMaterial({ color: 0xff1493, metalness: 0.5 }));
+            laptopBase.castShadow = true;
+            laptopGroup.add(laptopBase);
+
+            const laptopScreenGeo = new THREE.BoxGeometry(0.9, 0.6, 0.04);
+            const laptopScreen = new THREE.Mesh(laptopScreenGeo, new THREE.MeshStandardMaterial({ color: 0xff69b4, emissive: 0xff1493, emissiveIntensity: 0.5 }));
+            laptopScreen.position.set(0, 0.3, -0.3);
+            laptopScreen.rotation.x = -0.3;
+            laptopGroup.add(laptopScreen);
+
+            scene.add(laptopGroup);
+            interactiveObjects.push(laptopGroup);
+
+            // 6. Wall Decor: Neon Heart Sign
+            const heartShape = new THREE.Shape();
+            const x = 0, y = 0;
+            heartShape.moveTo( x + 0.5, y + 0.5 );
+            heartShape.bezierCurveTo( x + 0.5, y + 0.5, x + 0.4, y, x, y );
+            heartShape.bezierCurveTo( x - 0.6, y, x - 0.6, y + 0.7, x - 0.6, y + 0.7 );
+            heartShape.bezierCurveTo( x - 0.6, y + 1.1, x - 0.2, y + 1.5, x + 0.5, y + 1.9 );
+            heartShape.bezierCurveTo( x + 1.2, y + 1.5, x + 1.6, y + 1.1, x + 1.6, y + 0.7 );
+            heartShape.bezierCurveTo( x + 1.6, y + 0.7, x + 1.6, y, x + 1.0, y );
+            heartShape.bezierCurveTo( x + 0.6, y, x + 0.5, y + 0.5, x + 0.5, y + 0.5 );
+
+            const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 };
+            const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+            const neonMat = new THREE.MeshStandardMaterial({ color: 0xff007f, emissive: 0xff007f, emissiveIntensity: 1.5 });
+            const neonHeart = new THREE.Mesh(heartGeo, neonMat);
+            neonHeart.position.set(-1, 6.5, -7.8);
+            neonHeart.scale.set(1.2, 1.2, 1.2);
+            scene.add(neonHeart);
+        }
+
+        // --- Build Floating Sparkle / Glitter Particles ---
+        function buildSparkles() {
+            const particleCount = 150;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const colorPalette = [
+                new THREE.Color(0xff69b4),
+                new THREE.Color(0xffd700),
+                new THREE.Color(0xffffff),
+                new THREE.Color(0xffb6c1)
+            ];
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 14;
+                positions[i + 1] = Math.random() * 8;
+                positions[i + 2] = (Math.random() - 0.5) * 14;
+
+                const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i] = col.r;
+                colors[i + 1] = col.g;
+                colors[i + 2] = col.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            // Create circular sparkly point texture via canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.5, 'rgba(255,105,180,0.8)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 32, 32);
+
+            const texture = new THREE.CanvasTexture(canvas);
+
+            const material = new THREE.PointsMaterial({
+                size: 0.35,
+                vertexColors: true,
+                map: texture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            sparkleParticles = new THREE.Points(geometry, material);
+            scene.add(sparkleParticles);
+        }
+
+        // --- Toggle Functions from UI ---
+        function toggleVanityLights(isOn) {
+            mirrorLightsOn = isOn;
+            vanityLightsGroup.forEach(bulb => {
+                bulb.visible = isOn;
+            });
+            showToast(isOn ? "Vanity Hollywood Lights ON ✨" : "Vanity Lights OFF");
+        }
+
+        function toggleCloset() {
+            closetIsOpen = !closetIsOpen;
+            const targetRotation = closetIsOpen ? Math.PI / 1.5 : 0;
+            const targetRotationRight = closetIsOpen ? -Math.PI / 1.5 : 0;
+            
+            // Animate door rotation smoothly
+            let progress = 0;
+            const startRotLeft = closetDoors[0].rotation.y;
+            const startRotRight = closetDoors[1].rotation.y;
+
+            function animateDoor() {
+                progress += 0.08;
+                closetDoors[0].rotation.y = THREE.MathUtils.lerp(startRotLeft, targetRotation, progress);
+                closetDoors[1].rotation.y = THREE.MathUtils.lerp(startRotRight, targetRotationRight, progress);
+                if (progress < 1) {
+                    requestAnimationFrame(animateDoor);
+                }
+            }
+            animateDoor();
+
+            const btn = document.getElementById('closet-btn');
+            btn.innerText = closetIsOpen ? "Close" : "Open";
+            btn.className = closetIsOpen ? 
+                "bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition-all shadow" : 
+                "bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition-all shadow";
+            
+            showToast(closetIsOpen ? "Wardrobe Closet Opened! 👗" : "Wardrobe Closet Closed");
+        }
+
+        function toggleSparkles(isActive) {
+            sparklesActive = isActive;
+            sparkleParticles.visible = isActive;
+            showToast(isActive ? "Magic Sparkles Activated ✨" : "Sparkles Hidden");
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 5, 14);
+            controls.target.set(0, 2, 0);
+            controls.update();
+            showToast("Camera View Reset 🎥");
+        }
+
+        // --- Raycasting / Click Interaction Handler ---
+        function onDocumentClick(event) {
+            // Ignore clicks on UI panel elements
+            if (event.clientX > window.innerWidth - 340 && event.clientY > 80) return;
+            if (event.clientY < 90 && event.clientX < window.innerWidth - 300) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects, true);
+
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                // Traverse up to find root group with userData
+                while (obj.parent && !obj.userData.name) {
+                    obj = obj.parent;
+                }
+
+                if (obj.userData && obj.userData.name) {
+                    showToast(`Clicked ${obj.userData.name}: ${obj.userData.info}`);
+                    
+                    // Trigger custom action based on object
+                    if (obj.userData.name === "Vanity Table") {
+                        const toggle = document.getElementById('mirror-toggle');
+                        toggle.checked = !toggle.checked;
+                        toggleVanityLights(toggle.checked);
+                    } else if (obj.userData.name === "Wardrobe") {
+                        toggleCloset();
+                    } else if (obj.userData.name === "Barbie Laptop") {
+                        newAffirmation();
+                    }
+                }
+            }
+        }
+
+        // --- Window Resize ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Main Animation Loop ---
+        let clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Animate Sparkles floating
+            if (sparklesActive && sparkleParticles) {
+                const positions = sparkleParticles.geometry.attributes.position.array;
+                for (let i = 1; i < positions.length; i += 3) {
+                    positions[i] -= 0.015; // float down slowly
+                    if (positions[i] < 0) {
+                        positions[i] = 8; // reset to top
+                    }
+                }
+                sparkleParticles.geometry.attributes.position.needsUpdate = true;
+                sparkleParticles.rotation.y = elapsedTime * 0.05;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Start everything on load
+        window.onload = function() {
+            initScene();
+        };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

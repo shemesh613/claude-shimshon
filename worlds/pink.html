@@ -1,0 +1,632 @@
+<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הדמיית ארמון הנסיכות הוורוד</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Google Fonts: Heebo -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Heebo', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fdf2f8; }
+        ::-webkit-scrollbar-thumb { background: #ec4899; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-pink-950 text-pink-100 h-screen overflow-hidden flex flex-col">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-pink-950/90 backdrop-blur border-b border-pink-800/60 px-6 py-3 flex items-center justify-between shadow-lg z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 font-bold text-xl shadow-inner animate-pulse">
+                👑
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide text-pink-300">ארמון הנסיכות הקסום (הארמון הוורוד)</h1>
+                <p class="text-xs text-pink-400/80">סיור תלת-מימדי בארמון אגדות מלכותי, גנים קסומים ואולם הכס</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleDayNight()" id="dayNightBtn" class="px-3 py-1.5 text-xs bg-pink-900/80 hover:bg-pink-800 text-pink-200 rounded-xl border border-pink-700 transition flex items-center gap-1.5 shadow">
+                <span>🌙</span> מצב לילה קסום
+            </button>
+            <button onclick="resetCamera()" class="px-3 py-1.5 text-xs bg-pink-900/80 hover:bg-pink-800 text-pink-200 rounded-xl border border-pink-700 transition flex items-center gap-1.5 shadow">
+                <span>🔄</span> איפוס מבט
+            </button>
+            <button onclick="toggleAutoRotate()" id="autoRotateBtn" class="px-3 py-1.5 text-xs bg-pink-900/80 hover:bg-pink-800 text-pink-200 rounded-xl border border-pink-700 transition flex items-center gap-1.5 shadow">
+                <span>✨</span> סיבוב אוטומטי
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex relative overflow-hidden">
+        
+        <!-- 3D Canvas Container -->
+        <div id="canvas-container" class="flex-1 h-full relative cursor-grab active:cursor-grabbing">
+            <!-- Loading overlay -->
+            <div id="loading" class="absolute inset-0 bg-pink-950 flex flex-col items-center justify-center z-10 transition-opacity duration-700">
+                <div class="w-12 h-12 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-pink-300 font-medium">רוקם קסמים בארמון הוורוד...</p>
+            </div>
+            <!-- Canvas instruction overlay -->
+            <div class="absolute bottom-4 right-4 bg-pink-950/80 backdrop-blur-md border border-pink-800/80 text-pink-200 px-4 py-2 rounded-2xl text-xs shadow-xl pointer-events-none hidden md:block z-10">
+                🧚 <b>טיפ ניווט:</b> גרור עם העכבר לסיבוב הארמון, גלגל לקירוב/הרחקה, וחקור את הגנים והמגדלים!
+            </div>
+        </div>
+
+        <!-- Sidebar Control Panel -->
+        <aside class="w-80 md:w-96 bg-pink-950/95 border-r border-pink-900 flex flex-col z-20 shadow-2xl h-full">
+            
+            <!-- Tabs Header -->
+            <div class="flex border-b border-pink-900 bg-pink-900/30">
+                <button onclick="switchTab('layers')" id="tab-layers-btn" class="flex-1 py-3 text-sm font-bold text-pink-300 border-b-2 border-pink-500 transition">שכבות ואזורים</button>
+                <button onclick="switchTab('info')" id="tab-info-btn" class="flex-1 py-3 text-sm font-medium text-pink-400 hover:text-pink-200 transition">סיפור ואגדות</button>
+            </div>
+
+            <!-- Tab Content: Layers -->
+            <div id="tab-layers" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                    <h3 class="text-xs font-bold text-pink-300 uppercase tracking-wider mb-2">בקרת אזורי הארמון</h3>
+                    <p class="text-xs text-pink-400 mb-3">הדלקה או כיבוי של חלקי הארמון השונים לצפייה פנימית וחיצונית:</p>
+                    
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between p-2 rounded-xl bg-pink-900/40 hover:bg-pink-900/70 cursor-pointer transition">
+                            <span class="text-sm font-medium flex items-center gap-2"><span>🌸</span> הגן הקסום ומזרקות המים</span>
+                            <input type="checkbox" id="layer-garden" checked onchange="toggleLayer('garden', this.checked)" class="w-4 h-4 accent-pink-500 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2 rounded-xl bg-pink-900/40 hover:bg-pink-900/70 cursor-pointer transition">
+                            <span class="text-sm font-medium flex items-center gap-2"><span>🏰</span> חומות ומגדלי הארמון הראשיים</span>
+                            <input type="checkbox" id="layer-walls" checked onchange="toggleLayer('walls', this.checked)" class="w-4 h-4 accent-pink-500 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2 rounded-xl bg-pink-900/40 hover:bg-pink-900/70 cursor-pointer transition">
+                            <span class="text-sm font-medium flex items-center gap-2"><span>👑</span> כיפות זהב וצריחי תפארת</span>
+                            <input type="checkbox" id="layer-spires" checked onchange="toggleLayer('spires', this.checked)" class="w-4 h-4 accent-pink-500 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2 rounded-xl bg-pink-900/40 hover:bg-pink-900/70 cursor-pointer transition">
+                            <span class="text-sm font-medium flex items-center gap-2"><span>✨</span> אולם הכס המלכותי (פנים הארמון)</span>
+                            <input type="checkbox" id="layer-throne" checked onchange="toggleLayer('throne', this.checked)" class="w-4 h-4 accent-pink-500 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2 rounded-xl bg-pink-900/40 hover:bg-pink-900/70 cursor-pointer transition">
+                            <span class="text-sm font-medium flex items-center gap-2"><span>🦋</span> פרפרים ונצנוצי קסם מרחפים</span>
+                            <input type="checkbox" id="layer-sparkles" checked onchange="toggleLayer('sparkles', this.checked)" class="w-4 h-4 accent-pink-500 rounded">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quick Focus Buttons -->
+                <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                    <h3 class="text-xs font-bold text-pink-300 uppercase tracking-wider mb-2">מיקוד מבט מהיר</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="focusOnPart('all')" class="p-2 text-xs bg-pink-900/60 hover:bg-pink-800 rounded-xl text-pink-200 transition text-center border border-pink-800/50">מבט כללי על הארמון</button>
+                        <button onclick="focusOnPart('garden')" class="p-2 text-xs bg-pink-900/60 hover:bg-pink-800 rounded-xl text-pink-200 transition text-center border border-pink-800/50">הגן הקסום והמזרקה</button>
+                        <button onclick="focusOnPart('towers')" class="p-2 text-xs bg-pink-900/60 hover:bg-pink-800 rounded-xl text-pink-200 transition text-center border border-pink-800/50">המגדלים והצריחים</button>
+                        <button onclick="focusOnPart('throne')" class="p-2 text-xs bg-pink-900/60 hover:bg-pink-800 rounded-xl text-pink-200 transition text-center border border-pink-800/50">אולם הכס המלכותי</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Info & Guide -->
+            <div id="tab-info" class="flex-1 overflow-y-auto p-4 space-y-4 hidden">
+                <div class="space-y-3 text-pink-200 text-xs leading-relaxed">
+                    <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                        <h4 class="font-bold text-pink-300 text-sm mb-1">🏰 הארמון הוורוד המלכותי</h4>
+                        <p>סמל האגדות והקסם. הארמון בנוי מאבני קוורץ ורודות מנצנות, עם שערים מעוצבים בקשתות ומרפסות תלויות שמהן נשקף כל ממלכת הפרחים.</p>
+                    </div>
+
+                    <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                        <h4 class="font-bold text-pink-300 text-sm mb-1">🌸 הגן הקסום והמזרקות</h4>
+                        <p>מוקף בפרחים זוהרים המשנים את צבעם ברוח הקסם, וברחבי הגן פזורות מזרקות מים קריסטליות המשפריצות טיפות של אור כסוף.</p>
+                    </div>
+
+                    <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                        <h4 class="font-bold text-pink-300 text-sm mb-1">👑 אולם הכס וחדרי המלכות</h4>
+                        <p>במרכז הארמון שוכן אולם הכס המלכותי ובו שטיחי משי מלכותיים, נבררות קריסטל נוצצות וכס מלכות מפואר המשובץ באבני חן ורודות וזהב טהור.</p>
+                    </div>
+
+                    <div class="bg-pink-900/30 border border-pink-900/60 rounded-2xl p-3">
+                        <h4 class="font-bold text-pink-300 text-sm mb-1">✨ מגדלי התצפית וכיפות הזהב</h4>
+                        <p>מגדלי הארמון הגבוהים מסתיימים בכיפות זהב מרהיבות ודגלי נסיכות מתנפנפים, המאפשרים לנסיכות לצפות בשקיעות הקסומות מעבר להרים.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer of Sidebar -->
+            <div class="p-3 border-t border-pink-900 bg-pink-950 text-center">
+                <p class="text-[11px] text-pink-400/80">הודפס באהבה מממלכת האגדות הקסומות 💖</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Three.js Scene Script -->
+    <script>
+        let scene, camera, renderer, controls;
+        let layers = {
+            garden: null,
+            walls: null,
+            spires: null,
+            throne: null,
+            sparkles: null
+        };
+        let isAutoRotating = false;
+        let isNightMode = false;
+        let dirLight, ambientLight, nightLight;
+        let sparklesParticles;
+
+        // Initialize Scene on Window Load
+        window.onload = function() {
+            initThree();
+            animate();
+            
+            // Hide loading spinner after brief delay
+            setTimeout(() => {
+                const loader = document.getElementById('loading');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 700);
+                }
+            }, 600);
+        };
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene creation
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfbcfe8); // Soft pink sky default (Day)
+            scene.fog = new THREE.FogExp2(0xfbcfe8, 0.01);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 30, 65);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.01; // Don't go below ground
+            controls.minDistance = 15;
+            controls.maxDistance = 120;
+            controls.target.set(0, 5, 0);
+
+            // Lighting
+            ambientLight = new THREE.AmbientLight(0xfff1f2, 0.8);
+            scene.add(ambientLight);
+
+            dirLight = new THREE.DirectionalLight(0xffb6c1, 1.2);
+            dirLight.position.set(30, 50, 30);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.bias = -0.0001;
+            scene.add(dirLight);
+
+            nightLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
+            nightLight.position.set(-30, 40, -30);
+            nightLight.visible = false;
+            scene.add(nightLight);
+
+            // Ground plane (Magical Pink Grass & Pathways)
+            const groundGeo = new THREE.PlaneGeometry(250, 250);
+            const groundMat = new THREE.MeshStandardMaterial({ 
+                color: 0xf472b6, // vibrant pink grass
+                roughness: 0.8,
+                metalness: 0.1 
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.1;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Build Pink Palace Structure Groups
+            buildGardenAndFountain();
+            buildPalaceWalls();
+            buildSpiresAndDomes();
+            buildThroneHall();
+            buildSparklesAndButterflies();
+
+            // Window resize handler
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // 1. Magical Garden & Fountain (הגן הקסום והמזרקות)
+        function buildGardenAndFountain() {
+            const group = new THREE.Group();
+            layers.garden = group;
+
+            // Magical stone path (white marble circle)
+            const pathGeo = new THREE.RingGeometry(8, 22, 32);
+            const pathMat = new THREE.MeshStandardMaterial({ color: 0xfff0f5, roughness: 0.5, side: THREE.DoubleSide });
+            const path = new THREE.Mesh(pathGeo, pathMat);
+            path.rotation.x = -Math.PI / 2;
+            path.position.y = 0.05;
+            group.add(path);
+
+            // Central Fountain (מזרקת קריסטל)
+            const fountainBase = new THREE.Mesh(
+                new THREE.CylinderGeometry(5, 5.5, 1.2, 24),
+                new THREE.MeshStandardMaterial({ color: 0xfbcfe8, roughness: 0.3 })
+            );
+            fountainBase.position.set(0, 0.6, 22);
+            fountainBase.castShadow = true;
+            fountainBase.receiveShadow = true;
+            group.add(fountainBase);
+
+            const waterMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, transparent: true, opacity: 0.85 });
+            const water = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 0.8, 24), waterMat);
+            water.position.set(0, 1.0, 22);
+            group.add(water);
+
+            const fountainSpout = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.8, 4, 12),
+                new THREE.MeshStandardMaterial({ color: 0xfde047, metalness: 0.8, roughness: 0.2 })
+            );
+            fountainSpout.position.set(0, 2.5, 22);
+            group.add(fountainSpout);
+
+            // Glowing magical flowers around the garden
+            const flowerColors = [0xff69b4, 0xff1493, 0xffb6c1, 0xdda0dd, 0xffd700];
+            for (let i = 0; i < 30; i++) {
+                const angle = (i / 30) * Math.PI * 2;
+                const dist = 12 + Math.random() * 18;
+                const fx = Math.cos(angle) * dist;
+                const fz = Math.sin(angle) * dist + 5;
+
+                const stem = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.08, 0.08, 1.5),
+                    new THREE.MeshStandardMaterial({ color: 0x10b981 })
+                );
+                stem.position.set(fx, 0.75, fz);
+                group.add(stem);
+
+                const flowerColor = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                const bloom = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.4, 8, 8),
+                    new THREE.MeshStandardMaterial({ color: flowerColor, emissive: flowerColor, emissiveIntensity: 0.3 })
+                );
+                bloom.position.set(fx, 1.6, fz);
+                group.add(bloom);
+            }
+
+            scene.add(group);
+        }
+
+        // 2. Palace Walls & Main Structure (חומות ומגדלי הארמון הראשיים)
+        function buildPalaceWalls() {
+            const group = new THREE.Group();
+            layers.walls = group;
+
+            const pinkStoneMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.5, metalness: 0.1 });
+            const deepPinkMat = new THREE.MeshStandardMaterial({ color: 0xdb2777, roughness: 0.6 });
+            const whiteTrimMat = new THREE.MeshStandardMaterial({ color: 0xfff0f5, roughness: 0.3 });
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfde047, metalness: 0.9, roughness: 0.2 });
+
+            // Main central building block
+            const mainHall = new THREE.Mesh(new THREE.BoxGeometry(22, 12, 16), pinkStoneMat);
+            mainHall.position.set(0, 6, -2);
+            mainHall.castShadow = true;
+            mainHall.receiveShadow = true;
+            group.add(mainHall);
+
+            // Front grand entrance arch (שער קשתי מפואר)
+            const archFrame = new THREE.Mesh(new THREE.BoxGeometry(6, 7, 1), deepPinkMat);
+            archFrame.position.set(0, 3.5, 6.1);
+            group.add(archFrame);
+
+            const archHole = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1.2, 16, 1, false, 0, Math.PI), whiteTrimMat);
+            archHole.rotation.x = Math.PI / 2;
+            archHole.position.set(0, 5, 6.05);
+            group.add(archHole);
+
+            // 4 Corner Towers (מגדלים פינתיים)
+            const towerGeo = new THREE.CylinderGeometry(2.5, 2.8, 18, 16);
+            const towerPositions = [
+                [-12, -10],
+                [12, -10],
+                [-12, 6],
+                [12, 6]
+            ];
+
+            towerPositions.forEach(pos => {
+                const tower = new THREE.Mesh(towerGeo, pinkStoneMat);
+                tower.position.set(pos[0], 9, pos[1]);
+                tower.castShadow = true;
+                tower.receiveShadow = true;
+                group.add(tower);
+            });
+
+            // Balconies and Windows
+            for (let x = -9; x <= 9; x += 6) {
+                if(x !== 0) {
+                    const balcony = new THREE.Mesh(new THREE.BoxGeometry(3, 0.4, 2), whiteTrimMat);
+                    balcony.position.set(x, 6, 6.5);
+                    group.add(balcony);
+                }
+            }
+
+            scene.add(group);
+        }
+
+        // 3. Spires and Golden Domes (כיפות זהב וצריחי תפארת)
+        function buildSpiresAndDomes() {
+            const group = new THREE.Group();
+            layers.spires = group;
+
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfde047, metalness: 0.9, roughness: 0.1 });
+            const spirePinkMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.4 });
+
+            // Main central dome
+            const centerDome = new THREE.Mesh(new THREE.SphereGeometry(5, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), goldMat);
+            centerDome.position.set(0, 12, -2);
+            centerDome.castShadow = true;
+            group.add(centerDome);
+
+            // Center spire pinnacle & flag
+            const centerSpire = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.4, 6), goldMat);
+            centerSpire.position.set(0, 19, -2);
+            group.add(centerSpire);
+
+            // Corner tower cone roofs
+            const roofCoords = [
+                [-12, -10],
+                [12, -10],
+                [-12, 6],
+                [12, 6]
+            ];
+
+            roofCoords.forEach(pos => {
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(3.2, 7, 16), spirePinkMat);
+                cone.position.set(pos[0], 21.5, pos[1]);
+                cone.castShadow = true;
+                group.add(cone);
+
+                const ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), goldMat);
+                ball.position.set(pos[0], 25.2, pos[1]);
+                group.add(ball);
+            });
+
+            scene.add(group);
+        }
+
+        // 4. Throne Hall & Interior (אולם הכס המלכותי)
+        function buildThroneHall() {
+            const group = new THREE.Group();
+            layers.throne = group;
+
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfde047, metalness: 0.8, roughness: 0.2 });
+            const redVelvetMat = new THREE.MeshStandardMaterial({ color: 0xbe123c, roughness: 0.7 });
+            const crystalMat = new THREE.MeshStandardMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.8, roughness: 0.1 });
+
+            // Royal Throne (כס המלכות המפואר)
+            const seatBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.6, 2.5), goldMat);
+            seatBase.position.set(0, 3.3, -4);
+            group.add(seatBase);
+
+            const seatCushion = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 2.2), redVelvetMat);
+            seatCushion.position.set(0, 3.7, -4);
+            group.add(seatCushion);
+
+            const throneBack = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 0.6), goldMat);
+            throneBack.position.set(0, 6, -5);
+            group.add(throneBack);
+
+            const throneInlay = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.2, 0.3), redVelvetMat);
+            throneInlay.position.set(0, 6, -4.65);
+            group.add(throneInlay);
+
+            // Chandelier inside hall (נברשת קריסטל נוצצת)
+            const chandelierBase = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 0.2, 0.8), goldMat);
+            chandelierBase.position.set(0, 10, -2);
+            group.add(chandelierBase);
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const cx = Math.cos(angle) * 1.2;
+                const cz = Math.sin(angle) * 1.2;
+                const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), crystalMat);
+                crystal.position.set(cx, 9.2, cz - 2);
+                group.add(crystal);
+            }
+
+            scene.add(group);
+        }
+
+        // 5. Sparkles & Magical Butterflies (פרפרים ונצנוצי קסם)
+        function buildSparklesAndButterflies() {
+            const group = new THREE.Group();
+            layers.sparkles = group;
+
+            const particleCount = 120;
+            const geom = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 50;
+                positions[i + 1] = Math.random() * 25 + 2;
+                positions[i + 2] = (Math.random() - 0.5) * 50;
+            }
+
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const pMat = new THREE.PointsMaterial({
+                color: 0xfde047,
+                size: 0.8,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+            });
+
+            sparklesParticles = new THREE.Points(geom, pMat);
+            group.add(sparklesParticles);
+
+            scene.add(group);
+        }
+
+        // Day / Night Mode Toggle
+        function toggleDayNight() {
+            isNightMode = !isNightMode;
+            const btn = document.getElementById('dayNightBtn');
+
+            if (isNightMode) {
+                scene.background = new THREE.Color(0x0f172a); // Dark magical night sky
+                scene.fog.color.setHex(0x0f172a);
+                ambientLight.intensity = 0.3;
+                dirLight.visible = false;
+                nightLight.visible = true;
+                btn.innerHTML = '<span>☀️</span> מצב יום קסום';
+                btn.className = 'px-3 py-1.5 text-xs bg-indigo-900 hover:bg-indigo-800 text-indigo-200 rounded-xl border border-indigo-700 transition flex items-center gap-1.5 shadow';
+            } else {
+                scene.background = new THREE.Color(0xfbcfe8); // Soft pink day sky
+                scene.fog.color.setHex(0xfbcfe8);
+                ambientLight.intensity = 0.8;
+                dirLight.visible = true;
+                nightLight.visible = false;
+                btn.innerHTML = '<span>🌙</span> מצב לילה קסום';
+                btn.className = 'px-3 py-1.5 text-xs bg-pink-900/80 hover:bg-pink-800 text-pink-200 rounded-xl border border-pink-700 transition flex items-center gap-1.5 shadow';
+            }
+        }
+
+        // Layer Toggle Functionality
+        function toggleLayer(layerName, isVisible) {
+            if (layers[layerName]) {
+                layers[layerName].visible = isVisible;
+            }
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            const layersTab = document.getElementById('tab-layers');
+            const infoTab = document.getElementById('tab-info');
+            const layersBtn = document.getElementById('tab-layers-btn');
+            const infoBtn = document.getElementById('tab-info-btn');
+
+            if (tabName === 'layers') {
+                layersTab.classList.remove('hidden');
+                infoTab.classList.add('hidden');
+                layersBtn.className = "flex-1 py-3 text-sm font-bold text-pink-300 border-b-2 border-pink-500 transition";
+                infoBtn.className = "flex-1 py-3 text-sm font-medium text-pink-400 hover:text-pink-200 transition";
+            } else {
+                layersTab.classList.add('hidden');
+                infoTab.classList.remove('hidden');
+                infoBtn.className = "flex-1 py-3 text-sm font-bold text-pink-300 border-b-2 border-pink-500 transition";
+                layersBtn.className = "flex-1 py-3 text-sm font-medium text-pink-400 hover:text-pink-200 transition";
+            }
+        }
+
+        // Camera Focus Controls
+        function focusOnPart(part) {
+            let targetPos, targetLook;
+
+            switch(part) {
+                case 'garden':
+                    targetPos = { x: 0, y: 15, z: 45 };
+                    targetLook = { x: 0, y: 3, z: 15 };
+                    break;
+                case 'towers':
+                    targetPos = { x: 25, y: 25, z: 25 };
+                    targetLook = { x: 0, y: 10, z: 0 };
+                    break;
+                case 'throne':
+                    targetPos = { x: 0, y: 8, z: 10 };
+                    targetLook = { x: 0, y: 5, z: -3 };
+                    break;
+                case 'all':
+                default:
+                    targetPos = { x: 0, y: 30, z: 65 };
+                    targetLook = { x: 0, y: 5, z: 0 };
+                    break;
+            }
+
+            smoothMoveCamera(targetPos, targetLook);
+        }
+
+        let isAnimatingCamera = false;
+        function smoothMoveCamera(endPos, endLook) {
+            const startPos = camera.position.clone();
+            const startLook = controls.target.clone();
+            let startTime = performance.now();
+            let duration = 1000;
+
+            isAnimatingCamera = true;
+
+            function updateCam(currentTime) {
+                let elapsed = currentTime - startTime;
+                let t = Math.min(elapsed / duration, 1);
+                let easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+                camera.position.lerpVectors(startPos, new THREE.Vector3(endPos.x, endPos.y, endPos.z), easeT);
+                controls.target.lerpVectors(startLook, new THREE.Vector3(endLook.x, endLook.y, endLook.z), easeT);
+                controls.update();
+
+                if (t < 1) {
+                    requestAnimationFrame(updateCam);
+                } else {
+                    isAnimatingCamera = false;
+                }
+            }
+            requestAnimationFrame(updateCam);
+        }
+
+        function resetCamera() {
+            focusOnPart('all');
+        }
+
+        function toggleAutoRotate() {
+            isAutoRotating = !isAutoRotating;
+            controls.autoRotate = isAutoRotating;
+            controls.autoRotateSpeed = 2.0;
+            const btn = document.getElementById('autoRotateBtn');
+            if (isAutoRotating) {
+                btn.classList.add('bg-pink-600/40', 'border-pink-400', 'text-pink-200');
+            } else {
+                btn.classList.remove('bg-pink-600/40', 'border-pink-400', 'text-pink-200');
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Gently rotate sparkles for magical effect
+            if (sparklesParticles) {
+                sparklesParticles.rotation.y += 0.001;
+            }
+
+            if (!isAnimatingCamera) {
+                controls.update();
+            }
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

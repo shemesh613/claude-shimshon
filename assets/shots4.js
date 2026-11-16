@@ -110,8 +110,7 @@
       { mark: "eResult", cap: "התמונה החדשה מוכנה!" }
     ],
     T: [
-      { mark: "tCanvas", cap: "לוחצים על + ובוחרים Canvas", click: true },
-      { mark: "tText", cap: "כותבים: צור בקוד הדמיה תלת מימדית של..." },
+      { mark: "tText", cap: "בצ׳אט כותבים: צור בקוד הדמיה תלת מימדית של..." },
       { mark: "tSend", cap: "שולחים, וגמיני כותבת את כל הקוד לבד", click: true },
       { mark: "tFull", cap: "לוחצים על מסך מלא", click: true },
       { mark: "t3d", cap: "גוררים עם העכבר ומסתובבים בעולם!" },
