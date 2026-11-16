@@ -56,18 +56,18 @@ window.SITE = {
 
   worlds: [
       { "title": "בית המקדש השני", "cover": "lessons/img/ex3d-mikdash.jpg", "href": "worlds/mikdash.html" },
-      { "title": "ארמון ענק עם חדר לנסיכה", "cover": "lessons/img/ex3d-palace.jpg", "href": "worlds/palace.html" },
-      { "title": "טירה מפוארת עם חצר", "cover": "lessons/img/ex3d-castle.jpg", "href": "worlds/castle.html" },
-      { "title": "חדר ברבי", "cover": "lessons/img/ex3d-barbie.jpg", "href": "worlds/barbie.html" },
-      { "title": "ארמון ורוד", "cover": "lessons/img/ex3d-pink.jpg", "href": "worlds/pink.html" },
-      { "title": "כדור הארץ והחלל", "cover": "lessons/img/ex3d-globe.jpg", "href": "worlds/globe.html" },
-      { "title": "טירת הנסיכה הוורודה הענקית", "cover": "lessons/img/ex3d-babypink.jpg", "href": "worlds/babypink.html" },
-      { "title": "מלון ממילא בירושלים", "cover": "lessons/img/ex3d-mamilla.jpg", "href": "worlds/mamilla.html" },
-      { "title": "חדר החלומות בצבע שמנת", "cover": "lessons/img/ex3d-dreamcream.jpg", "href": "worlds/dreamcream.html" },
-      { "title": "סטודיו חדר החלומות", "cover": "lessons/img/ex3d-studio.jpg", "href": "worlds/studio.html" },
       { "title": "משרדו של דמבלדור", "cover": "lessons/img/ex3d-dumbledore.jpg", "href": "worlds/dumbledore.html" },
+      { "title": "טירה מפוארת עם חצר", "cover": "lessons/img/ex3d-castle.jpg", "href": "worlds/castle.html" },
+      { "title": "ארמון ענק עם חדר לנסיכה", "cover": "lessons/img/ex3d-palace.jpg", "href": "worlds/palace.html" },
+      { "title": "מלון ממילא בירושלים", "cover": "lessons/img/ex3d-mamilla.jpg", "href": "worlds/mamilla.html" },
+      { "title": "טירת הנסיכה הוורודה הענקית", "cover": "lessons/img/ex3d-babypink.jpg", "href": "worlds/babypink.html" },
+      { "title": "ארמון ורוד", "cover": "lessons/img/ex3d-pink.jpg", "href": "worlds/pink.html" },
       { "title": "חדר המעונות של גריפינדור", "cover": "lessons/img/ex3d-gryffindor.jpg", "href": "worlds/gryffindor.html" },
+      { "title": "סטודיו חדר החלומות", "cover": "lessons/img/ex3d-studio.jpg", "href": "worlds/studio.html" },
       { "title": "חדר החלומות בסגנון פנדה", "cover": "lessons/img/ex3d-panda.jpg", "href": "worlds/panda.html" },
+      { "title": "כדור הארץ והחלל", "cover": "lessons/img/ex3d-globe.jpg", "href": "worlds/globe.html" },
+      { "title": "חדר ברבי", "cover": "lessons/img/ex3d-barbie.jpg", "href": "worlds/barbie.html" },
+      { "title": "חדר החלומות בצבע שמנת", "cover": "lessons/img/ex3d-dreamcream.jpg", "href": "worlds/dreamcream.html" },
       { "title": "החדר הסודי מתחת לרצפה", "cover": "lessons/img/ex3d-magicroom.jpg", "href": "worlds/magicroom.html" }
   ],
 

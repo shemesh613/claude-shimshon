@@ -309,3 +309,10 @@ body.no-scroll { overflow: hidden; }
 .section-tabs a[aria-current], .lesson-tabs button[aria-selected="true"] { color: #1d2433; }
 .card.world .world-go { align-self: center; background: var(--coral); color: #fff; border-radius: 999px; padding: 8px 18px; font: 600 .95em/1.2 var(--font-display); box-shadow: 0 4px 0 #d9584a; }
 .sub-tabs { flex-wrap: wrap; }
+
+/* ===== uniform 3D-world cards ===== */
+#worlds { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items: stretch; }
+.card.world { display: flex; flex-direction: column; gap: 10px; padding: 10px 10px 16px; height: 100%; box-sizing: border-box; }
+.card.world img { width: 100%; aspect-ratio: 16 / 10; height: auto; object-fit: cover; object-position: center; border-radius: 14px; background: #1b2540; }
+.card.world .book-open { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font: 600 1.05em/1.3 var(--font-display); min-height: 2.6em; }
+.card.world .world-go { margin-top: auto; }
