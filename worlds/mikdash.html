@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הדמיית בית המקדש השני (הורדוס) - תלת-ממד</title>
+    <!-- טעינת גופן עברי מודרני וקריא -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Heebo', sans-serif;
+            background-color: #1a202c;
+        }
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+        /* עיצוב תוויות צפות במרחב התלת-ממדי */
+        .floating-label {
+            position: absolute;
+            z-index: 10;
+            transform: translate(-50%, -100%);
+            background: rgba(20, 24, 34, 0.82);
+            backdrop-filter: blur(6px);
+            color: #f8fafc;
+            border: 1px solid rgba(212, 175, 55, 0.55);
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.25s ease;
+        }
+        .floating-label:hover {
+            background: rgba(180, 138, 30, 0.95);
+            color: #ffffff;
+            transform: translate(-50%, -105%) scale(1.06);
+        }
+        .floating-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px 5px 0;
+            border-style: solid;
+            border-color: rgba(212, 175, 55, 0.7) transparent transparent transparent;
+        }
+        /* אפקט זכוכית כהה לממשק */
+        .glass-panel {
+            background: rgba(17, 22, 33, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        .gold-accent {
+            color: #ecc94b;
+        }
+        .btn-view {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-view.active {
+            background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%);
+            color: #fff;
+            border-color: #f6e05e;
+            box-shadow: 0 0 15px rgba(214, 158, 46, 0.45);
+        }
+        /* סרגל גלילה מותאם לכפתורים במובייל */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- קונטיינר לקנבס התלת-ממדי -->
+    <div id="canvas-container"></div>
+
+    <!-- שכבת תוויות צפות -->
+    <div id="labels-layer" class="fixed inset-0 pointer-events-none z-10 overflow-hidden"></div>
+
+    <!-- מסך טעינה ראשוני -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 text-white transition-opacity duration-700">
+        <div class="w-16 h-16 border-4 border-amber-400/30 border-t-amber-400 rounded-full animate-spin mb-4"></div>
+        <h2 class="text-2xl font-bold tracking-wide text-amber-300">בונה את בית המקדש השני...</h2>
+        <p class="text-slate-400 text-sm mt-1">מייצר אבני ירושלים, שיש וציפויי זהב</p>
+    </div>
+
+    <!-- כותרת עליונה ובקרי תאורה / תוויות -->
+    <header class="fixed top-3 right-3 left-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <!-- כרטיס כותרת -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold text-lg">
+                🕍
+            </div>
+            <div>
+                <h1 class="text-white font-bold text-base sm:text-lg leading-tight">בית המקדש השני <span class="text-amber-400 font-normal text-sm hidden sm:inline">| בניין הורדוס</span></h1>
+                <p class="text-slate-300 text-xs hidden md:block">גרור לסיבוב • גלגל לזום • לחיצה ימנית להזזה</p>
+            </div>
+        </div>
+
+        <!-- פקדים מהירים (שעת יום + תוויות) -->
+        <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex items-center gap-1.5">
+            <!-- כפתור תאורת צהריים -->
+            <button id="btn-day" onclick="setLightingMode('day')" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 bg-amber-500 text-slate-950 font-bold transition shadow">
+                <span>☀️</span>
+                <span>צהריים</span>
+            </button>
+            <!-- כפתור תאורת שקיעה -->
+            <button id="btn-golden" onclick="setLightingMode('golden')" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-200 hover:bg-white/10 transition">
+                <span>🌅</span>
+                <span>שקיעה מוזהבת</span>
+            </button>
+            <div class="w-px h-6 bg-white/15 mx-0.5"></div>
+            <!-- כפתור הפעלה/כיבוי תוויות -->
+            <button id="btn-labels" onclick="toggleLabels()" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 bg-white/15 text-amber-300 border border-amber-400/40 hover:bg-white/20 transition">
+                <span>🏷️</span>
+                <span class="hidden sm:inline">תוויות</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- חלונית מידע מתקפלת בצד ימין/שמאל -->
+    <aside id="info-card" class="fixed top-20 right-3 z-20 w-72 sm:w-80 glass-panel rounded-2xl text-white transition-all duration-300 overflow-hidden">
+        <div class="px-4 py-3 bg-white/5 border-b border-white/10 flex items-center justify-between cursor-pointer" onclick="toggleInfoCard()">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <h2 id="info-title" class="font-bold text-amber-300 text-sm sm:text-base">מבט על כללי - הר הבית</h2>
+            </div>
+            <button id="info-toggle-icon" class="text-slate-300 hover:text-white text-xs px-2 py-0.5 rounded bg-white/10">
+                הסתר
+            </button>
+        </div>
+        <div id="info-body" class="p-4 text-xs sm:text-sm text-slate-200 leading-relaxed space-y-2">
+            <p id="info-desc">
+                מתחם הר הבית המורחב שבנה המלך הורדוס (המאה ה-1 לפנה"ס). הרחבה העצומה מוקפת בחומות תמך אדירות מאבן ירושלמית מסותתת, שבראשן סטווי עמודים מפוארים המקיפים את החצר החיצונית.
+            </p>
+            <div id="info-meta" class="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-amber-200/80">
+                <span>אמת מידה: שחזור אדריכלי</span>
+                <span id="info-dimensions">~480 × 300 מ'</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- סרגל ניווט תחתון לנקודות מבט מוגדרות מראש -->
+    <nav class="fixed bottom-3 right-3 left-3 z-20 flex justify-center pointer-events-none">
+        <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
+            <button data-view="overview" onclick="flyToView('overview')" class="btn-view active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 hover:bg-white/10 whitespace-nowrap border border-transparent">
+                🦅 מבט על כללי
+            </button>
+            <button data-view="sanctuary" onclick="flyToView('sanctuary')" class="btn-view px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 hover:bg-white/10 whitespace-nowrap border border-transparent">
+                ✨ חזית ההיכל והאולם
+            </button>
+            <button data-view="altar" onclick="flyToView('altar')" class="btn-view px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 hover:bg-white/10 whitespace-nowrap border border-transparent">
+                🔥 מזבח העולה ועזרת כהנים
+            </button>
+            <button data-view="womenCourt" onclick="flyToView('womenCourt')" class="btn-view px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 hover:bg-white/10 whitespace-nowrap border border-transparent">
+                🏛️ עזרת נשים ושער ניקנור
+            </button>
+            <button data-view="royalStoa" onclick="flyToView('royalStoa')" class="btn-view px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 hover:bg-white/10 whitespace-nowrap border border-transparent">
+                columns הסטיו המלכותי והחומות
+            </button>
+        </div>
+    </nav>
+
+    <!-- טעינת Three.js ו-OrbitControls מ-CDN אמין -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ==========================================
+        // 1. הגדרות נתונים ונקודות מבט בעברית
+        // ==========================================
+        const VIEW_PRESETS = {
+            overview: {
+                pos: [175, 135, 185],
+                target: [0, 12, -10],
+                title: 'מבט על כללי - הר הבית',
+                desc: 'מתחם הר הבית המורחב שבנה המלך הורדוס. הרחבה העצומה מוקפת בחומות אבן ירושלמית מסותתת וסטווי עמודים היקפיים, ובמרכזה מתנשא מבנה המקדש המצופה שיש לבן וזהב.',
+                dims: 'מתחם: 480 × 300 מ\''
+            },
+            sanctuary: {
+                pos: [52, 34, 48],
+                target: [-26, 26, 0],
+                title: 'האולם, ההיכל וקודש הקודשים',
+                desc: 'המבנה המרכזי המתנשא לגובה 100 אמה (~50 מטר). חזית האולם הרחבה מצופה שיש לבן בוהק ועיטורי זהב טהור ("מי שלא ראה בניין הורדוס לא ראה בניין נאה מימיו"), ובראשו שיני זהב ("כליא עורב").',
+                dims: 'גובה: 100 אמה (~50 מ\')'
+            },
+            altar: {
+                pos: [38, 22, 34],
+                target: [4, 9, 0],
+                title: 'מזבח העולה ועזרת כהנים',
+                desc: 'בחצר הפנימית ניצב מזבח העולה הבנוי אבנים שלמות ומסוידות בלבן, אליו עולים בכבש משופע מדרום. לצדו הכיור מנחושת ובית המטבחיים בעל העמודים והטבעות.',
+                dims: 'מזבח: 32 × 32 אמה'
+            },
+            womenCourt: {
+                pos: [95, 36, 52],
+                target: [48, 12, 0],
+                title: 'עזרת נשים ושער ניקנור',
+                desc: 'חצר ריבועית מוקפת חומה עם ארבע לשכות בפינותיה (הנזירים, השמנים, המצורעים ובית העצים). במערבה 15 מדרגות חצי-עגולות המובילות אל שער ניקנור המצופה נחושת קלל.',
+                dims: 'עזרת נשים: 135 × 135 אמה'
+            },
+            royalStoa: {
+                pos: [95, 42, 165],
+                target: [0, 14, 118],
+                title: 'הסטיו המלכותי וחומות הר הבית',
+                desc: 'בדרום הר הבית ניצב הסטיו המלכותי - בזיליקה עצומה בעלת ארבע שורות של 162 עמודים קורינתיים אדירים, ששימשה למסחר, התכנסות ומושב הסנהדרין.',
+                dims: '162 עמודים ב-4 שורות'
+            }
+        };
+
+        // נקודות עניין לתוויות צפות במרחב התלת-ממדי
+        const LANDMARKS = [
+            { id: 'sanctuary', name: 'האולם וההיכל', pos: new THREE.Vector3(-26, 52, 0), view: 'sanctuary' },
+            { id: 'altar', name: 'מזבח העולה', pos: new THREE.Vector3(6, 17, 0), view: 'altar' },
+            { id: 'laver', name: 'הכיור ובית המטבחיים', pos: new THREE.Vector3(-3, 12, -16), view: 'altar' },
+            { id: 'nicanor', name: 'שער ניקנור (15 מדרגות)', pos: new THREE.Vector3(24, 18, 0), view: 'womenCourt' },
+            { id: 'women', name: 'עזרת נשים', pos: new THREE.Vector3(52, 14, 0), view: 'womenCourt' },
+            { id: 'soreg', name: 'הסורג והחיל', pos: new THREE.Vector3(86, 9, 25), view: 'womenCourt' },
+            { id: 'stoa', name: 'הסטיו המלכותי', pos: new THREE.Vector3(0, 26, 118), view: 'royalStoa' },
+            { id: 'solomon', name: 'סטיו שלמה (מזרח)', pos: new THREE.Vector3(145, 22, -45), view: 'overview' }
+        ];
+
+        // משתנים גלובליים לסצנה
+        let scene, camera, renderer, controls;
+        let sunLight, hemiLight, ambientLight;
+        let fireParticles = [];
+        let smokeParticles = [];
+        let goldMaterials = [];
+        let showLabels = true;
+        let currentLighting = 'day';
+
+        // אנימציית מעבר מצלמה חלקה
+        let cameraAnim = {
+            active: false,
+            startPos: new THREE.Vector3(),
+            endPos: new THREE.Vector3(),
+            startTarget: new THREE.Vector3(),
+            endTarget: new THREE.Vector3(),
+            progress: 0,
+            duration: 1.35
+        };
+
+        const clock = new THREE.Clock();
+
+        // ==========================================
+        // 2. מחולל טקסטורות פרוצדורליות (Canvas)
+        // ==========================================
+        function createJerusalemStoneTexture(baseColor = '#e6dcc8', lineColor = '#b8aa90', rows = 12, cols = 6) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 512, 512);
+
+            const rowH = 512 / rows;
+            const colW = 512 / cols;
+
+            for (let r = 0; r < rows; r++) {
+                const offset = (r % 2 === 0) ? 0 : colW * 0.5;
+                for (let c = -1; c <= cols; c++) {
+                    const x = c * colW + offset;
+                    const y = r * rowH;
+
+                    // גיוון קל בגוון כל אבן
+                    const shade = (Math.random() - 0.5) * 18;
+                    ctx.fillStyle = adjustBrightness(baseColor, shade);
+                    ctx.fillRect(x + 2, y + 2, colW - 4, rowH - 4);
+
+                    // סיתות שוליים הורדיאני עדין
+                    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(x + 4, y + 4, colW - 8, rowH - 8);
+
+                    // מישקים (חריצים בין האבנים)
+                    ctx.strokeStyle = lineColor;
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, colW, rowH);
+                }
+            }
+
+            // רעש עדין למרקם אבן טבעי
+            addNoise(ctx, 512, 512, 12);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function createMarbleTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#f7f5f0';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // עורקי שיש עדינים בגווני תכלת-אפרפר וזהוב חיוור (כתיאור חז"ל: "אבני שישא ומרמרא")
+            for (let i = 0; i < 28; i++) {
+                ctx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                ctx.moveTo(x, y);
+                for (let s = 0; s < 8; s++) {
+                    x += (Math.random() - 0.45) * 90;
+                    y += (Math.random() - 0.45) * 90;
+                    ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = i % 3 === 0 ? 'rgba(180, 195, 210, 0.22)' : 'rgba(215, 205, 185, 0.25)';
+                ctx.lineWidth = 1 + Math.random() * 2.5;
+                ctx.stroke();
+            }
+
+            // קווי חיבור עדינים של לוחות שיש
+            ctx.strokeStyle = 'rgba(190, 185, 175, 0.35)';
+            ctx.lineWidth = 1.5;
+            for (let y = 0; y < 512; y += 64) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(512, y);
+                ctx.stroke();
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function createPavingTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#dfd4be';
+            ctx.fillRect(0, 0, 512, 512);
+
+            const grid = 8;
+            const size = 512 / grid;
+            for (let r = 0; r < grid; r++) {
+                for (let c = 0; c < grid; c++) {
+                    const shade = (Math.random() - 0.5) * 14;
+                    ctx.fillStyle = adjustBrightness('#dfd4be', shade);
+                    ctx.fillRect(c * size + 1.5, r * size + 1.5, size - 3, size - 3);
+                }
+            }
+            addNoise(ctx, 512, 512, 10);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(24, 16);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function adjustBrightness(hex, amount) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            let r = Math.min(255, Math.max(0, (num >> 16) + amount));
+            let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+            let b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+            return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+        }
+
+        function addNoise(ctx, w, h, alpha) {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const n = (Math.random() - 0.5) * alpha * 2;
+                data[i] = Math.min(255, Math.max(0, data[i] + n));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + n));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + n));
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // ==========================================
+        // 3. אתחול הסצנה, תאורה ובקרות
+        // ==========================================
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87bce8);
+            scene.fog = new THREE.FogExp2(0x9ec9ed, 0.0014);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1500);
+            camera.position.set(...VIEW_PRESETS.overview.pos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.08;
+            container.appendChild(renderer.domElement);
+
+            // בקרות מצלמה
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(...VIEW_PRESETS.overview.target);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxPolarAngle = Math.PI / 2 - 0.03; // מניעת ירידה מתחת לפני הקרקע
+            controls.minDistance = 18;
+            controls.maxDistance = 420;
+            controls.update();
+
+            // ביטול אנימציה אוטומטית כשהמשתמש מזיז ידנית
+            controls.addEventListener('start', () => {
+                cameraAnim.active = false;
+            });
+
+            setupLighting();
+            buildTempleComplex();
+            createFloatingLabels();
+
+            // התאמה לשינוי גודל מסך
+            window.addEventListener('resize', onWindowResize);
+
+            // הסתרת מסך טעינה
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 700);
+            }, 450);
+
+            animate();
+        }
+
+        function setupLighting() {
+            hemiLight = new THREE.HemisphereLight(0xfff8e7, 0x8c7b65, 0.75);
+            hemiLight.position.set(0, 200, 0);
+            scene.add(hemiLight);
+
+            ambientLight = new THREE.AmbientLight(0xfff2dc, 0.35);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xfff4dc, 1.9);
+            sunLight.position.set(140, 190, 120);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 20;
+            sunLight.shadow.camera.far = 550;
+            const d = 190;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
+        }
+
+        // החלפת מצב תאורה בין צהריים לשקיעה מוזהבת
+        window.setLightingMode = function(mode) {
+            currentLighting = mode;
+            const btnDay = document.getElementById('btn-day');
+            const btnGolden = document.getElementById('btn-golden');
+
+            if (mode === 'day') {
+                scene.background.setHex(0x87bce8);
+                scene.fog.color.setHex(0x9ec9ed);
+                sunLight.color.setHex(0xfff4dc);
+                sunLight.intensity = 1.9;
+                sunLight.position.set(140, 190, 120);
+                hemiLight.color.setHex(0xfff8e7);
+                hemiLight.intensity = 0.75;
+
+                btnDay.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 bg-amber-500 text-slate-950 font-bold transition shadow';
+                btnGolden.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-200 hover:bg-white/10 transition';
+            } else {
+                scene.background.setHex(0xd97b43);
+                scene.fog.color.setHex(0xe08e55);
+                sunLight.color.setHex(0xff9d42);
+                sunLight.intensity = 2.35;
+                sunLight.position.set(-180, 62, 130); // שמש מערבית נמוכה המאירה חזיתית את ההיכל
+                hemiLight.color.setHex(0xffb870);
+                hemiLight.intensity = 0.65;
+
+                btnGolden.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 bg-amber-500 text-slate-950 font-bold transition shadow';
+                btnDay.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-200 hover:bg-white/10 transition';
+            }
+        };
+
+        // ==========================================
+        // 4. בניית מכלול בית המקדש והר הבית
+        // ==========================================
+        function buildTempleComplex() {
+            // חומרים משותפים
+            const stoneTex = createJerusalemStoneTexture('#e5d8c0', '#b5a488', 10, 5);
+            stoneTex.repeat.set(8, 3);
+            const wallStoneMat = new THREE.MeshStandardMaterial({
+                map: stoneTex,
+                roughness: 0.78,
+                metalness: 0.05
+            });
+
+            const pavingTex = createPavingTexture();
+            const plazaMat = new THREE.MeshStandardMaterial({
+                map: pavingTex,
+                roughness: 0.72,
+                metalness: 0.04
+            });
+
+            const marbleTex = createMarbleTexture();
+            marbleTex.repeat.set(3, 3);
+            const marbleMat = new THREE.MeshStandardMaterial({
+                map: marbleTex,
+                roughness: 0.35,
+                metalness: 0.08
+            });
+
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xf5c842,
+                roughness: 0.22,
+                metalness: 0.88,
+                emissive: 0x332200,
+                emissiveIntensity: 0.25
+            });
+            goldMaterials.push(goldMat);
+
+            const bronzeMat = new THREE.MeshStandardMaterial({
+                color: 0xb87333,
+                roughness: 0.35,
+                metalness: 0.82
+            });
+
+            const roofTerracottaMat = new THREE.MeshStandardMaterial({
+                color: 0xc29b70,
+                roughness: 0.7
+            });
+
+            // --- א. קרקע והרי ירושלים מסביב ---
+            buildSurroundingTerrain();
+
+            // --- ב. פלטפורמת הר הבית וחומות התמך ---
+            // מידות הפלטפורמה: X (מזרח-מערב) = 310, Z (צפון-דרום) = 260
+            const mountGroup = new THREE.Group();
+            scene.add(mountGroup);
+
+            // מסד הר הבית
+            const platformGeo = new THREE.BoxGeometry(310, 24, 260);
+            const platform = new THREE.Mesh(platformGeo, wallStoneMat);
+            platform.position.set(0, -12, 0);
+            platform.receiveShadow = true;
+            platform.castShadow = true;
+            mountGroup.add(platform);
+
+            // ריצוף רחבת הר הבית (עזרת הגויים)
+            const floorGeo = new THREE.PlaneGeometry(306, 256);
+            const floor = new THREE.Mesh(floorGeo, plazaMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0.05;
+            floor.receiveShadow = true;
+            mountGroup.add(floor);
+
+            // חומות היקפיות וסטווים (אכסדראות עמודים)
+            buildOuterWallsAndStoas(mountGroup, wallStoneMat, marbleMat, roofTerracottaMat, goldMat);
+
+            // --- ג. החיל והסורג (המחיצה המקיפה את העזרה) ---
+            buildSoregAndChel(mountGroup, wallStoneMat, marbleMat);
+
+            // --- ד. מתחם העזרה הפנימית (מפלס מוגבה ב-4 יחידות) ---
+            const innerCompound = new THREE.Group();
+            innerCompound.position.set(-14, 4, 0); // מוסט מעט מערבה כפי שהיה במציאות ("רוב הר הבית מן הדרום, שני לו מן המזרח")
+            scene.add(innerCompound);
+
+            // במת העזרה המוגבהת (אורך 162, רוחב 74)
+            const innerBaseGeo = new THREE.BoxGeometry(162, 4, 74);
+            const innerBase = new THREE.Mesh(innerBaseGeo, wallStoneMat);
+            innerBase.position.set(16, -2, 0);
+            innerBase.receiveShadow = true;
+            innerBase.castShadow = true;
+            innerCompound.add(innerBase);
+
+            // חומות העזרה המקיפות
+            buildInnerCourtyardWalls(innerCompound, wallStoneMat, marbleMat, goldMat);
+
+            // --- ה. עזרת נשים (במזרח העזרה) ---
+            buildWomensCourt(innerCompound, wallStoneMat, marbleMat, bronzeMat, goldMat);
+
+            // --- ו. עזרת ישראל ועזרת כהנים (מזבח העולה, כיור, בית המטבחיים) ---
+            buildAltarAndPriestsCourt(innerCompound, wallStoneMat, marbleMat, bronzeMat);
+
+            // --- ז. האולם, ההיכל וקודש הקודשים (המבנה המרכזי במערב) ---
+            buildMainSanctuary(innerCompound, marbleMat, goldMat, bronzeMat);
+        }
+
+        // סביבה הררית ועצי ברוש וזית מסביב להר הבית
+        function buildSurroundingTerrain() {
+            const groundGeo = new THREE.PlaneGeometry(1400, 1400, 48, 48);
+            const posAttr = groundGeo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const x = posAttr.getX(i);
+                const y = posAttr.getY(i);
+                // יצירת גבעות רכות מסביב לעמק קדרון והר הזיתים
+                const distFromCenter = Math.sqrt(x * x + y * y);
+                let z = -26;
+                if (distFromCenter > 210) {
+                    z += Math.sin(x * 0.012) * 14 + Math.cos(y * 0.012) * 14 + (distFromCenter - 210) * 0.06;
+                }
+                posAttr.setZ(i, z);
+            }
+            groundGeo.computeVertexNormals();
+
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0xc2b28f,
+                roughness: 0.92
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // הוספת עצים (ברושים וזיתים) סביב הר הבית
+            const treeGroup = new THREE.Group();
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+            const cypressMat = new THREE.MeshStandardMaterial({ color: 0x2d4c2b, roughness: 0.8 });
+            const oliveMat = new THREE.MeshStandardMaterial({ color: 0x556b47, roughness: 0.85 });
+
+            const treePositions = [
+                [-185, -90], [-195, -30], [-180, 40], [-190, 100],
+                [185, -100], [195, -20], [190, 50], [180, 110],
+                [-110, -155], [-30, -160], [60, -158], [130, -155],
+                [-120, 155], [-40, 160], [50, 158], [135, 155]
+            ];
+
+            treePositions.forEach(([tx, tz], idx) => {
+                const singleTree = new THREE.Group();
+                const isCypress = idx % 2 === 0;
+
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 6, 7), trunkMat);
+                trunk.position.y = -21;
+                trunk.castShadow = true;
+                singleTree.add(trunk);
+
+                if (isCypress) {
+                    const foliage = new THREE.Mesh(new THREE.ConeGeometry(3.2, 16, 8), cypressMat);
+                    foliage.position.y = -11;
+                    foliage.castShadow = true;
+                    singleTree.add(foliage);
+                } else {
+                    const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(5.5, 1), oliveMat);
+                    foliage.scale.set(1.2, 0.85, 1.1);
+                    foliage.position.y = -16;
+                    foliage.castShadow = true;
+                    singleTree.add(foliage);
+                }
+
+                singleTree.position.set(tx, 0, tz);
+                treeGroup.add(singleTree);
+            });
+            scene.add(treeGroup);
+        }
+
+        // חומות היקפיות, סטווים (מזרח, צפון, מערב) והסטיו המלכותי (דרום)
+        function buildOuterWallsAndStoas(parent, stoneMat, marbleMat, roofMat, goldMat) {
+            const wallH = 14;
+            const wallThick = 3;
+
+            // חומה מערבית (X = -153)
+            const westWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 260), stoneMat);
+            westWall.position.set(-153.5, wallH / 2, 0);
+            westWall.castShadow = true;
+            westWall.receiveShadow = true;
+            parent.add(westWall);
+
+            // חומה צפונית (Z = -128)
+            const northWall = new THREE.Mesh(new THREE.BoxGeometry(310, wallH, wallThick), stoneMat);
+            northWall.position.set(0, wallH / 2, -128.5);
+            northWall.castShadow = true;
+            northWall.receiveShadow = true;
+            parent.add(northWall);
+
+            // חומה מזרחית (X = +153) כולל שער שושן המזרחי
+            const eastWallN = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 118), stoneMat);
+            eastWallN.position.set(153.5, wallH / 2, -71);
+            eastWallN.castShadow = true;
+            parent.add(eastWallN);
+
+            const eastWallS = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 118), stoneMat);
+            eastWallS.position.set(153.5, wallH / 2, 71);
+            eastWallS.castShadow = true;
+            parent.add(eastWallS);
+
+            // בית שער שושן במזרח
+            const shushanGate = new THREE.Mesh(new THREE.BoxGeometry(8, 19, 24), stoneMat);
+            shushanGate.position.set(153.5, 9.5, 0);
+            shushanGate.castShadow = true;
+            parent.add(shushanGate);
+
+            // חומה דרומית (Z = +128)
+            const southWall = new THREE.Mesh(new THREE.BoxGeometry(310, wallH + 2, wallThick), stoneMat);
+            southWall.position.set(0, (wallH + 2) / 2, 128.5);
+            southWall.castShadow = true;
+            parent.add(southWall);
+
+            // יצירת אכסדראות עמודים (סטווים) בצפון, מזרח ומערב
+            // סטיו צפוני
+            createColonnadeRow(parent, -142, 142, -121, 'x', 36, 12, marbleMat);
+            const northRoof = new THREE.Mesh(new THREE.BoxGeometry(296, 1.5, 14), roofMat);
+            northRoof.position.set(0, 12.8, -122);
+            northRoof.castShadow = true;
+            parent.add(northRoof);
+
+            // סטיו מזרחי (סטיו שלמה)
+            createColonnadeRow(parent, -118, 108, 146, 'z', 28, 12, marbleMat);
+            const eastRoof = new THREE.Mesh(new THREE.BoxGeometry(14, 1.5, 244), roofMat);
+            eastRoof.position.set(147, 12.8, -4);
+            eastRoof.castShadow = true;
+            parent.add(eastRoof);
+
+            // סטיו מערבי
+            createColonnadeRow(parent, -118, 108, -146, 'z', 28, 12, marbleMat);
+            const westRoof = new THREE.Mesh(new THREE.BoxGeometry(14, 1.5, 244), roofMat);
+            westRoof.position.set(-147, 12.8, -4);
+            westRoof.castShadow = true;
+            parent.add(westRoof);
+
+            // --- הסטיו המלכותי בדרום (Royal Stoa) ---
+            const stoaGroup = new THREE.Group();
+            stoaGroup.position.set(0, 0, 117);
+            parent.add(stoaGroup);
+
+            // 4 שורות עמודים קורינתיים מרשימים
+            const rowOffsetsZ = [-9, -3, 3, 9];
+            rowOffsetsZ.forEach((rz, idx) => {
+                const colH = (idx === 1 || idx === 2) ? 18 : 13.5; // האולם המרכזי גבוה יותר (מבנה בזיליקה)
+                createColonnadeRow(stoaGroup, -144, 144, rz, 'x', 38, colH, marbleMat);
+            });
+
+            // גגות הסטיו המלכותי (גג מרכזי מוגבה וגגות צדדיים)
+            const sideRoof1 = new THREE.Mesh(new THREE.BoxGeometry(298, 1.6, 8), roofMat);
+            sideRoof1.position.set(0, 14.2, -6.5);
+            sideRoof1.castShadow = true;
+            stoaGroup.add(sideRoof1);
+
+            const sideRoof2 = new THREE.Mesh(new THREE.BoxGeometry(298, 1.6, 8), roofMat);
+            sideRoof2.position.set(0, 14.2, 6.5);
+            sideRoof2.castShadow = true;
+            stoaGroup.add(sideRoof2);
+
+            const centerNave = new THREE.Mesh(new THREE.BoxGeometry(298, 4.5, 8.5), stoneMat);
+            centerNave.position.set(0, 16.5, 0);
+            centerNave.castShadow = true;
+            stoaGroup.add(centerNave);
+
+            const centerRoof = new THREE.Mesh(new THREE.BoxGeometry(300, 1.8, 10), roofMat);
+            centerRoof.position.set(0, 19.5, 0);
+            centerRoof.castShadow = true;
+            stoaGroup.add(centerRoof);
+
+            // כרכוב זהב מעטר בחזית הסטיו המלכותי
+            const stoaTrim = new THREE.Mesh(new THREE.BoxGeometry(298, 0.7, 0.5), goldMat);
+            stoaTrim.position.set(0, 14.5, -10.4);
+            stoaGroup.add(stoaTrim);
+        }
+
+        // פונקציית עזר ליצירת שורת עמודים קלאסיים עם בסיס וכותרת
+        function createColonnadeRow(parent, start, end, fixedCoord, axis, count, height, mat) {
+            const colGeo = new THREE.CylinderGeometry(0.65, 0.8, height, 12);
+            const capGeo = new THREE.BoxGeometry(1.9, 1.1, 1.9);
+            const baseGeo = new THREE.BoxGeometry(1.8, 0.8, 1.8);
+
+            const step = (end - start) / (count - 1);
+            for (let i = 0; i < count; i++) {
+                const pos = start + i * step;
+                const col = new THREE.Mesh(colGeo, mat);
+                const cap = new THREE.Mesh(capGeo, mat);
+                const base = new THREE.Mesh(baseGeo, mat);
+
+                if (axis === 'x') {
+                    col.position.set(pos, height / 2, fixedCoord);
+                    cap.position.set(pos, height, fixedCoord);
+                    base.position.set(pos, 0.4, fixedCoord);
+                } else {
+                    col.position.set(fixedCoord, height / 2, pos);
+                    cap.position.set(fixedCoord, height, pos);
+                    base.position.set(fixedCoord, 0.4, pos);
+                }
+                col.castShadow = true;
+                col.receiveShadow = true;
+                parent.add(col, cap, base);
+            }
+        }
+
+        // הסורג (מחיצת האבן המסורגת לגובה 10 טפחים) והחיל (12 מדרגות)
+        function buildSoregAndChel(parent, stoneMat, marbleMat) {
+            const soregGroup = new THREE.Group();
+            soregGroup.position.set(2, 0, 0);
+            parent.add(soregGroup);
+
+            const w = 186;
+            const d = 98;
+            const h = 2.6;
+            const thick = 0.7;
+
+            // 4 צלעות הסורג עם פתחים
+            const northSoreg = new THREE.Mesh(new THREE.BoxGeometry(w, h, thick), marbleMat);
+            northSoreg.position.set(0, h / 2, -d / 2);
+            soregGroup.add(northSoreg);
+
+            const southSoreg = new THREE.Mesh(new THREE.BoxGeometry(w, h, thick), marbleMat);
+            southSoreg.position.set(0, h / 2, d / 2);
+            soregGroup.add(southSoreg);
+
+            const westSoreg = new THREE.Mesh(new THREE.BoxGeometry(thick, h, d), marbleMat);
+            westSoreg.position.set(-w / 2, h / 2, 0);
+            soregGroup.add(westSoreg);
+
+            // צלע מזרחית עם פתח כניסה ראשי
+            const eastSoregN = new THREE.Mesh(new THREE.BoxGeometry(thick, h, 38), marbleMat);
+            eastSoregN.position.set(w / 2, h / 2, -30);
+            soregGroup.add(eastSoregN);
+
+            const eastSoregS = new THREE.Mesh(new THREE.BoxGeometry(thick, h, 38), marbleMat);
+            eastSoregS.position.set(w / 2, h / 2, 30);
+            soregGroup.add(eastSoregS);
+
+            // עמודוני אבן לאורך הסורג
+            const postGeo = new THREE.BoxGeometry(1.2, h + 0.8, 1.2);
+            for (let x = -w / 2; x <= w / 2; x += 12) {
+                const p1 = new THREE.Mesh(postGeo, marbleMat);
+                p1.position.set(x, (h + 0.8) / 2, -d / 2);
+                const p2 = new THREE.Mesh(postGeo, marbleMat);
+                p2.position.set(x, (h + 0.8) / 2, d / 2);
+                soregGroup.add(p1, p2);
+            }
+
+            // 12 מדרגות החיל המובילות אל שער עזרת נשים במזרח
+            for (let s = 0; s < 10; s++) {
+                const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4 * (s + 1), 22), stoneMat);
+                stepMesh.position.set(88 - s * 1.1, 0.2 * (s + 1), 0);
+                stepMesh.receiveShadow = true;
+                parent.add(stepMesh);
+            }
+        }
+
+        // חומות העזרה הפנימית ושעריה
+        function buildInnerCourtyardWalls(parent, stoneMat, marbleMat, goldMat) {
+            const wallH = 16;
+            const thick = 2.6;
+
+            // חומה צפונית (Z = -37)
+            const nWall = new THREE.Mesh(new THREE.BoxGeometry(162, wallH, thick), stoneMat);
+            nWall.position.set(16, wallH / 2, -37);
+            nWall.castShadow = true;
+            nWall.receiveShadow = true;
+            parent.add(nWall);
+
+            // חומה דרומית (Z = +37)
+            const sWall = new THREE.Mesh(new THREE.BoxGeometry(162, wallH, thick), stoneMat);
+            sWall.position.set(16, wallH / 2, 37);
+            sWall.castShadow = true;
+            sWall.receiveShadow = true;
+            parent.add(sWall);
+
+            // חומה מערבית מאחורי ההיכל (X = -65)
+            const wWall = new THREE.Mesh(new THREE.BoxGeometry(thick, wallH, 76), stoneMat);
+            wWall.position.set(-65, wallH / 2, 0);
+            wWall.castShadow = true;
+            parent.add(wWall);
+
+            // חומה מזרחית של עזרת נשים (X = +97) עם פתח שער מזרחי
+            const eWallN = new THREE.Mesh(new THREE.BoxGeometry(thick, wallH, 28), stoneMat);
+            eWallN.position.set(97, wallH / 2, -23);
+            eWallN.castShadow = true;
+            parent.add(eWallN);
+
+            const eWallS = new THREE.Mesh(new THREE.BoxGeometry(thick, wallH, 28), stoneMat);
+            eWallS.position.set(97, wallH / 2, 23);
+            eWallS.castShadow = true;
+            parent.add(eWallS);
+
+            // מגדל השער המזרחי (שער עזרת נשים)
+            createGateTower(parent, 97, 0, 22, 16, stoneMat, goldMat);
+
+            // שערי העזרה בצפון ובדרום (שער הניצוץ, שער הקרבן, שער המים, שער הדלק)
+            [-28, 12].forEach(gx => {
+                createGateTower(parent, gx, -37, 19, 11, stoneMat, goldMat);
+                createGateTower(parent, gx, 37, 19, 11, stoneMat, goldMat);
+            });
+        }
+
+        function createGateTower(parent, x, z, height, width, stoneMat, goldMat) {
+            const gateGroup = new THREE.Group();
+            gateGroup.position.set(x, 0, z);
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(6.5, height, width), stoneMat);
+            body.position.y = height / 2;
+            body.castShadow = true;
+            gateGroup.add(body);
+
+            // משקוף ודלתות מוזהבות
+            const door = new THREE.Mesh(new THREE.BoxGeometry(7.1, height * 0.65, width * 0.52), goldMat);
+            door.position.y = (height * 0.65) / 2;
+            gateGroup.add(door);
+
+            parent.add(gateGroup);
+        }
+
+        // עזרת נשים, 4 הלשכות הפינתיות, 15 המדרגות החצי-עגולות ושער ניקנור
+        function buildWomensCourt(parent, stoneMat, marbleMat, bronzeMat, goldMat) {
+            // ריצוף עזרת נשים (X בין 35 ל-97)
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(62, 72), marbleMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(66, 0.08, 0);
+            floor.receiveShadow = true;
+            parent.add(floor);
+
+            // ארבע הלשכות בפינות עזרת נשים (לשכת הנזירים, השמנים, המצורעים ובית העצים)
+            const chamberOffsets = [
+                [44, -27], [88, -27],
+                [44, 27], [88, 27]
+            ];
+            chamberOffsets.forEach(([cx, cz]) => {
+                const chamber = new THREE.Mesh(new THREE.BoxGeometry(16, 11, 16), stoneMat);
+                chamber.position.set(cx, 5.5, cz);
+                chamber.castShadow = true;
+                chamber.receiveShadow = true;
+                parent.add(chamber);
+
+                const cornice = new THREE.Mesh(new THREE.BoxGeometry(17, 1, 17), marbleMat);
+                cornice.position.set(cx, 11.2, cz);
+                parent.add(cornice);
+            });
+
+            // המחיצה המפרידה בין עזרת נשים לעזרת ישראל (X = 35)
+            const divWallN = new THREE.Mesh(new THREE.BoxGeometry(2.6, 17, 27), stoneMat);
+            divWallN.position.set(35, 8.5, -23.5);
+            divWallN.castShadow = true;
+            parent.add(divWallN);
+
+            const divWallS = new THREE.Mesh(new THREE.BoxGeometry(2.6, 17, 27), stoneMat);
+            divWallS.position.set(35, 8.5, 23.5);
+            divWallS.castShadow = true;
+            parent.add(divWallS);
+
+            // 15 המדרגות החצי-עגולות (עליהן עמדו הלויים בשיר ובכלי נגינה)
+            const numSteps = 15;
+            for (let i = 0; i < numSteps; i++) {
+                const radius = 14 - i * 0.55;
+                const stepH = 0.35;
+                const stepGeo = new THREE.CylinderGeometry(radius, radius, stepH, 24, 1, false, 0, Math.PI);
+                const stepMesh = new THREE.Mesh(stepGeo, marbleMat);
+                stepMesh.rotation.y = Math.PI / 2; // פונה מזרחה לתוך עזרת נשים
+                stepMesh.position.set(36, (i + 0.5) * stepH, 0);
+                stepMesh.receiveShadow = true;
+                stepMesh.castShadow = true;
+                parent.add(stepMesh);
+            }
+
+            // שער ניקנור המפואר (מצופה נחושת קלל המבהיקה כזהב)
+            const nicanorGroup = new THREE.Group();
+            nicanorGroup.position.set(35, 5.2, 0);
+            parent.add(nicanorGroup);
+
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(6, 21, 18), stoneMat);
+            frame.position.y = 10.5;
+            frame.castShadow = true;
+            nicanorGroup.add(frame);
+
+            const nicanorDoors = new THREE.Mesh(new THREE.BoxGeometry(6.6, 15, 10), bronzeMat);
+            nicanorDoors.position.y = 7.5;
+            nicanorGroup.add(nicanorDoors);
+
+            const nicanorCrown = new THREE.Mesh(new THREE.BoxGeometry(7.2, 2.2, 19.5), goldMat);
+            nicanorCrown.position.y = 21.5;
+            nicanorGroup.add(nicanorCrown);
+        }
+
+        // עזרת ישראל ועזרת כהנים: מזבח העולה, הכבש, הכיור ובית המטבחיים
+        function buildAltarAndPriestsCourt(parent, stoneMat, marbleMat, bronzeMat) {
+            // הגבהת מפלס עזרת ישראל וכהנים (X בין -64 ל-35, בגובה 5.2)
+            const courtPlatform = new THREE.Mesh(new THREE.BoxGeometry(99, 5.2, 72), stoneMat);
+            courtPlatform.position.set(-14.5, 2.6, 0);
+            courtPlatform.receiveShadow = true;
+            parent.add(courtPlatform);
+
+            const courtFloor = new THREE.Mesh(new THREE.PlaneGeometry(98, 71), marbleMat);
+            courtFloor.rotation.x = -Math.PI / 2;
+            courtFloor.position.set(-14.5, 5.25, 0);
+            courtFloor.receiveShadow = true;
+            parent.add(courtFloor);
+
+            // --- מזבח העולה (במיקום X = 18, Y = 5.25, Z = 0) ---
+            const altarGroup = new THREE.Group();
+            altarGroup.position.set(18, 5.25, 0);
+            parent.add(altarGroup);
+
+            // אבן מסוידת לבנה
+            const altarWhiteMat = new THREE.MeshStandardMaterial({
+                color: 0xf8f6f0,
+                roughness: 0.65
+            });
+
+            // 1. היסוד (בסיס המזבח: 16x16, גובה 1.2)
+            const base = new THREE.Mesh(new THREE.BoxGeometry(16, 1.2, 16), altarWhiteMat);
+            base.position.y = 0.6;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            altarGroup.add(base);
+
+            // 2. הסובב (מדרגה שנייה: 14.5x14.5, גובה 3.2)
+            const sovev = new THREE.Mesh(new THREE.BoxGeometry(14.5, 3.2, 14.5), altarWhiteMat);
+            sovev.position.y = 1.2 + 1.6;
+            sovev.castShadow = true;
+            sovev.receiveShadow = true;
+            altarGroup.add(sovev);
+
+            // 3. מקום המערכה (הגג: 13x13, גובה 2.2)
+            const topTier = new THREE.Mesh(new THREE.BoxGeometry(13, 2.2, 13), altarWhiteMat);
+            topTier.position.y = 4.4 + 1.1;
+            topTier.castShadow = true;
+            topTier.receiveShadow = true;
+            altarGroup.add(topTier);
+
+            // 4. ארבע קרנות המזבח בפינות
+            const hornOffsets = [[-5.8, -5.8], [5.8, -5.8], [-5.8, 5.8], [5.8, 5.8]];
+            hornOffsets.forEach(([hx, hz]) => {
+                const horn = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), altarWhiteMat);
+                horn.position.set(hx, 7.2, hz);
+                horn.castShadow = true;
+                altarGroup.add(horn);
+            });
+
+            // 5. הכבש (רמפת העלייה מדרום למזבח, Z חיובי)
+            const rampShape = new THREE.Shape();
+            rampShape.moveTo(0, 0);
+            rampShape.lineTo(18, 0);
+            rampShape.lineTo(0, 6.2);
+            rampShape.closePath();
+
+            const extrudeSettings = { depth: 4.5, bevelEnabled: false };
+            const rampGeo = new THREE.ExtrudeGeometry(rampShape, extrudeSettings);
+            const rampMesh = new THREE.Mesh(rampGeo, altarWhiteMat);
+            rampMesh.rotation.y = -Math.PI / 2;
+            rampMesh.position.set(2.25, 0, 7.2);
+            rampMesh.castShadow = true;
+            rampMesh.receiveShadow = true;
+            altarGroup.add(rampMesh);
+
+            // 6. אש המערכה ועשן עדין מעל המזבח
+            const emberBed = new THREE.Mesh(
+                new THREE.CylinderGeometry(3.2, 3.8, 0.6, 12),
+                new THREE.MeshBasicMaterial({ color: 0xff4500 })
+            );
+            emberBed.position.y = 6.8;
+            altarGroup.add(emberBed);
+
+            const fireLight = new THREE.PointLight(0xff6b1a, 2.5, 25);
+            fireLight.position.set(0, 8.5, 0);
+            altarGroup.add(fireLight);
+
+            // חלקיקי להבה
+            const flameMat = new THREE.MeshBasicMaterial({ color: 0xff9d00, transparent: true, opacity: 0.85 });
+            for (let i = 0; i < 14; i++) {
+                const flame = new THREE.Mesh(new THREE.ConeGeometry(0.6, 2.2, 6), flameMat);
+                flame.position.set((Math.random() - 0.5) * 3.5, 7.5 + Math.random() * 1.5, (Math.random() - 0.5) * 3.5);
+                flame.userData = {
+                    baseX: flame.position.x,
+                    baseZ: flame.position.z,
+                    speed: 2 + Math.random() * 2,
+                    phase: Math.random() * Math.PI * 2
+                };
+                altarGroup.add(flame);
+                fireParticles.push(flame);
+            }
+
+            // חלקיקי עשן העולים השמיימה ("עמוד עשן מתמר")
+            const smokeMat = new THREE.MeshBasicMaterial({ color: 0xf1f5f9, transparent: true, opacity: 0.28 });
+            for (let i = 0; i < 18; i++) {
+                const puff = new THREE.Mesh(new THREE.SphereGeometry(0.9 + Math.random() * 0.8, 8, 8), smokeMat);
+                puff.position.set(18 + (Math.random() - 0.5) * 2, 13 + i * 2.2, (Math.random() - 0.5) * 2);
+                puff.userData = {
+                    offset: i * 1.5,
+                    speed: 3.2 + Math.random() * 1.2
+                };
+                parent.add(puff);
+                smokeParticles.push(puff);
+            }
+
+            // --- הכיור (בין האולם למזבח, נוטה לדרום) ---
+            const laverGroup = new THREE.Group();
+            laverGroup.position.set(5, 5.25, 11);
+            parent.add(laverGroup);
+
+            const laverBase = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.0, 2.5, 16), bronzeMat);
+            laverBase.position.y = 1.25;
+            laverBase.castShadow = true;
+            laverGroup.add(laverBase);
+
+            const laverBasin = new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 12, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), bronzeMat);
+            laverBasin.position.y = 4.2;
+            laverBasin.castShadow = true;
+            laverGroup.add(laverBasin);
+
+            // --- בית המטבחיים (מצפון למזבח: עמודים נמוכים ושולחנות שיש) ---
+            const slaughterGroup = new THREE.Group();
+            slaughterGroup.position.set(14, 5.25, -19);
+            parent.add(slaughterGroup);
+
+            for (let r = 0; r < 2; r++) {
+                for (let c = 0; c < 4; c++) {
+                    const px = c * 4.5 - 6.5;
+                    const pz = r * 5.5 - 2.5;
+                    // עמוד נמוך
+                    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 3.2, 8), stoneMat);
+                    pillar.position.set(px, 1.6, pz);
+                    pillar.castShadow = true;
+                    slaughterGroup.add(pillar);
+
+                    // שולחן שיש
+                    const table = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.4, 1.4), marbleMat);
+                    table.position.set(px, 1.3, pz + 1.8);
+                    table.castShadow = true;
+                    slaughterGroup.add(table);
+                }
+            }
+        }
+
+        // האולם, ההיכל וקודש הקודשים (המבנה המרכזי המפואר)
+        function buildMainSanctuary(parent, marbleMat, goldMat, bronzeMat) {
+            const sanctuaryGroup = new THREE.Group();
+            sanctuaryGroup.position.set(-22, 5.25, 0);
+            parent.add(sanctuaryGroup);
+
+            // 1. 12 מדרגות העלייה מן העזרה אל האולם
+            for (let s = 0; s < 12; s++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45 * (s + 1), 24), marbleMat);
+                step.position.set(18 - s * 0.9, 0.225 * (s + 1), 0);
+                step.receiveShadow = true;
+                step.castShadow = true;
+                sanctuaryGroup.add(step);
+            }
+
+            const baseElev = 5.4; // גובה רצפת ההיכל מעל העזרה
+
+            // 2. חזית האולם הרחבה והמתנשאת (רוחב 50 מ' בציר Z, גובה 46 מ', עומק 12 מ')
+            // צורת T: האולם רחב כמו ארי ("ארי צר מאחוריו ורחב מלפניו")
+            const ulamWidth = 50;
+            const ulamHeight = 46;
+            const ulamDepth = 12;
+
+            const ulamBody = new THREE.Mesh(new THREE.BoxGeometry(ulamDepth, ulamHeight, ulamWidth), marbleMat);
+            ulamBody.position.set(2, baseElev + ulamHeight / 2, 0);
+            ulamBody.castShadow = true;
+            ulamBody.receiveShadow = true;
+            sanctuaryGroup.add(ulamBody);
+
+            // פתח האולם הגבוה והמפואר (ללא דלתות, מעוטר בפסי זהב מדורגים)
+            const portalDepth = 2.2;
+            const portalBack = new THREE.Mesh(
+                new THREE.BoxGeometry(portalDepth, 24, 12),
+                new THREE.MeshStandardMaterial({ color: 0x1e1810, roughness: 0.9 })
+            );
+            portalBack.position.set(7.2, baseElev + 12, 0);
+            sanctuaryGroup.add(portalBack);
+
+            // משקופי זהב מדורגים מעל פתח האולם ("אמלתראות של מילה")
+            for (let b = 0; b < 5; b++) {
+                const beamW = 15 + b * 2.5;
+                const beam = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.1, beamW), goldMat);
+                beam.position.set(8.2, baseElev + 24.8 + b * 1.7, 0);
+                sanctuaryGroup.add(beam);
+            }
+
+            // ארבעה עמודי שיש ענקיים בחזית האולם עם כותרות זהב
+            [-18, -10.5, 10.5, 18].forEach(cz => {
+                const col = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 36, 16), marbleMat);
+                col.position.set(8.3, baseElev + 18, cz);
+                col.castShadow = true;
+                sanctuaryGroup.add(col);
+
+                const cap = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.2, 3.4), goldMat);
+                cap.position.set(8.3, baseElev + 36.5, cz);
+                sanctuaryGroup.add(cap);
+            });
+
+            // 3. גוף ההיכל וקודש הקודשים (צר יותר מאחור: רוחב 32 מ', אורך 34 מ', גובה 46 מ')
+            const heichalBody = new THREE.Mesh(new THREE.BoxGeometry(34, ulamHeight, 32), marbleMat);
+            heichalBody.position.set(-20, baseElev + ulamHeight / 2, 0);
+            heichalBody.castShadow = true;
+            heichalBody.receiveShadow = true;
+            sanctuaryGroup.add(heichalBody);
+
+            // התאים (היציעים) המקיפים את ההיכל מצפון, דרום ומערב ב-3 קומות
+            const chambersBox = new THREE.Mesh(new THREE.BoxGeometry(36, 26, 36), marbleMat);
+            chambersBox.position.set(-20, baseElev + 13, 0);
+            chambersBox.castShadow = true;
+            sanctuaryGroup.add(chambersBox);
+
+            // 4. ציפויי זהב אדירים על חזית האולם והגג ("כטבלא של זהב")
+            // לוחות זהב בחזית האולם המחזירים את אור השמש למרחקים
+            const goldPlateUpper = new THREE.Mesh(new THREE.BoxGeometry(0.6, 8.5, 48), goldMat);
+            goldPlateUpper.position.set(8.1, baseElev + 40.5, 0);
+            sanctuaryGroup.add(goldPlateUpper);
+
+            // פסי עיטור זהב אנכיים ואופקיים
+            const goldBorderTop = new THREE.Mesh(new THREE.BoxGeometry(ulamDepth + 1.2, 1.8, ulamWidth + 1.2), goldMat);
+            goldBorderTop.position.set(2, baseElev + ulamHeight + 0.5, 0);
+            sanctuaryGroup.add(goldBorderTop);
+
+            const heichalCrown = new THREE.Mesh(new THREE.BoxGeometry(35, 1.6, 33), goldMat);
+            heichalCrown.position.set(-20, baseElev + ulamHeight + 0.4, 0);
+            sanctuaryGroup.add(heichalCrown);
+
+            // מעקה גג ההיכל ו"כליא עורב" (שיני זהב חדות בראש הגג למניעת עמידת עופות)
+            const spikeGeo = new THREE.ConeGeometry(0.35, 2.4, 4);
+            // שיני זהב לאורך חזית האולם
+            for (let z = -24; z <= 24; z += 2) {
+                const spikeFront = new THREE.Mesh(spikeGeo, goldMat);
+                spikeFront.position.set(7.8, baseElev + ulamHeight + 2.4, z);
+                sanctuaryGroup.add(spikeFront);
+            }
+            // שיני זהב לאורך גג ההיכל
+            for (let x = -36; x <= 6; x += 2.5) {
+                const spikeN = new THREE.Mesh(spikeGeo, goldMat);
+                spikeN.position.set(x, baseElev + ulamHeight + 2.2, -15.8);
+                const spikeS = new THREE.Mesh(spikeGeo, goldMat);
+                spikeS.position.set(x, baseElev + ulamHeight + 2.2, 15.8);
+                sanctuaryGroup.add(spikeN, spikeS);
+            }
+        }
+
+        // ==========================================
+        // 5. תוויות צפות במרחב התלת-ממדי
+        // ==========================================
+        function createFloatingLabels() {
+            const layer = document.getElementById('labels-layer');
+            layer.innerHTML = '';
+
+            LANDMARKS.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'floating-label';
+                el.textContent = item.name;
+                el.onclick = () => flyToView(item.view);
+                layer.appendChild(el);
+                item.element = el;
+            });
+        }
+
+        function updateFloatingLabels() {
+            if (!showLabels) return;
+
+            const widthHalf = window.innerWidth / 2;
+            const heightHalf = window.innerHeight / 2;
+
+            LANDMARKS.forEach(item => {
+                if (!item.element) return;
+
+                const projected = item.pos.clone().project(camera);
+
+                // הסתרה אם הנקודה מאחורי המצלמה
+                if (projected.z > 1) {
+                    item.element.style.display = 'none';
+                    return;
+                }
+
+                const x = (projected.x * widthHalf) + widthHalf;
+                const y = -(projected.y * heightHalf) + heightHalf;
+
+                // בדיקה אם בתוך גבולות המסך
+                if (x < 20 || x > window.innerWidth - 20 || y < 50 || y > window.innerHeight - 65) {
+                    item.element.style.display = 'none';
+                } else {
+                    item.element.style.display = 'block';
+                    item.element.style.left = `${x}px`;
+                    item.element.style.top = `${y}px`;
+                }
+            });
+        }
+
+        window.toggleLabels = function() {
+            showLabels = !showLabels;
+            const btn = document.getElementById('btn-labels');
+            const layer = document.getElementById('labels-layer');
+
+            if (showLabels) {
+                layer.style.display = 'block';
+                btn.classList.add('bg-white/15', 'text-amber-300', 'border-amber-400/40');
+                btn.classList.remove('text-slate-300', 'border-transparent');
+            } else {
+                layer.style.display = 'none';
+                btn.classList.remove('bg-white/15', 'text-amber-300', 'border-amber-400/40');
+                btn.classList.add('text-slate-300', 'border-transparent');
+            }
+        };
+
+        // ==========================================
+        // 6. ניווט מצלמה וחלונית מידע
+        // ==========================================
+        window.flyToView = function(viewKey) {
+            const preset = VIEW_PRESETS[viewKey];
+            if (!preset) return;
+
+            // עדכון כפתור פעיל
+            document.querySelectorAll('.btn-view').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === viewKey);
+            });
+
+            // עדכון חלונית מידע
+            document.getElementById('info-title').textContent = preset.title;
+            document.getElementById('info-desc').textContent = preset.desc;
+            document.getElementById('info-dimensions').textContent = preset.dims;
+
+            // פתיחת חלונית המידע אם הייתה מקופלת
+            const body = document.getElementById('info-body');
+            if (body.classList.contains('hidden')) {
+                body.classList.remove('hidden');
+                document.getElementById('info-toggle-icon').textContent = 'הסתר';
+            }
+
+            // הגדרת אנימציית מעבר חלקה
+            cameraAnim.startPos.copy(camera.position);
+            cameraAnim.endPos.set(...preset.pos);
+            cameraAnim.startTarget.copy(controls.target);
+            cameraAnim.endTarget.set(...preset.target);
+            cameraAnim.progress = 0;
+            cameraAnim.active = true;
+        };
+
+        window.toggleInfoCard = function() {
+            const body = document.getElementById('info-body');
+            const icon = document.getElementById('info-toggle-icon');
+            const isHidden = body.classList.toggle('hidden');
+            icon.textContent = isHidden ? 'הצג מידע' : 'הסתר';
+        };
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ==========================================
+        // 7. לולאת אנימציה ורינדור
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // 1. אנימציית מעבר מצלמה חלק (Ease In-Out Cubic)
+            if (cameraAnim.active) {
+                cameraAnim.progress += delta / cameraAnim.duration;
+                if (cameraAnim.progress >= 1) {
+                    cameraAnim.progress = 1;
+                    cameraAnim.active = false;
+                }
+                const t = cameraAnim.progress;
+                const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                camera.position.lerpVectors(cameraAnim.startPos, cameraAnim.endPos, ease);
+                controls.target.lerpVectors(cameraAnim.startTarget, cameraAnim.endTarget, ease);
+            }
+
+            // 2. אנימציית אש ועשן במזבח העולה
+            fireParticles.forEach(flame => {
+                const { baseX, baseZ, speed, phase } = flame.userData;
+                flame.scale.y = 0.8 + Math.sin(elapsed * speed * 3 + phase) * 0.35;
+                flame.position.x = baseX + Math.sin(elapsed * speed + phase) * 0.25;
+                flame.position.z = baseZ + Math.cos(elapsed * speed + phase) * 0.25;
+            });
+
+            smokeParticles.forEach(puff => {
+                puff.position.y += delta * puff.userData.speed;
+                puff.position.x = 18 + Math.sin(elapsed * 0.8 + puff.userData.offset) * 1.8;
+                const heightRatio = (puff.position.y - 13) / 38;
+                puff.scale.setScalar(1 + heightRatio * 1.4);
+                if (puff.position.y > 51) {
+                    puff.position.y = 13;
+                }
+            });
+
+            controls.update();
+            updateFloatingLabels();
+            renderer.render(scene, camera);
+        }
+
+        // הפעלת הסצנה
+        init();
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

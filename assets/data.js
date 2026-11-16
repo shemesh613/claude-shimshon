@@ -55,6 +55,7 @@ window.SITE = {
   ],
 
   worlds: [
+      { "title": "בית המקדש השני", "cover": "lessons/img/ex3d-mikdash.jpg", "href": "worlds/mikdash.html" },
       { "title": "ארמון ענק עם חדר לנסיכה", "cover": "lessons/img/ex3d-palace.jpg", "href": "worlds/palace.html" },
       { "title": "טירה מפוארת עם חצר", "cover": "lessons/img/ex3d-castle.jpg", "href": "worlds/castle.html" },
       { "title": "חדר ברבי", "cover": "lessons/img/ex3d-barbie.jpg", "href": "worlds/barbie.html" },
@@ -62,7 +63,8 @@ window.SITE = {
       { "title": "כדור הארץ והחלל", "cover": "lessons/img/ex3d-globe.jpg", "href": "worlds/globe.html" },
       { "title": "טירת הנסיכה הוורודה הענקית", "cover": "lessons/img/ex3d-babypink.jpg", "href": "worlds/babypink.html" },
       { "title": "מלון ממילא בירושלים", "cover": "lessons/img/ex3d-mamilla.jpg", "href": "worlds/mamilla.html" },
-      { "title": "חדר החלומות בצבע שמנת", "cover": "lessons/img/ex3d-dreamcream.jpg", "href": "worlds/dreamcream.html" }
+      { "title": "חדר החלומות בצבע שמנת", "cover": "lessons/img/ex3d-dreamcream.jpg", "href": "worlds/dreamcream.html" },
+      { "title": "סטודיו חדר החלומות", "cover": "lessons/img/ex3d-studio.jpg", "href": "worlds/studio.html" }
   ],
 
   books: [

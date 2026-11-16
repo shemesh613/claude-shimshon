@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>עיצוב חדר החלומות בתלת-ממד</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Rubik', sans-serif;
+            background-color: #fdf6f9;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            outline: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 12px 32px rgba(149, 117, 168, 0.18);
+        }
+        .dark-mode .glass-card {
+            background: rgba(34, 28, 53, 0.84);
+            border: 2px solid rgba(167, 139, 250, 0.35);
+            box-shadow: 0 12px 32px rgba(10, 8, 22, 0.55);
+            color: #f5f3ff;
+        }
+        .pill-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pill-btn:hover {
+            transform: translateY(-2px);
+        }
+        .pill-btn:active {
+            transform: scale(0.95);
+        }
+        .pill-btn.active {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+        }
+        .swatch-btn {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        }
+        .swatch-btn:hover {
+            transform: scale(1.14);
+        }
+        .swatch-btn.active {
+            transform: scale(1.18);
+            box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #ec4899;
+        }
+        /* Hide scrollbars cleanly */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-700 transition-colors duration-500">
+
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-purple-100 to-sky-100 transition-opacity duration-700">
+        <div class="text-5xl mb-3 animate-bounce">🦄✨</div>
+        <h2 class="text-2xl font-bold text-purple-800 mb-1">מעצבים את חדר החלומות...</h2>
+        <p class="text-sm text-purple-600/80">מסדרים כריות, אורות פיות וחתלתול חמוד</p>
+    </div>
+
+    <!-- Top Header & Day/Night Switch -->
+    <header class="fixed top-3 right-3 left-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div class="glass-card rounded-3xl px-4 py-2.5 pointer-events-auto flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-400 to-purple-500 flex items-center justify-center text-white text-xl shadow-md">
+                🛏️
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-l from-pink-600 to-purple-600 bg-clip-text text-transparent dark:from-pink-300 dark:to-purple-300">
+                    סטודיו חדר החלומות 3D
+                </h1>
+                <p class="text-xs opacity-75 hidden sm:block">גררו עם העכבר לסיבוב החדר • גלגלת לזום</p>
+            </div>
+        </div>
+
+        <!-- Day / Night Toggle Button -->
+        <div class="pointer-events-auto flex items-center gap-2">
+            <button id="toggle-day-night" class="glass-card pill-btn rounded-3xl px-4 py-2.5 flex items-center gap-2 font-bold text-sm cursor-pointer">
+                <span id="dn-icon" class="text-xl">🌙</span>
+                <span id="dn-text">עבור למצב לילה</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Right Control Panel (Colors, Themes & Decor) -->
+    <aside class="fixed top-20 right-3 z-20 w-64 sm:w-72 max-h-[calc(100vh-155px)] overflow-y-auto no-scrollbar pointer-events-none flex flex-col gap-2.5">
+        
+        <!-- 1. Wall Color Picker -->
+        <div class="glass-card rounded-3xl p-3.5 pointer-events-auto">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold flex items-center gap-1.5">🎨 צבע הקירות</span>
+                <span id="wall-color-name" class="text-xs font-semibold text-pink-600 dark:text-pink-300">ורוד פסטל</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 px-1">
+                <button data-wall="pink" class="swatch-btn active w-8 h-8 rounded-full border-2 border-white shadow cursor-pointer" style="background-color: #ffd6e7;" title="ורוד פסטל"></button>
+                <button data-wall="lavender" class="swatch-btn w-8 h-8 rounded-full border-2 border-white shadow cursor-pointer" style="background-color: #e4d4ff;" title="לבנדר"></button>
+                <button data-wall="mint" class="swatch-btn w-8 h-8 rounded-full border-2 border-white shadow cursor-pointer" style="background-color: #ccf5e4;" title="ירוק מנטה"></button>
+                <button data-wall="sky" class="swatch-btn w-8 h-8 rounded-full border-2 border-white shadow cursor-pointer" style="background-color: #cceaff;" title="תכלת"></button>
+                <button data-wall="cream" class="swatch-btn w-8 h-8 rounded-full border-2 border-white shadow cursor-pointer" style="background-color: #fff3db;" title="שמנת"></button>
+            </div>
+        </div>
+
+        <!-- 2. Bedding & Rug Theme -->
+        <div class="glass-card rounded-3xl p-3.5 pointer-events-auto">
+            <div class="text-xs font-bold mb-2 flex items-center gap-1.5">✨ עיצוב מצעים ושטיח</div>
+            <div class="grid grid-cols-2 gap-1.5 text-xs font-medium">
+                <button data-theme="unicorn" class="theme-btn pill-btn active rounded-2xl py-2 px-2.5 border border-purple-200/70 bg-white/60 dark:bg-white/10 cursor-pointer flex items-center justify-center gap-1">
+                    <span>🦄</span> חד קרן
+                </button>
+                <button data-theme="berry" class="theme-btn pill-btn rounded-2xl py-2 px-2.5 border border-purple-200/70 bg-white/60 dark:bg-white/10 cursor-pointer flex items-center justify-center gap-1">
+                    <span>🍓</span> תות מתוק
+                </button>
+                <button data-theme="ocean" class="theme-btn pill-btn rounded-2xl py-2 px-2.5 border border-purple-200/70 bg-white/60 dark:bg-white/10 cursor-pointer flex items-center justify-center gap-1">
+                    <span>🧜‍♀️</span> ים מנטה
+                </button>
+                <button data-theme="peach" class="theme-btn pill-btn rounded-2xl py-2 px-2.5 border border-purple-200/70 bg-white/60 dark:bg-white/10 cursor-pointer flex items-center justify-center gap-1">
+                    <span>🍑</span> אפרסק
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. Furniture & Cute Decor Toggles -->
+        <div class="glass-card rounded-3xl p-3.5 pointer-events-auto">
+            <div class="text-xs font-bold mb-2 flex items-center gap-1.5">🧸 הוספה / הסרה בחדר</div>
+            <div class="flex flex-col gap-1.5 text-xs font-medium">
+                <button id="toggle-beanbag" class="pill-btn active rounded-2xl py-2 px-3 border border-purple-200/70 flex items-center justify-between cursor-pointer">
+                    <span>🟣 פוף ישיבה מפנק</span>
+                    <span class="status-badge font-bold">פעיל</span>
+                </button>
+                <button id="toggle-fairy" class="pill-btn active rounded-2xl py-2 px-3 border border-purple-200/70 flex items-center justify-between cursor-pointer">
+                    <span>💡 שרשרת אורות פיות</span>
+                    <span class="status-badge font-bold">פעיל</span>
+                </button>
+                <button id="toggle-cat" class="pill-btn active rounded-2xl py-2 px-3 border border-purple-200/70 flex items-center justify-between cursor-pointer">
+                    <span>🐱 חתלתול ישן על המיטה</span>
+                    <span class="status-badge font-bold">פעיל</span>
+                </button>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- Bottom Camera Presets Bar -->
+    <nav class="fixed bottom-3 right-3 left-3 z-20 flex justify-center pointer-events-none">
+        <div class="glass-card rounded-3xl p-2 pointer-events-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar max-w-full text-xs sm:text-sm font-medium">
+            <button data-cam="full" class="cam-btn pill-btn active rounded-2xl px-3.5 py-2 whitespace-nowrap cursor-pointer">🏠 מבט על כל החדר</button>
+            <button data-cam="bed" class="cam-btn pill-btn rounded-2xl px-3.5 py-2 whitespace-nowrap cursor-pointer">🛏️ פינת המיטה</button>
+            <button data-cam="desk" class="cam-btn pill-btn rounded-2xl px-3.5 py-2 whitespace-nowrap cursor-pointer">🐰 שולחן הכתיבה</button>
+            <button data-cam="top" class="cam-btn pill-btn rounded-2xl px-3.5 py-2 whitespace-nowrap cursor-pointer">🛸 מבט מלמעלה</button>
+        </div>
+    </nav>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ==========================================
+        // 1. PROCEDURAL TEXTURES (NO EXTERNAL URLS)
+        // ==========================================
+        function createTextures() {
+            const tex = {};
+
+            // A. Cozy Light Oak Wood Plank Floor
+            const woodCanvas = document.createElement('canvas');
+            woodCanvas.width = 512; woodCanvas.height = 512;
+            const wCtx = woodCanvas.getContext('2d');
+            wCtx.fillStyle = '#e5c39c';
+            wCtx.fillRect(0, 0, 512, 512);
+            const plankH = 64;
+            for (let y = 0; y < 512; y += plankH) {
+                const shade = (Math.random() - 0.5) * 18;
+                wCtx.fillStyle = `rgb(${229 + shade}, ${195 + shade}, ${156 + shade})`;
+                wCtx.fillRect(0, y, 512, plankH - 2);
+                // Wood grain lines
+                wCtx.strokeStyle = 'rgba(166, 124, 82, 0.18)';
+                wCtx.lineWidth = 1.5;
+                for (let g = 0; g < 6; g++) {
+                    wCtx.beginPath();
+                    wCtx.moveTo(0, y + 8 + g * 9);
+                    wCtx.bezierCurveTo(170, y + 4 + g * 9, 340, y + 12 + g * 9, 512, y + 8 + g * 9);
+                    wCtx.stroke();
+                }
+                // Plank divider
+                wCtx.fillStyle = 'rgba(130, 92, 58, 0.35)';
+                wCtx.fillRect(0, y + plankH - 2, 512, 2);
+                const jointX = ((y / plankH) * 190) % 512;
+                wCtx.fillRect(jointX, y, 2, plankH);
+            }
+            tex.woodFloor = new THREE.CanvasTexture(woodCanvas);
+            tex.woodFloor.wrapS = tex.woodFloor.wrapT = THREE.RepeatWrapping;
+            tex.woodFloor.repeat.set(3, 3);
+
+            // B. Fluffy Rug Texture
+            const rugCanvas = document.createElement('canvas');
+            rugCanvas.width = 256; rugCanvas.height = 256;
+            const rCtx = rugCanvas.getContext('2d');
+            rCtx.fillStyle = '#ffffff';
+            rCtx.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 6000; i++) {
+                rCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.45)' : 'rgba(210,200,220,0.35)';
+                rCtx.beginPath();
+                rCtx.arc(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 0, Math.PI * 2);
+                rCtx.fill();
+            }
+            tex.rugBump = new THREE.CanvasTexture(rugCanvas);
+
+            // C. Cute Framed Wall Art 1 (Rainbow & Clouds)
+            const art1 = document.createElement('canvas');
+            art1.width = 256; art1.height = 256;
+            const a1 = art1.getContext('2d');
+            a1.fillStyle = '#fff9fc';
+            a1.fillRect(0, 0, 256, 256);
+            const bowColors = ['#ff8fab', '#ffc8dd', '#fde4cf', '#b9fbc0', '#a3c4f3', '#cfbaf0'];
+            bowColors.forEach((col, i) => {
+                a1.strokeStyle = col;
+                a1.lineWidth = 10;
+                a1.beginPath();
+                a1.arc(128, 175, 88 - i * 10, Math.PI, 0);
+                a1.stroke();
+            });
+            // Clouds at ends
+            a1.fillStyle = '#ffffff';
+            [[48, 178], [72, 172], [60, 162], [184, 178], [208, 172], [196, 162]].forEach(([cx, cy]) => {
+                a1.beginPath(); a1.arc(cx, cy, 18, 0, Math.PI * 2); a1.fill();
+            });
+            tex.artRainbow = new THREE.CanvasTexture(art1);
+
+            // D. Cute Framed Wall Art 2 (Kawaii Star & Hearts)
+            const art2 = document.createElement('canvas');
+            art2.width = 256; art2.height = 256;
+            const a2 = art2.getContext('2d');
+            a2.fillStyle = '#f5f0ff';
+            a2.fillRect(0, 0, 256, 256);
+            // Yellow Star
+            a2.fillStyle = '#ffd166';
+            a2.beginPath();
+            for (let i = 0; i < 5; i++) {
+                a2.lineTo(128 + Math.cos((18 + i * 72) * Math.PI / 180) * 68, 128 - Math.sin((18 + i * 72) * Math.PI / 180) * 68);
+                a2.lineTo(128 + Math.cos((54 + i * 72) * Math.PI / 180) * 30, 128 - Math.sin((54 + i * 72) * Math.PI / 180) * 30);
+            }
+            a2.closePath();
+            a2.fill();
+            // Cute eyes on star
+            a2.fillStyle = '#3d2c4d';
+            a2.beginPath(); a2.arc(114, 126, 4.5, 0, Math.PI * 2); a2.fill();
+            a2.beginPath(); a2.arc(142, 126, 4.5, 0, Math.PI * 2); a2.fill();
+            a2.strokeStyle = '#ff6b9d'; a2.lineWidth = 3;
+            a2.beginPath(); a2.arc(128, 132, 7, 0.1 * Math.PI, 0.9 * Math.PI); a2.stroke();
+            tex.artStar = new THREE.CanvasTexture(art2);
+
+            // E. Window Sky Canvas (Dynamically updated for Day / Night!)
+            const skyCanvas = document.createElement('canvas');
+            skyCanvas.width = 512; skyCanvas.height = 512;
+            tex.skyCanvas = skyCanvas;
+            tex.skyTexture = new THREE.CanvasTexture(skyCanvas);
+
+            return tex;
+        }
+
+        const textures = createTextures();
+
+        function drawWindowSky(isNight) {
+            const ctx = textures.skyCanvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 512);
+            if (isNight) {
+                grad.addColorStop(0, '#0f1029');
+                grad.addColorStop(0.55, '#251e4a');
+                grad.addColorStop(1, '#4c3575');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 512);
+
+                // Twinkling Stars
+                for (let i = 0; i < 65; i++) {
+                    const x = (i * 97) % 512;
+                    const y = (i * 53) % 420;
+                    const r = (i % 3 === 0) ? 3.2 : 1.8;
+                    ctx.fillStyle = i % 2 === 0 ? '#fff6cc' : '#e0d4ff';
+                    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+
+                // Crescent Moon
+                ctx.fillStyle = '#ffe999';
+                ctx.beginPath(); ctx.arc(360, 135, 44, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#1b163b';
+                ctx.beginPath(); ctx.arc(342, 122, 38, 0, Math.PI * 2); ctx.fill();
+            } else {
+                grad.addColorStop(0, '#6ec6ff');
+                grad.addColorStop(0.65, '#bae6fd');
+                grad.addColorStop(1, '#fef9c3');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 512);
+
+                // Warm Sun
+                ctx.fillStyle = 'rgba(255, 235, 130, 0.45)';
+                ctx.beginPath(); ctx.arc(370, 125, 58, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath(); ctx.arc(370, 125, 38, 0, Math.PI * 2); ctx.fill();
+
+                // Fluffy White Clouds
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                const clouds = [
+                    [110, 150, 32], [142, 145, 38], [175, 152, 28],
+                    [230, 290, 26], [258, 285, 32], [285, 292, 24]
+                ];
+                clouds.forEach(([cx, cy, r]) => {
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+                });
+            }
+            textures.skyTexture.needsUpdate = true;
+        }
+        drawWindowSky(false);
+
+        // ==========================================
+        // 2. SCENE, CAMERA, RENDERER & LIGHTS
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf7eaf3);
+
+        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(8.2, 6.4, 8.2);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minPolarAngle = 0.15;
+        controls.minDistance = 3.2;
+        controls.maxDistance = 16;
+        controls.target.set(0, 1.35, 0);
+
+        // Lighting
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xf3d5e8, 1.15);
+        scene.add(hemiLight);
+
+        const sunLight = new THREE.DirectionalLight(0xfff6e5, 1.8);
+        sunLight.position.set(5, 9, 6);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 1;
+        sunLight.shadow.camera.far = 25;
+        const d = 5.5;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.bias = -0.0006;
+        scene.add(sunLight);
+
+        // Bunny Night Lamp PointLight (Off during day, warm glow at night)
+        const bunnyLight = new THREE.PointLight(0xffb76b, 0, 6.5, 1.6);
+        bunnyLight.position.set(1.75, 1.65, -2.0);
+        scene.add(bunnyLight);
+
+        // Fairy Lights Warm Ambient Glow
+        const fairyRoomLight = new THREE.PointLight(0xffd6a5, 0, 8, 1.5);
+        fairyRoomLight.position.set(-0.5, 3.2, -2.1);
+        scene.add(fairyRoomLight);
+
+        // ==========================================
+        // 3. SHARED MATERIALS & PALETTES
+        // ==========================================
+        const WALL_COLORS = {
+            pink:     { hex: 0xffd6e7, name: 'ורוד פסטל' },
+            lavender: { hex: 0xe4d4ff, name: 'לבנדר' },
+            mint:     { hex: 0xccf5e4, name: 'ירוק מנטה' },
+            sky:      { hex: 0xcceaff, name: 'תכלת' },
+            cream:    { hex: 0xfff3db, name: 'שמנת' }
+        };
+
+        const BEDDING_THEMES = {
+            unicorn: { blanket: 0xe0c3fc, sheet: 0xffffff, pillow1: 0xffafcc, pillow2: 0xbde0fe, rug: 0xf8edeb, beanbag: 0xd8bbff },
+            berry:   { blanket: 0xff758f, sheet: 0xfff0f3, pillow1: 0xffccd5, pillow2: 0xffb3c1, rug: 0xffe5ec, beanbag: 0xff8fa3 },
+            ocean:   { blanket: 0x72efdd, sheet: 0xf0fdfa, pillow1: 0x90e0ef, pillow2: 0xcaf0f8, rug: 0xe0fbfc, beanbag: 0x64dfdf },
+            peach:   { blanket: 0xffb5a7, sheet: 0xfff8f0, pillow1: 0xfcd5ce, pillow2: 0xf8ad9d, rug: 0xfae1dd, beanbag: 0xffcdb2 }
+        };
+
+        const mats = {
+            wall: new THREE.MeshStandardMaterial({ color: WALL_COLORS.pink.hex, roughness: 0.85 }),
+            wainscot: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.65 }),
+            floor: new THREE.MeshStandardMaterial({ map: textures.woodFloor, roughness: 0.55 }),
+            whiteWood: new THREE.MeshStandardMaterial({ color: 0xfefefe, roughness: 0.5 }),
+            lightWood: new THREE.MeshStandardMaterial({ color: 0xdcb488, roughness: 0.6 }),
+            blanket: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.blanket, roughness: 0.8 }),
+            sheet: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.sheet, roughness: 0.85 }),
+            pillow1: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.pillow1, roughness: 0.75 }),
+            pillow2: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.pillow2, roughness: 0.75 }),
+            rug: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.rug, bumpMap: textures.rugBump, bumpScale: 0.03, roughness: 0.95 }),
+            beanbag: new THREE.MeshStandardMaterial({ color: BEDDING_THEMES.unicorn.beanbag, roughness: 0.85 }),
+            bunnyLamp: new THREE.MeshStandardMaterial({
+                color: 0xfff9f2,
+                emissive: 0xffaa44,
+                emissiveIntensity: 0.15,
+                roughness: 0.35
+            }),
+            gold: new THREE.MeshStandardMaterial({ color: 0xf4c95d, metalness: 0.65, roughness: 0.25 })
+        };
+
+        // ==========================================
+        // 4. BUILD ROOM ARCHITECTURE & WINDOW
+        // ==========================================
+        const roomSize = 6.2;
+        const wallH = 3.8;
+        const half = roomSize / 2;
+
+        function buildRoomShell() {
+            const roomGroup = new THREE.Group();
+
+            // Wooden Floor Base with cute rounded platform edge
+            const floorBase = new THREE.Mesh(new THREE.BoxGeometry(roomSize + 0.3, 0.25, roomSize + 0.3), mats.whiteWood);
+            floorBase.position.y = -0.125;
+            floorBase.receiveShadow = true;
+            roomGroup.add(floorBase);
+
+            const floorTop = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 0.04, roomSize), mats.floor);
+            floorTop.position.y = 0.02;
+            floorTop.receiveShadow = true;
+            roomGroup.add(floorTop);
+
+            // Back Wall (-Z) & Left Wall (-X)
+            const wallThick = 0.22;
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(roomSize + wallThick, wallH, wallThick), mats.wall);
+            backWall.position.set(-wallThick / 2, wallH / 2, -half - wallThick / 2);
+            backWall.receiveShadow = true;
+            roomGroup.add(backWall);
+
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, roomSize), mats.wall);
+            leftWall.position.set(-half - wallThick / 2, wallH / 2, 0);
+            leftWall.receiveShadow = true;
+            roomGroup.add(leftWall);
+
+            // White Wainscoting (חיפוי עץ דקורטיבי בתחתית הקיר)
+            const wainscotH = 1.05;
+            const backWainscot = new THREE.Mesh(new THREE.BoxGeometry(roomSize, wainscotH, 0.06), mats.wainscot);
+            backWainscot.position.set(0, wainscotH / 2, -half + 0.03);
+            backWainscot.receiveShadow = true;
+            roomGroup.add(backWainscot);
+
+            const leftWainscot = new THREE.Mesh(new THREE.BoxGeometry(0.06, wainscotH, roomSize), mats.wainscot);
+            leftWainscot.position.set(-half + 0.03, wainscotH / 2, 0);
+            leftWainscot.receiveShadow = true;
+            roomGroup.add(leftWainscot);
+
+            // Top Molding Trim on Wainscoting
+            const trimBack = new THREE.Mesh(new THREE.BoxGeometry(roomSize, 0.07, 0.09), mats.wainscot);
+            trimBack.position.set(0, wainscotH + 0.02, -half + 0.045);
+            roomGroup.add(trimBack);
+
+            const trimLeft = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.07, roomSize), mats.wainscot);
+            trimLeft.position.set(-half + 0.045, wainscotH + 0.02, 0);
+            roomGroup.add(trimLeft);
+
+            // Large Cute Window on Back Wall (Right side, behind desk)
+            const winGroup = new THREE.Group();
+            winGroup.position.set(1.35, 2.25, -half + 0.04);
+
+            const winW = 1.9;
+            const winH = 1.75;
+            // Sky Glass Pane
+            const skyMat = new THREE.MeshBasicMaterial({ map: textures.skyTexture });
+            const skyPane = new THREE.Mesh(new THREE.PlaneGeometry(winW - 0.16, winH - 0.16), skyMat);
+            skyPane.position.z = 0.01;
+            winGroup.add(skyPane);
+
+            // Outer Frame & Window Sill
+            const frameT = 0.11;
+            const topBar = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.12, frameT, 0.14), mats.wainscot);
+            topBar.position.y = winH / 2;
+            winGroup.add(topBar);
+
+            const sill = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.24, 0.12, 0.24), mats.wainscot);
+            sill.position.set(0, -winH / 2, 0.05);
+            sill.castShadow = true;
+            winGroup.add(sill);
+
+            [-winW / 2, 0, winW / 2].forEach(vx => {
+                const vBar = new THREE.Mesh(new THREE.BoxGeometry(vx === 0 ? 0.06 : frameT, winH, 0.12), mats.wainscot);
+                vBar.position.x = vx;
+                winGroup.add(vBar);
+            });
+            const midBar = new THREE.Mesh(new THREE.BoxGeometry(winW, 0.06, 0.1), mats.wainscot);
+            winGroup.add(midBar);
+
+            roomGroup.add(winGroup);
+            scene.add(roomGroup);
+        }
+
+        // ==========================================
+        // 5. BUILD COZY BED & SLEEPING CAT
+        // ==========================================
+        const catGroup = new THREE.Group();
+
+        function buildBedAndCat() {
+            const bedGroup = new THREE.Group();
+            bedGroup.position.set(-1.75, 0.04, -1.45);
+
+            const bedW = 2.05;
+            const bedL = 2.95;
+
+            // Wooden Bed Frame & Legs
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(bedW, 0.32, bedL), mats.whiteWood);
+            frame.position.y = 0.34;
+            frame.castShadow = true;
+            frame.receiveShadow = true;
+            bedGroup.add(frame);
+
+            [[-bedW / 2 + 0.12, -bedL / 2 + 0.12], [bedW / 2 - 0.12, -bedL / 2 + 0.12],
+             [-bedW / 2 + 0.12, bedL / 2 - 0.12], [bedW / 2 - 0.12, bedL / 2 - 0.12]].forEach(([lx, lz]) => {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.22, 12), mats.lightWood);
+                leg.position.set(lx, 0.11, lz);
+                bedGroup.add(leg);
+            });
+
+            // Curved Pastel Headboard
+            const headboard = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.1, 1.15, 0.14), mats.whiteWood);
+            headboard.position.set(0, 0.72, -bedL / 2 + 0.05);
+            headboard.castShadow = true;
+            bedGroup.add(headboard);
+
+            // Soft White Mattress
+            const mattress = new THREE.Mesh(new THREE.BoxGeometry(bedW - 0.12, 0.28, bedL - 0.16), mats.sheet);
+            mattress.position.y = 0.6;
+            mattress.receiveShadow = true;
+            bedGroup.add(mattress);
+
+            // Fluffy Duvet Blanket
+            const blanket = new THREE.Mesh(new THREE.BoxGeometry(bedW - 0.04, 0.31, bedL * 0.68), mats.blanket);
+            blanket.position.set(0, 0.61, 0.38);
+            blanket.castShadow = true;
+            blanket.receiveShadow = true;
+            bedGroup.add(blanket);
+
+            // Folded Top Cuff on Blanket
+            const cuff = new THREE.Mesh(new THREE.BoxGeometry(bedW - 0.02, 0.33, 0.28), mats.sheet);
+            cuff.position.set(0, 0.615, -0.55);
+            bedGroup.add(cuff);
+
+            // Two Fluffy Pillows
+            const pillowGeo = new THREE.SphereGeometry(0.42, 20, 16);
+            pillowGeo.scale(1.15, 0.42, 0.78);
+
+            const p1 = new THREE.Mesh(pillowGeo, mats.pillow1);
+            p1.position.set(-0.46, 0.82, -1.02);
+            p1.rotation.x = 0.22;
+            p1.castShadow = true;
+            bedGroup.add(p1);
+
+            const p2 = new THREE.Mesh(pillowGeo, mats.pillow2);
+            p2.position.set(0.46, 0.82, -1.02);
+            p2.rotation.x = 0.22;
+            p2.castShadow = true;
+            bedGroup.add(p2);
+
+            // Cute Sleeping Cat curled on the blanket
+            catGroup.position.set(0.25, 0.78, 0.55);
+            const catFur = new THREE.MeshStandardMaterial({ color: 0xf7b267, roughness: 0.85 });
+            const catBelly = new THREE.MeshStandardMaterial({ color: 0xfff3e0, roughness: 0.85 });
+
+            const catBody = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 16), catFur);
+            catBody.scale.set(1.2, 0.72, 1.0);
+            catBody.castShadow = true;
+            catGroup.add(catBody);
+
+            const catHead = new THREE.Mesh(new THREE.SphereGeometry(0.19, 20, 16), catFur);
+            catHead.position.set(-0.24, 0.08, 0.1);
+            catHead.castShadow = true;
+            catGroup.add(catHead);
+
+            // Cat Ears
+            const earGeo = new THREE.ConeGeometry(0.065, 0.14, 12);
+            [-0.09, 0.09].forEach(ez => {
+                const ear = new THREE.Mesh(earGeo, catFur);
+                ear.position.set(-0.24, 0.26, 0.1 + ez);
+                ear.rotation.x = ez * 1.5;
+                catGroup.add(ear);
+            });
+
+            // Curled Tail
+            const tailCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0.25, -0.02, 0),
+                new THREE.Vector3(0.36, 0.02, 0.18),
+                new THREE.Vector3(0.15, 0.04, 0.28)
+            ]);
+            const tail = new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 14, 0.045, 8, false), catBelly);
+            catGroup.add(tail);
+
+            bedGroup.add(catGroup);
+            scene.add(bedGroup);
+        }
+
+        // ==========================================
+        // 6. BUILD DESK, CHAIR & BUNNY NIGHT LAMP
+        // ==========================================
+        function buildDeskArea() {
+            const deskGroup = new THREE.Group();
+            deskGroup.position.set(1.35, 0.04, -2.25);
+
+            const deskW = 2.0;
+            const deskD = 0.95;
+            const deskH = 1.15;
+
+            // Tabletop
+            const top = new THREE.Mesh(new THREE.BoxGeometry(deskW, 0.09, deskD), mats.whiteWood);
+            top.position.y = deskH;
+            top.castShadow = true;
+            top.receiveShadow = true;
+            deskGroup.add(top);
+
+            // Side Drawer Cabinet on right + 2 Wooden Legs on left
+            const drawerUnit = new THREE.Mesh(new THREE.BoxGeometry(0.55, deskH - 0.04, deskD - 0.08), mats.whiteWood);
+            drawerUnit.position.set(deskW / 2 - 0.32, (deskH - 0.04) / 2, 0);
+            drawerUnit.castShadow = true;
+            deskGroup.add(drawerUnit);
+
+            // Gold Drawer Knobs
+            [0.35, 0.75].forEach(dy => {
+                const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 12), mats.gold);
+                knob.position.set(deskW / 2 - 0.32, dy, deskD / 2 - 0.02);
+                deskGroup.add(knob);
+            });
+
+            [-deskD / 2 + 0.1, deskD / 2 - 0.1].forEach(lz => {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, deskH, 12), mats.lightWood);
+                leg.position.set(-deskW / 2 + 0.12, deskH / 2, lz);
+                leg.castShadow = true;
+                deskGroup.add(leg);
+            });
+
+            // Glowing Cute Bunny Night Lamp on Desk
+            const bunnyGroup = new THREE.Group();
+            bunnyGroup.position.set(0.45, deskH + 0.045, 0.05);
+
+            const bBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 16), mats.bunnyLamp);
+            bBody.scale.set(1, 1.15, 0.95);
+            bBody.position.y = 0.15;
+            bunnyGroup.add(bBody);
+
+            const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), mats.bunnyLamp);
+            bHead.position.y = 0.35;
+            bunnyGroup.add(bHead);
+
+            // Long Bunny Ears
+            const bEarGeo = new THREE.CapsuleGeometry(0.032, 0.16, 8, 12);
+            [-0.05, 0.05].forEach((ex, i) => {
+                const ear = new THREE.Mesh(bEarGeo, mats.bunnyLamp);
+                ear.position.set(ex, 0.52, 0);
+                ear.rotation.z = i === 0 ? 0.15 : -0.15;
+                bunnyGroup.add(ear);
+            });
+
+            // Tiny eyes & pink nose
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x3b2f4a });
+            [-0.04, 0.04].forEach(ex => {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), eyeMat);
+                eye.position.set(ex, 0.36, 0.118);
+                bunnyGroup.add(eye);
+            });
+            deskGroup.add(bunnyGroup);
+
+            // Pastel Pink Notebook & Pencil Cup on Desk
+            const notebook = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.03, 0.26), mats.pillow1);
+            notebook.position.set(-0.25, deskH + 0.06, 0.12);
+            notebook.rotation.y = 0.18;
+            deskGroup.add(notebook);
+
+            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.16, 16), mats.pillow2);
+            cup.position.set(-0.62, deskH + 0.12, -0.15);
+            deskGroup.add(cup);
+
+            // Cute Cozy Desk Chair
+            const chairGroup = new THREE.Group();
+            chairGroup.position.set(-0.22, 0, 0.65);
+            chairGroup.rotation.y = -0.25;
+
+            const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.1, 24), mats.pillow1);
+            seat.position.y = 0.62;
+            seat.castShadow = true;
+            chairGroup.add(seat);
+
+            const backrest = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.07, 12, 24, Math.PI), mats.pillow1);
+            backrest.position.set(0, 0.85, 0.22);
+            backrest.rotation.x = -0.15;
+            chairGroup.add(backrest);
+
+            [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]].forEach(([cx, cz]) => {
+                const cLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.62, 10), mats.lightWood);
+                cLeg.position.set(cx, 0.31, cz);
+                chairGroup.add(cLeg);
+            });
+
+            deskGroup.add(chairGroup);
+            scene.add(deskGroup);
+        }
+
+        // ==========================================
+        // 7. BUILD RUG, BEANBAG, BOOKSHELF & WALL ART
+        // ==========================================
+        let beanbagMesh;
+        const fairyGroup = new THREE.Group();
+        const fairyBulbs = [];
+
+        function buildDecorAndFurniture() {
+            // A. Round Fluffy Center Rug
+            const rug = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.48, 0.04, 48), mats.rug);
+            rug.position.set(0.35, 0.04, 0.65);
+            rug.receiveShadow = true;
+            scene.add(rug);
+
+            // B. Cozy Beanbag Chair (פוף)
+            const bbGeo = new THREE.SphereGeometry(0.68, 28, 24);
+            bbGeo.scale(1.15, 0.78, 1.15);
+            beanbagMesh = new THREE.Mesh(bbGeo, mats.beanbag);
+            beanbagMesh.position.set(1.85, 0.42, 1.55);
+            beanbagMesh.castShadow = true;
+            beanbagMesh.receiveShadow = true;
+            scene.add(beanbagMesh);
+
+            // C. Cute Bookshelf on Left Wall (Front-Left corner)
+            const shelfGroup = new THREE.Group();
+            shelfGroup.position.set(-2.65, 0.04, 1.65);
+
+            const sW = 0.58;
+            const sD = 1.25;
+            const sH = 2.05;
+
+            // Side panels & 4 Shelves
+            [-sD / 2, sD / 2].forEach(sz => {
+                const side = new THREE.Mesh(new THREE.BoxGeometry(sW, sH, 0.06), mats.whiteWood);
+                side.position.set(0, sH / 2, sz);
+                side.castShadow = true;
+                shelfGroup.add(side);
+            });
+            [0.12, 0.72, 1.32, 1.95].forEach(sy => {
+                const plank = new THREE.Mesh(new THREE.BoxGeometry(sW, 0.05, sD), mats.whiteWood);
+                plank.position.set(0, sy, 0);
+                plank.castShadow = true;
+                shelfGroup.add(plank);
+            });
+
+            // Colorful Pastel Books
+            const bookColors = [0xff8fab, 0xa2d2ff, 0xbde0fe, 0xffd166, 0xcdf0ea, 0xd8bbff];
+            for (let b = 0; b < 7; b++) {
+                const bMat = new THREE.MeshStandardMaterial({ color: bookColors[b % bookColors.length], roughness: 0.7 });
+                const book = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.36, 0.08), bMat);
+                book.position.set(0.05, 0.92, -0.45 + b * 0.09);
+                shelfGroup.add(book);
+            }
+
+            // Cute Potted Succulent Plant on top shelf
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.1, 0.18, 16), mats.pillow1);
+            pot.position.set(0.05, 2.06, 0.25);
+            shelfGroup.add(pot);
+
+            const plantMat = new THREE.MeshStandardMaterial({ color: 0x74c69d, roughness: 0.65 });
+            const plant = new THREE.Mesh(new THREE.DodecahedronGeometry(0.15, 1), plantMat);
+            plant.position.set(0.05, 2.2, 0.25);
+            shelfGroup.add(plant);
+
+            scene.add(shelfGroup);
+
+            // D. Framed Wall Pictures above the Bed
+            function createWallFrame(texture, yPos, zPos, w, h) {
+                const fGroup = new THREE.Group();
+                fGroup.position.set(-half + 0.04, yPos, zPos);
+                fGroup.rotation.y = Math.PI / 2;
+
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.08, h + 0.08, 0.05), mats.gold);
+                fGroup.add(frame);
+
+                const artMat = new THREE.MeshBasicMaterial({ map: texture });
+                const art = new THREE.Mesh(new THREE.PlaneGeometry(w, h), artMat);
+                art.position.z = 0.028;
+                fGroup.add(art);
+
+                scene.add(fGroup);
+            }
+            createWallFrame(textures.artRainbow, 2.25, -1.95, 0.75, 0.75);
+            createWallFrame(textures.artStar, 2.25, -0.95, 0.75, 0.75);
+
+            // E. Draped Fairy Lights String along the Back Wall
+            const fairyCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(-2.9, 3.45, -half + 0.08),
+                new THREE.Vector3(-1.5, 3.05, -half + 0.08),
+                new THREE.Vector3(-0.1, 3.45, -half + 0.08),
+                new THREE.Vector3(1.35, 3.15, -half + 0.08),
+                new THREE.Vector3(2.85, 3.45, -half + 0.08)
+            ]);
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0x9ca3af });
+            const wire = new THREE.Mesh(new THREE.TubeGeometry(fairyCurve, 40, 0.012, 6, false), wireMat);
+            fairyGroup.add(wire);
+
+            const bulbPoints = fairyCurve.getPoints(16);
+            bulbPoints.forEach((pt, idx) => {
+                const bulbMat = new THREE.MeshStandardMaterial({
+                    color: 0xfff3b0,
+                    emissive: 0xffc300,
+                    emissiveIntensity: 0.4,
+                    roughness: 0.2
+                });
+                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), bulbMat);
+                bulb.position.copy(pt);
+                bulb.position.y -= 0.04;
+                fairyGroup.add(bulb);
+                fairyBulbs.push({ mesh: bulb, phase: idx * 0.7 });
+            });
+
+            scene.add(fairyGroup);
+        }
+
+        // ==========================================
+        // 8. INTERACTIVE CONTROLS & CAMERA PRESETS
+        // ==========================================
+        const CAMERA_PRESETS = {
+            full: { pos: [8.2, 6.4, 8.2], target: [0, 1.35, 0] },
+            bed:  { pos: [2.2, 2.9, 1.8], target: [-1.75, 1.1, -1.3] },
+            desk: { pos: [1.35, 2.6, 1.4], target: [1.45, 1.45, -2.2] },
+            top:  { pos: [0.1, 10.5, 0.5], target: [0, 0.5, 0] }
+        };
+
+        let camAnim = null;
+
+        document.querySelectorAll('.cam-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = CAMERA_PRESETS[btn.dataset.cam];
+                if (!preset) return;
+                document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                camAnim = {
+                    startPos: camera.position.clone(),
+                    endPos: new THREE.Vector3(...preset.pos),
+                    startTarget: controls.target.clone(),
+                    endTarget: new THREE.Vector3(...preset.target),
+                    progress: 0
+                };
+            });
+        });
+
+        // 1. Wall Color Picker
+        document.querySelectorAll('.swatch-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const choice = WALL_COLORS[btn.dataset.wall];
+                if (!choice) return;
+                mats.wall.color.setHex(choice.hex);
+                document.getElementById('wall-color-name').textContent = choice.name;
+                document.querySelectorAll('.swatch-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 2. Bedding & Rug Theme
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const t = BEDDING_THEMES[btn.dataset.theme];
+                if (!t) return;
+                mats.blanket.color.setHex(t.blanket);
+                mats.sheet.color.setHex(t.sheet);
+                mats.pillow1.color.setHex(t.pillow1);
+                mats.pillow2.color.setHex(t.pillow2);
+                mats.rug.color.setHex(t.rug);
+                mats.beanbag.color.setHex(t.beanbag);
+
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 3. Day / Night Toggle
+        let isNight = false;
+        document.getElementById('toggle-day-night').addEventListener('click', () => {
+            isNight = !isNight;
+            document.body.classList.toggle('dark-mode', isNight);
+            drawWindowSky(isNight);
+
+            const dnIcon = document.getElementById('dn-icon');
+            const dnText = document.getElementById('dn-text');
+
+            if (isNight) {
+                scene.background = new THREE.Color(0x161229);
+                hemiLight.intensity = 0.35;
+                sunLight.intensity = 0.25;
+                sunLight.color.setHex(0x818cf8);
+                bunnyLight.intensity = 2.6;
+                mats.bunnyLamp.emissiveIntensity = 1.8;
+                fairyRoomLight.intensity = fairyGroup.visible ? 1.8 : 0;
+                dnIcon.textContent = '☀️';
+                dnText.textContent = 'עבור למצב יום';
+            } else {
+                scene.background = new THREE.Color(0xf7eaf3);
+                hemiLight.intensity = 1.15;
+                sunLight.intensity = 1.8;
+                sunLight.color.setHex(0xfff6e5);
+                bunnyLight.intensity = 0;
+                mats.bunnyLamp.emissiveIntensity = 0.15;
+                fairyRoomLight.intensity = 0;
+                dnIcon.textContent = '🌙';
+                dnText.textContent = 'עבור למצב לילה';
+            }
+        });
+
+        // 4. Decor Toggles (Beanbag, Fairy Lights, Cat)
+        function setupToggle(btnId, targetObj, onToggleExtra) {
+            const btn = document.getElementById(btnId);
+            btn.addEventListener('click', () => {
+                targetObj.visible = !targetObj.visible;
+                btn.classList.toggle('active', targetObj.visible);
+                btn.querySelector('.status-badge').textContent = targetObj.visible ? 'פעיל' : 'כבוי';
+                if (onToggleExtra) onToggleExtra(targetObj.visible);
+            });
+        }
+
+        setupToggle('toggle-beanbag', beanbagMesh);
+        setupToggle('toggle-fairy', fairyGroup, (visible) => {
+            fairyRoomLight.intensity = (visible && isNight) ? 1.8 : 0;
+        });
+        setupToggle('toggle-cat', catGroup);
+
+        // Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ==========================================
+        // 9. INITIALIZE & ANIMATION LOOP
+        // ==========================================
+        buildRoomShell();
+        buildBedAndCat();
+        buildDeskArea();
+        buildDecorAndFurniture();
+
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.remove(), 700);
+        }, 450);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const elapsed = clock.getElapsedTime();
+
+            // Smooth camera transitions
+            if (camAnim) {
+                camAnim.progress += dt * 1.6;
+                const t = Math.min(camAnim.progress, 1);
+                const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                camera.position.lerpVectors(camAnim.startPos, camAnim.endPos, ease);
+                controls.target.lerpVectors(camAnim.startTarget, camAnim.endTarget, ease);
+                if (t >= 1) camAnim = null;
+            }
+
+            // Gentle breathing animation for the sleeping cat
+            if (catGroup.visible) {
+                const breathe = 1 + Math.sin(elapsed * 2.5) * 0.04;
+                catGroup.scale.set(1, breathe, 1);
+            }
+
+            // Twinkling Fairy Lights
+            if (fairyGroup.visible) {
+                fairyBulbs.forEach(b => {
+                    const baseGlow = isNight ? 1.9 : 0.35;
+                    b.mesh.material.emissiveIntensity = baseGlow + Math.sin(elapsed * 4 + b.phase) * (isNight ? 0.8 : 0.15);
+                });
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>
