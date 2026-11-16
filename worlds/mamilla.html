@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מלון ממילא ירושלים - סימולציה תלת-ממדית מתקדמת</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Heebo -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            overflow: hidden;
+            background-color: #0c0f17;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 4px;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+    </style>
+</head>
+<body class="text-white select-none">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="ui-layer flex flex-col justify-between h-screen p-4 md:p-6 pointer-events-none">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between glass-panel rounded-3xl p-4 md:px-8 shadow-2xl interactive">
+            <div class="flex items-center gap-4 mb-3 md:mb-0">
+                <div class="bg-amber-500/20 border border-amber-500/40 p-3 rounded-2xl text-amber-400 shadow-inner">
+                    <i class="fa-solid fa-hotel text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-wide text-amber-100">מלון ממילא • ירושלים</h1>
+                    <p class="text-xs text-amber-400/80 font-medium">מהדורת שקיעה מורחבת עם גנים ודשא סביב המבנה</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="focusFloor(4)" class="px-3.5 py-2 bg-slate-800/80 hover:bg-amber-500/30 border border-slate-700 hover:border-amber-400/60 rounded-xl text-xs md:text-sm font-semibold transition duration-300 flex items-center gap-2 shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></span> 4. בריכה ומסעדה
+                </button>
+                <button onclick="focusFloor(3)" class="px-3.5 py-2 bg-slate-800/80 hover:bg-amber-500/30 border border-slate-700 hover:border-amber-400/60 rounded-xl text-xs md:text-sm font-semibold transition duration-300 flex items-center gap-2 shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_10px_#fbbf24]"></span> 3. חדרים ואורחים
+                </button>
+                <button onclick="focusFloor(2)" class="px-3.5 py-2 bg-slate-800/80 hover:bg-amber-500/30 border border-slate-700 hover:border-amber-400/60 rounded-xl text-xs md:text-sm font-semibold transition duration-300 flex items-center gap-2 shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-[0_0_10px_#c084fc]"></span> 2. בית כנסת
+                </button>
+                <button onclick="focusFloor(1)" class="px-3.5 py-2 bg-slate-800/80 hover:bg-amber-500/30 border border-slate-700 hover:border-amber-400/60 rounded-xl text-xs md:text-sm font-semibold transition duration-300 flex items-center gap-2 shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></span> 1. חדר אוכל
+                </button>
+                <button onclick="resetCamera()" class="px-3.5 py-2 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 rounded-xl text-xs md:text-sm font-semibold transition duration-300 flex items-center gap-2 shadow-lg text-amber-300">
+                    <i class="fa-solid fa-cube"></i> מבט כללי
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="flex flex-col md:flex-row justify-between items-end gap-4 my-auto">
+            
+            <!-- Instructions card -->
+            <div class="glass-panel p-4 md:p-5 rounded-3xl max-w-xs shadow-2xl interactive hidden md:block border-slate-700">
+                <h3 class="font-bold text-sm text-amber-400 mb-2.5 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info"></i> הנחיות ניווט
+                </h3>
+                <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                    <li><strong class="text-amber-200">סיבוב:</strong> לחיצה וגרירה סביב המלון.</li>
+                    <li><strong class="text-amber-200">קירוב/תרחקות:</strong> גלגלת העכבר (Zoom).</li>
+                    <li><strong class="text-amber-200">בחירת קומה:</strong> לחיצה ישירה על קומה תדגיש אותה.</li>
+                </ul>
+            </div>
+
+            <!-- Floor Info Popup Box -->
+            <div id="info-box" class="glass-panel border-amber-500/50 p-6 rounded-3xl max-w-md w-full shadow-2xl interactive transform transition-all duration-500 translate-y-6 opacity-0 pointer-events-none">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3.5">
+                        <div id="info-icon" class="p-3.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xl shadow-inner">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                        <div>
+                            <span id="info-subtitle" class="text-xs text-amber-400 font-bold tracking-wider uppercase">קומה</span>
+                            <h2 id="info-title" class="text-lg md:text-xl font-bold text-slate-100">שם הקומה</h2>
+                        </div>
+                    </div>
+                    <button onclick="closeInfoBox()" class="text-slate-400 hover:text-amber-300 p-2.5 rounded-xl hover:bg-slate-800/80 transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <p id="info-desc" class="text-sm text-slate-300 leading-relaxed mb-4">
+                    בחר קומה כדי לקבל מידע מפורט על האדריכלות והפעילות במלון ממילא.
+                </p>
+                <div class="flex gap-2 pt-3 border-t border-slate-700/60 text-xs text-slate-300 items-center justify-between font-medium">
+                    <span id="info-highlight" class="flex items-center gap-1.5"><i class="fa-solid fa-star text-amber-400"></i> סטנדרט אירוח יוקרתי</span>
+                    <span class="text-amber-400 font-bold tracking-wider">MAMILLA HOTEL</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer / Credits -->
+        <footer class="text-center text-xs text-slate-400 interactive glass-panel py-2.5 px-6 rounded-2xl border-slate-800/80 self-center shadow-lg">
+            מלון ממילא ירושלים • מהדורת שקיעה וגינות דשא ירוקות • WebGL
+        </footer>
+
+    </div>
+
+    <!-- Three.js Simulation Script -->
+    <script>
+        let scene, camera, renderer, controls;
+        let floorGroups = [];
+        let selectedFloor = null;
+        let waterMesh = null;
+        let clock = new THREE.Clock();
+
+        const floorData = {
+            1: {
+                title: "קומה ראשונה: חדר האוכל המרכזי ומסעדת השף",
+                subtitle: "קומת קרקע • קולינריה עילית",
+                desc: "חדר האוכל המרהיב של מלון ממילא בעיצובו של אדריכל העל פיירו ליסוני. כולל עמדות בופה מעוצבות מאבן וזכוכית, שולחנות אירוח רחבים מעץ אגוז איכותי, תאורת אווירה חמימה וחלונות ענק הפונים אל שדרות ממילא.",
+                highlight: "מטבח פתוח ותפריט כשר מהדרין ברמה עולמית."
+            },
+            2: {
+                title: "קומה שניה: בית הכנסת המפואר",
+                subtitle: "קומת רוח והיכל התפילה",
+                desc: "בית כנסת מושקע השומר על צביון ירושלמי עמוק. כולל ארון קודש מרשים מעץ מלא בשילוב אלמנטים מברזל רקוע, בימת קריאה מרכזית, ספסלי אורחים מעוצבים עמוסי ספרי קודש ואקוסטיקה מושלמת.",
+                highlight: "פתוח למתפללים בכל ימות השבוע ושבתות ירושלמיות."
+            },
+            3: {
+                title: "קומה שלישית: חדרי האירוח והסוויטות",
+                subtitle: "קומת מגורים • יוקרה ופרטיות",
+                desc: "מתחם חדרי השינה והסוויטות היוקרתיות. החדרים מרוהטים במיטות קינג-סייז רחבות, תאורת קריאה נסתרת, מרפסות תצפית אישיות ודמויות אורחים תלת-ממדיות המחישות את חוויית השהייה.",
+                highlight: "שקט מוחלט, בידוד אקוסטי מתקדם ונוף פנורמי."
+            },
+            4: {
+                title: "קומה רביעית: בריכת השחייה וגג הטרקלין",
+                subtitle: "קומת הגג • פנאי ונוף לחומות",
+                desc: "מתחם הגג האקסלוסיבי של המלון. כולל בריכת שחייה חיצונית מחוממת עם אדוות מים דינמיות, מיטות שיזוף מרופדות, שמשיות יוקרתיות ומסעדת גג פתוחה המשקיפה ישירות על חומות העיר העתיקה ומגדל דוד.",
+                highlight: "תצפית 360 מעלות על נופי העיר העתיקה בירושלים."
+            }
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup with golden hour sunset sky color
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1e152a); // Deep twilight sunset tone
+            scene.fog = new THREE.FogExp2(0x1e152a, 0.009);
+
+            // Camera setup (Ultra-wide view angle)
+            camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(34, 25, 45);
+
+            // Renderer setup with shadow maps
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls.minDistance = 14;
+            controls.maxDistance = 85;
+            controls.target.set(0, 7, 0);
+
+            // Lighting setup for Sunset / Golden Hour
+            setupLights();
+
+            // Build Expanded Hotel Structure & Lush Surroundings
+            buildEnvironment();
+            buildHotel();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('pointerdown', onPointerDown);
+
+            // Animation Loop
+            animate();
+        }
+
+        function setupLights() {
+            // Ambient light for soft twilight fill
+            const ambientLight = new THREE.AmbientLight(0xfcd34d, 0.6);
+            scene.add(ambientLight);
+
+            // Sunset Sun Light (Low angle, warm golden/orange radiance)
+            const sunLight = new THREE.DirectionalLight(0xff7824, 2.2);
+            sunLight.position.set(40, 20, 30);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 4096;
+            sunLight.shadow.mapSize.height = 4096;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 140;
+            sunLight.shadow.camera.left = -30;
+            sunLight.shadow.camera.right = 30;
+            sunLight.shadow.camera.top = 30;
+            sunLight.shadow.camera.bottom = -30;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
+
+            // Cool sky bounce light from opposite direction
+            const fillLight = new THREE.DirectionalLight(0x818cf8, 0.5);
+            fillLight.position.set(-35, 30, -30);
+            scene.add(fillLight);
+        }
+
+        function buildEnvironment() {
+            // Expansive Ground Plane (Terrain)
+            const groundGeo = new THREE.PlaneGeometry(160, 160);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.5;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Lush Green Lawns (דשא סביב המלון)
+            const lawnMat = new THREE.MeshStandardMaterial({
+                color: 0x22c55e,
+                roughness: 0.85,
+                metalness: 0.05
+            });
+
+            // Front Lawn
+            const frontLawnGeo = new THREE.BoxGeometry(42, 0.3, 24);
+            const frontLawn = new THREE.Mesh(frontLawnGeo, lawnMat);
+            frontLawn.position.set(0, -0.35, 14);
+            frontLawn.receiveShadow = true;
+            scene.add(frontLawn);
+
+            // Side Lawns & Gardens
+            const sideLawnGeo1 = new THREE.BoxGeometry(26, 0.3, 40);
+            const sideLawn1 = new THREE.Mesh(sideLawnGeo1, lawnMat);
+            sideLawn1.position.set(-25, -0.35, 0);
+            sideLawn1.receiveShadow = true;
+            scene.add(sideLawn1);
+
+            const sideLawn2 = new THREE.Mesh(sideLawnGeo1, lawnMat);
+            sideLawn2.position.set(25, -0.35, 0);
+            sideLawn2.receiveShadow = true;
+            scene.add(sideLawn2);
+
+            // === Large Luxury Ground Level Swimming Pool on the RIGHT side (בריכה חיצונית ענקית בצד ימין) ===
+            const darkStoneMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.6,
+                metalness: 0.2
+            });
+
+            const groundPoolBasinGeo = new THREE.BoxGeometry(16, 0.4, 9);
+            const groundPoolBasin = new THREE.Mesh(groundPoolBasinGeo, darkStoneMat);
+            groundPoolBasin.position.set(18, -0.2, 12);
+            groundPoolBasin.receiveShadow = true;
+            groundPoolBasin.castShadow = true;
+            scene.add(groundPoolBasin);
+
+            const groundWaterMat = new THREE.MeshPhysicalMaterial({
+                color: 0x0284c7,
+                roughness: 0.1,
+                metalness: 0.1,
+                transmission: 0.85,
+                transparent: true,
+                opacity: 0.85,
+                ior: 1.333
+            });
+
+            const groundWaterGeo = new THREE.BoxGeometry(15.2, 0.3, 8.2);
+            window.groundWaterMesh = new THREE.Mesh(groundWaterGeo, groundWaterMat);
+            window.groundWaterMesh.position.set(18, -0.05, 12);
+            scene.add(window.groundWaterMesh);
+
+            // Luxury sun loungers and umbrellas around the large right pool (Expanded set)
+            const woodMat = new THREE.MeshStandardMaterial({
+                color: 0x7c2d12,
+                roughness: 0.5,
+                metalness: 0.1
+            });
+            const fabricMat = new THREE.MeshStandardMaterial({
+                color: 0xf8fafc,
+                roughness: 0.9
+            });
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xd4af37,
+                metalness: 0.85,
+                roughness: 0.15
+            });
+
+            // Expanded multi-row sun loungers
+            for (let i = 0; i < 7; i++) {
+                const loungerGeo = new THREE.BoxGeometry(0.85, 0.2, 2.2);
+                const lounger = new THREE.Mesh(loungerGeo, woodMat);
+                lounger.position.set(10 + i * 1.3, -0.2, 6.8);
+                lounger.rotation.y = Math.PI / 4;
+                lounger.castShadow = true;
+                scene.add(lounger);
+
+                const lounger2 = new THREE.Mesh(loungerGeo, woodMat);
+                lounger2.position.set(10 + i * 1.3, -0.2, 17.2);
+                lounger2.rotation.y = -Math.PI / 4;
+                lounger2.castShadow = true;
+                scene.add(lounger2);
+            }
+
+            // Elegant pool umbrellas
+            for (let xPos of [12, 19, 24]) {
+                const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.2, 12);
+                const pole = new THREE.Mesh(poleGeo, darkStoneMat);
+                pole.position.set(xPos, 1.4, 12);
+                pole.castShadow = true;
+                scene.add(pole);
+
+                const umbrellaGeo = new THREE.ConeGeometry(2.2, 0.8, 16);
+                const umbrella = new THREE.Mesh(umbrellaGeo, fabricMat);
+                umbrella.position.set(xPos, 3.0, 12);
+                umbrella.castShadow = true;
+                scene.add(umbrella);
+            }
+
+            // === Dedicated Lemonade Stand (דוכן לימונדה) on the right lawn ===
+            const standGroup = new THREE.Group();
+            standGroup.position.set(24, 0, 7.5);
+
+            // Counter base
+            const counterGeo = new THREE.BoxGeometry(3.2, 1.2, 1.6);
+            const counter = new THREE.Mesh(counterGeo, woodMat);
+            counter.position.y = 0.6;
+            counter.castShadow = true;
+            standGroup.add(counter);
+
+            // Counter marble top
+            const marbleTopGeo = new THREE.BoxGeometry(3.4, 0.15, 1.8);
+            const marbleMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.2 });
+            const marbleTop = new THREE.Mesh(marbleTopGeo, marbleMat);
+            marbleTop.position.y = 1.25;
+            marbleTop.castShadow = true;
+            standGroup.add(marbleTop);
+
+            // Canopy roof posts
+            for (let px of [-1.4, 1.4]) {
+                for (let pz of [-0.7, 0.7]) {
+                    const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.6, 8);
+                    const post = new THREE.Mesh(postGeo, darkStoneMat);
+                    post.position.set(px, 1.3, pz);
+                    standGroup.add(post);
+                }
+            }
+
+            // Canopy Roof (Yellow/Lemon tint)
+            const roofGeo = new THREE.BoxGeometry(3.8, 0.3, 2.2);
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.8 });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 2.6;
+            roof.castShadow = true;
+            standGroup.add(roof);
+
+            // Lemonade Dispenser Jar on counter
+            const jarGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.7, 16);
+            const jarMat = new THREE.MeshPhysicalMaterial({ color: 0xfef08a, transmission: 0.7, transparent: true, opacity: 0.9, roughness: 0.1 });
+            const jar = new THREE.Mesh(jarGeo, jarMat);
+            jar.position.set(0, 1.7, 0);
+            standGroup.add(jar);
+
+            scene.add(standGroup);
+
+            // Decorative low garden bushes (ערוגות נוי)
+            const bushMat = new THREE.MeshStandardMaterial({
+                color: 0x15803d,
+                roughness: 0.9
+            });
+
+            for (let i = -18; i <= 18; i += 6) {
+                if (Math.abs(i) > 8) {
+                    const bushGeo = new THREE.SphereGeometry(1.2, 16, 16);
+                    const bush = new THREE.Mesh(bushGeo, bushMat);
+                    bush.scale.set(1.5, 0.8, 1.2);
+                    bush.position.set(i, 0.2, 23);
+                    bush.castShadow = true;
+                    bush.receiveShadow = true;
+                    scene.add(bush);
+                }
+            }
+        }
+
+        function buildHotel() {
+            const hotelGroup = new THREE.Group();
+            scene.add(hotelGroup);
+
+            // Wider Proportions (מלון רחב ומרווח יותר)
+            const width = 20;
+            const depth = 11;
+            const floorHeight = 4.5;
+            const gap = 1.6; // Exploded view floor gap
+
+            // Materials
+            const jerusalemStoneMat = new THREE.MeshStandardMaterial({
+                color: 0xe5d4be,
+                roughness: 0.85,
+                metalness: 0.05
+            });
+
+            const darkStoneMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.6,
+                metalness: 0.2
+            });
+
+            const woodMat = new THREE.MeshStandardMaterial({
+                color: 0x7c2d12,
+                roughness: 0.5,
+                metalness: 0.1
+            });
+
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xd4af37,
+                metalness: 0.85,
+                roughness: 0.15
+            });
+
+            const waterMat = new THREE.MeshPhysicalMaterial({
+                color: 0x0284c7,
+                roughness: 0.1,
+                metalness: 0.1,
+                transmission: 0.85,
+                transparent: true,
+                opacity: 0.85,
+                ior: 1.333
+            });
+
+            const fabricMat = new THREE.MeshStandardMaterial({
+                color: 0xf8fafc,
+                roughness: 0.9
+            });
+
+            for (let f = 1; f <= 4; f++) {
+                const floorGroup = new THREE.Group();
+                floorGroup.userData = { floorNumber: f };
+                floorGroup.position.y = (f - 1) * (floorHeight + gap);
+
+                // --- Floor Slab ---
+                const slabGeo = new THREE.BoxGeometry(width, 0.45, depth);
+                const slab = new THREE.Mesh(slabGeo, jerusalemStoneMat);
+                slab.position.y = -0.225;
+                slab.receiveShadow = true;
+                slab.castShadow = true;
+                floorGroup.add(slab);
+
+                // --- Back Wall ---
+                const backWallGeo = new THREE.BoxGeometry(width, floorHeight, 0.4);
+                const backWall = new THREE.Mesh(backWallGeo, jerusalemStoneMat);
+                backWall.position.set(0, floorHeight / 2, -depth / 2 + 0.2);
+                backWall.receiveShadow = true;
+                backWall.castShadow = true;
+                floorGroup.add(backWall);
+
+                // --- Side Walls ---
+                const leftWallGeo = new THREE.BoxGeometry(0.4, floorHeight, depth);
+                const leftWall = new THREE.Mesh(leftWallGeo, jerusalemStoneMat);
+                leftWall.position.set(-width / 2 + 0.2, floorHeight / 2, 0);
+                leftWall.receiveShadow = true;
+                leftWall.castShadow = true;
+                floorGroup.add(leftWall);
+
+                const rightWall = new THREE.Mesh(leftWallGeo, jerusalemStoneMat);
+                rightWall.position.set(width / 2 - 0.2, floorHeight / 2, 0);
+                rightWall.receiveShadow = true;
+                rightWall.castShadow = true;
+                floorGroup.add(rightWall);
+
+                // Floor indicator beacon light at corner
+                const beaconGeo = new THREE.CylinderGeometry(0.18, 0.18, floorHeight, 16);
+                const beaconColors = [0x10b981, 0xa855f7, 0xf59e0b, 0x06b6d4];
+                const beaconMat = new THREE.MeshStandardMaterial({ color: beaconColors[f - 1], emissive: beaconColors[f - 1], emissiveIntensity: 0.7 });
+                const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+                beacon.position.set(width / 2 - 0.6, floorHeight / 2, depth / 2 - 0.6);
+                floorGroup.add(beacon);
+
+                // --- FLOOR 1: Dining Room (חדר אוכל) ---
+                if (f === 1) {
+                    for (let x = -7; x <= 7; x += 3.5) {
+                        for (let z = -2.5; z <= 2.5; z += 3.2) {
+                            const tableGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.12, 32);
+                            const table = new THREE.Mesh(tableGeo, woodMat);
+                            table.position.set(x, 1.3, z);
+                            table.castShadow = true;
+                            floorGroup.add(table);
+
+                            const stemGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.3, 16);
+                            const stem = new THREE.Mesh(stemGeo, darkStoneMat);
+                            stem.position.set(x, 0.65, z);
+                            stem.castShadow = true;
+                            floorGroup.add(stem);
+
+                            for (let i = 0; i < 4; i++) {
+                                const angle = (i / 4) * Math.PI * 2;
+                                const cx = x + Math.cos(angle) * 1.6;
+                                const cz = z + Math.sin(angle) * 1.6;
+                                const chairGeo = new THREE.BoxGeometry(0.55, 0.85, 0.55);
+                                const chair = new THREE.Mesh(chairGeo, woodMat);
+                                chair.position.set(cx, 0.42, cz);
+                                chair.castShadow = true;
+                                floorGroup.add(chair);
+                            }
+                        }
+                    }
+
+                    // Grand Buffet Counter
+                    const buffetGeo = new THREE.BoxGeometry(12, 1.2, 1.2);
+                    const buffet = new THREE.Mesh(buffetGeo, darkStoneMat);
+                    buffet.position.set(0, 0.6, -depth / 2 + 1.8);
+                    buffet.castShadow = true;
+                    floorGroup.add(buffet);
+
+                    const buffetTopGeo = new THREE.BoxGeometry(12.2, 0.1, 1.3);
+                    const buffetTop = new THREE.Mesh(buffetTopGeo, goldMat);
+                    buffetTop.position.set(0, 1.25, -depth / 2 + 1.8);
+                    floorGroup.add(buffetTop);
+                } 
+                // --- FLOOR 2: Synagogue (בית כנסת) ---
+                else if (f === 2) {
+                    const aronGeo = new THREE.BoxGeometry(3.6, 3.6, 1.0);
+                    const aron = new THREE.Mesh(aronGeo, woodMat);
+                    aron.position.set(0, 1.8, -depth / 2 + 1.0);
+                    aron.castShadow = true;
+                    floorGroup.add(aron);
+
+                    const plaqueGeo = new THREE.BoxGeometry(1.6, 1.8, 0.1);
+                    const plaque = new THREE.Mesh(plaqueGeo, goldMat);
+                    plaque.position.set(0, 2.0, -depth / 2 + 1.55);
+                    floorGroup.add(plaque);
+
+                    const bimahGeo = new THREE.BoxGeometry(2.0, 1.2, 1.4);
+                    const bimah = new THREE.Mesh(bimahGeo, woodMat);
+                    bimah.position.set(0, 0.6, 0);
+                    bimah.castShadow = true;
+                    floorGroup.add(bimah);
+
+                    for (let zSide of [-2.8, 1.8]) {
+                        for (let xPos = -7.0; xPos <= 7.0; xPos += 2.8) {
+                            const benchGeo = new THREE.BoxGeometry(2.4, 0.95, 0.8);
+                            const bench = new THREE.Mesh(benchGeo, woodMat);
+                            bench.position.set(xPos, 0.47, zSide);
+                            bench.castShadow = true;
+                            floorGroup.add(bench);
+                        }
+                    }
+                } 
+                // --- FLOOR 3: Guest Rooms & People (החדרים עם האנשים) ---
+                else if (f === 3) {
+                    for (let xPos of [-7.0, -3.5, 0, 3.5, 7.0]) {
+                        const partGeo = new THREE.BoxGeometry(0.25, floorHeight, depth - 1.2);
+                        const partition = new THREE.Mesh(partGeo, jerusalemStoneMat);
+                        partition.position.set(xPos, floorHeight / 2, 0.6);
+                        partition.castShadow = true;
+                        floorGroup.add(partition);
+
+                        if (xPos < 7.0) {
+                            const bedBaseGeo = new THREE.BoxGeometry(2.0, 0.55, 2.4);
+                            const bedBase = new THREE.Mesh(bedBaseGeo, woodMat);
+                            bedBase.position.set(xPos + 1.75, 0.275, 1.8);
+                            bedBase.castShadow = true;
+                            floorGroup.add(bedBase);
+
+                            const mattressGeo = new THREE.BoxGeometry(1.9, 0.45, 2.3);
+                            const mattress = new THREE.Mesh(mattressGeo, fabricMat);
+                            mattress.position.set(xPos + 1.75, 0.725, 1.8);
+                            floorGroup.add(mattress);
+
+                            // Detailed Guest Figure
+                            const bodyGeo = new THREE.CylinderGeometry(0.25, 0.35, 1.3, 16);
+                            const bodyMat = new THREE.MeshStandardMaterial({ 
+                                color: (xPos + 3.5) % 2 === 0 ? 0x3b82f6 : 0xec4899,
+                                roughness: 0.7
+                            });
+                            const body = new THREE.Mesh(bodyGeo, bodyMat);
+                            body.position.set(xPos + 1.75, 1.4, -1.2);
+                            body.castShadow = true;
+                            floorGroup.add(body);
+
+                            const headGeo = new THREE.SphereGeometry(0.22, 16, 16);
+                            const headMat = new THREE.MeshStandardMaterial({ color: 0xfed7aa, roughness: 0.8 });
+                            const head = new THREE.Mesh(headGeo, headMat);
+                            head.position.set(xPos + 1.75, 2.2, -1.2);
+                            floorGroup.add(head);
+                        }
+                    }
+                } 
+                // --- FLOOR 4: Rooftop Pool & Restaurant (בריכה ומסעדה) ---
+                else if (f === 4) {
+                    const poolGeo = new THREE.BoxGeometry(8, 0.9, 5.0);
+                    const poolBasin = new THREE.Mesh(poolGeo, darkStoneMat);
+                    poolBasin.position.set(-4.5, 0.45, 0.5);
+                    poolBasin.castShadow = true;
+                    floorGroup.add(poolBasin);
+
+                    const waterGeo = new THREE.BoxGeometry(7.6, 0.7, 4.6);
+                    waterMesh = new THREE.Mesh(waterGeo, waterMat);
+                    waterMesh.position.set(-4.5, 0.75, 0.5);
+                    floorGroup.add(waterMesh);
+
+                    for (let i = 0; i < 4; i++) {
+                        const loungerGeo = new THREE.BoxGeometry(0.85, 0.25, 2.0);
+                        const lounger = new THREE.Mesh(loungerGeo, woodMat);
+                        lounger.position.set(1.0 + i * 1.3, 0.35, 2.0);
+                        lounger.rotation.y = 0.15;
+                        lounger.castShadow = true;
+                        floorGroup.add(lounger);
+                    }
+
+                    for (let x of [3.5, 6.5]) {
+                        for (let z of [-2.0, 1.0]) {
+                            const tableGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.12, 24);
+                            const table = new THREE.Mesh(tableGeo, goldMat);
+                            table.position.set(x, 1.1, z);
+                            table.castShadow = true;
+                            floorGroup.add(table);
+
+                            const stemGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.1, 12);
+                            const stem = new THREE.Mesh(stemGeo, darkStoneMat);
+                            stem.position.set(x, 0.55, z);
+                            floorGroup.add(stem);
+                        }
+                    }
+                }
+
+                hotelGroup.add(floorGroup);
+                floorGroups.push(floorGroup);
+            }
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onPointerDown(event) {
+            if (event.target.closest('.ui-layer') || event.target.tagName === 'BUTTON') return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            let intersects = [];
+            floorGroups.forEach(fg => {
+                const hits = raycaster.intersectObjects(fg.children, true);
+                if (hits.length > 0) {
+                    intersects.push({ floor: fg.userData.floorNumber, distance: hits[0].distance });
+                }
+            });
+
+            if (intersects.length > 0) {
+                intersects.sort((a, b) => a.distance - b.distance);
+                selectFloor(intersects[0].floor);
+            }
+        }
+
+        function selectFloor(floorNum) {
+            selectedFloor = floorNum;
+            const data = floorData[floorNum];
+
+            document.getElementById('info-title').innerText = data.title;
+            document.getElementById('info-subtitle').innerText = data.subtitle;
+            document.getElementById('info-desc').innerText = data.desc;
+            document.getElementById('info-highlight').innerHTML = `<i class="fa-solid fa-star text-amber-400 ml-1"></i> ${data.highlight}`;
+
+            const box = document.getElementById('info-box');
+            box.classList.remove('translate-y-6', 'opacity-0', 'pointer-events-none');
+
+            floorGroups.forEach((fg, idx) => {
+                const fNum = idx + 1;
+                if (fNum === floorNum) {
+                    fg.position.x = 1.0; // Wider exploded view pop-out effect
+                } else {
+                    fg.position.x = 0;
+                }
+            });
+        }
+
+        function closeInfoBox() {
+            const box = document.getElementById('info-box');
+            box.classList.add('translate-y-6', 'opacity-0', 'pointer-events-none');
+            
+            floorGroups.forEach(fg => {
+                fg.position.x = 0;
+            });
+            selectedFloor = null;
+        }
+
+        function focusFloor(floorNum) {
+            selectFloor(floorNum);
+            const targetY = (floorNum - 1) * 6.1 + 2.2;
+            
+            controls.target.set(0, targetY, 0);
+            camera.position.set(0, targetY + 15, 30);
+            controls.update();
+        }
+
+        function resetCamera() {
+            closeInfoBox();
+            controls.target.set(0, 7, 0);
+            camera.position.set(34, 25, 45);
+            controls.update();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            if (waterMesh) {
+                waterMesh.position.y = 0.75 + Math.sin(elapsedTime * 2.5) * 0.03;
+            }
+
+            if (window.groundWaterMesh) {
+                window.groundWaterMesh.position.y = -0.05 + Math.sin(elapsedTime * 2.2 + 1.0) * 0.025;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>
