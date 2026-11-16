@@ -20,7 +20,12 @@
     result: { img: "img/i-4.jpg", w: 760, h: 695, url: "gemini.google.com" },
     eplus: { img: "img/e-1.jpg", w: 1093, h: 609, url: "gemini.google.com" },
     etyped: { img: "img/e-2.jpg", w: 1093, h: 609, url: "gemini.google.com" },
-    eresult: { img: "img/e-3.jpg", w: 1093, h: 609, url: "gemini.google.com" }
+    eresult: { img: "img/e-3.jpg", w: 1093, h: 609, url: "gemini.google.com" },
+    tmenu: { img: "img/d3-1.jpg", w: 1019, h: 411, url: "gemini.google.com" },
+    ttyped: { img: "img/d3-2.jpg", w: 1019, h: 411, url: "gemini.google.com" },
+    tchat: { img: "img/d3-3.jpg", w: 941, h: 422, url: "gemini.google.com" },
+    tview: { img: "img/d3-4.jpg", w: 1019, h: 411, url: "gemini.google.com" },
+    tfix: { img: "img/d3-5.jpg", w: 1019, h: 411, url: "gemini.google.com" }
   };
   const MARKS = {
     searchBox: ["search", 470, 28, 860, 50],
@@ -56,7 +61,17 @@
     eThumb: ["etyped", 789, 281, 98, 126],
     eText: ["etyped", 300, 416, 593, 56],
     eSend: ["etyped", 201, 497, 36, 36],
-    eResult: ["eresult", 158, 0, 781, 414]
+    eResult: ["eresult", 158, 0, 781, 414],
+    tPlus: ["tmenu", 740, 188, 34, 34],
+    tCanvas: ["tmenu", 575, 334, 190, 26],
+    tChip: ["ttyped", 650, 222, 86, 32],
+    tText: ["ttyped", 440, 190, 330, 24],
+    tSend: ["ttyped", 248, 224, 28, 28],
+    tPrompt: ["tchat", 205, 55, 165, 48],
+    tFull: ["tchat", 750, 252, 26, 26],
+    tToggle: ["tchat", 470, 252, 135, 26],
+    t3d: ["tview", 300, 110, 420, 230],
+    tFix: ["tfix", 222, 46, 152, 52]
   };
   const SETS = {
     S: [
@@ -93,6 +108,14 @@
       { mark: "eText", cap: "כותבים מה לשנות בתמונה" },
       { mark: "eSend", cap: "לוחצים על החץ ושולחים", click: true },
       { mark: "eResult", cap: "התמונה החדשה מוכנה!" }
+    ],
+    T: [
+      { mark: "tCanvas", cap: "לוחצים על + ובוחרים Canvas", click: true },
+      { mark: "tText", cap: "כותבים: צור בקוד הדמיה תלת מימדית של..." },
+      { mark: "tSend", cap: "שולחים, וגמיני כותבת את כל הקוד לבד", click: true },
+      { mark: "tFull", cap: "לוחצים על מסך מלא", click: true },
+      { mark: "t3d", cap: "גוררים עם העכבר ומסתובבים בעולם!" },
+      { mark: "tFix", cap: "לא עובד? כותבים: תתקן, זה לא עובד" }
     ]
   };
 

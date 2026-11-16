@@ -5,7 +5,9 @@
   const lessons = SITE.lessons;
   const total = lessons.length;
   const CAMERA = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="4"/></svg>';
+  const CUBE = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/></svg>';
   const topic = (href) =>
+    /sim3d/.test(href) ? { icon: CUBE, color: "ink" } :
     /edit/.test(href) ? { icon: CAMERA, color: "coral" } :
     /images/.test(href) ? { icon: ICONS.pencil, color: "sky" } :
     /gemini/.test(href) ? { icon: ICONS.book, color: "sun" } :

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>עולם תלת־ממד בקוד</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-3d">
+<style>
+  .ex-list { display: grid; gap: 22px; margin: 16px auto 0; max-width: 860px; }
+  .ex { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .ex h3 { margin: 0; font: 600 1.2em/1.3 var(--font-display); }
+  .ex img { width: 100%; height: auto; border-radius: 14px; display: block; background: var(--line); }
+  .ex .prompt { margin: 0; font-size: 1em; background: var(--bg, #f6f8fc); border-radius: 12px; padding: 8px 12px; }
+  .ex .more { margin: 0; font-size: .95em; color: var(--muted); }
+  .ex .copy { align-self: flex-start; min-height: 44px; padding: 6px 18px; font-size: .9em; }
+  .idea-list { display: grid; gap: 10px; padding: 0; list-style: none; margin: 14px 0 0; }
+  .idea-list li { background: var(--surface); border: 2.5px dashed var(--line); border-radius: 16px; padding: 10px 14px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top"><div class="crumbs"><a href="../index.html">→ חזרה לאתר החוג</a></div><nav aria-label="הגדרות"><button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button></nav></header>
+<main id="main">
+
+  <section class="lesson-hero">
+    <span class="icon leaf"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/></svg></span>
+    <div>
+      <h1>בונים עולם תלת־ממד בקוד</h1>
+      <p>מבקשים מגמיני לכתוב קוד, ומקבלים חדר, ארמון או עולם שלם שאפשר להסתובב בו.</p>
+    </div>
+  </section>
+
+  <section class="today">
+    <h2>🎯 מה נעשה היום?</h2>
+    <ol>
+      <li>בוחרות Canvas בגמיני</li>
+      <li>מבקשות הדמיה תלת־ממדית של חדר או ארמון</li>
+      <li>מסתובבות בעולם שגמיני בנתה, ומשפרות אותו</li>
+    </ol>
+  </section>
+  <p class="fig-note">צריכות תזכורת איך נכנסים לגמיני? <a href="gemini.html">לשיעור הכניסה לגמיני</a></p>
+
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="T" data-intro="לוחצים ▶ וצופים איך בונים עולם תלת־ממד">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
+    <div class="controls">
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">עכשיו אתן!</h2>
+  <section class="step">
+    <div class="step-head"><span class="step-num">1</span><h3>בוחרות Canvas</h3></div>
+    <p>לוחצים על <b>+</b> ובוחרים <b>Canvas</b>. זה המקום שבו גמיני כותבת קוד ומראה אותו.</p>
+    <figure class="real" data-shot="tmenu" data-marks="tPlus:1,tCanvas:1" aria-label="כפתור הפלוס והאפשרות Canvas מסומנים"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">2</span><h3>כותבות מה לבנות</h3></div>
+    <p>מתחילים ב: <b>צור בקוד הדמיה תלת מימדית של...</b> ושולחים.</p>
+    <figure class="real" data-shot="ttyped" data-marks="tText:2,tSend:2" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">3</span><h3>פותחות במסך מלא</h3></div>
+    <p>גמיני כותבת את הקוד לבד. לוחצים על <b>מסך מלא</b> כדי לראות את העולם בגדול.</p>
+    <figure class="real" data-shot="tchat" data-marks="tFull:3" aria-label="כפתור המסך המלא מסומן"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">4</span><h3>מסתובבות בעולם</h3></div>
+    <p>גוררים עם העכבר כדי להסתובב. בגלגלת מתקרבים ומתרחקים. לוחצים על הכפתורים שגמיני הוסיפה.</p>
+    <figure class="real" data-shot="tview" data-marks="t3d:4" aria-label="הטירה התלת־ממדית"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">5</span><h3>לא עובד? מבקשות לתקן</h3></div>
+    <p>לפעמים המסך ריק או משהו נשבר. זה קורה גם למתכנתים! פשוט כותבים: <b>תתקן, זה לא עובד</b>.</p>
+    <figure class="real" data-shot="tfix" data-marks="tFix:5" aria-label="הבקשה לתקן מסומנת"></figure>
+  </section>
+
+  <h2 class="sec">🏆 האתגר שלכן</h2>
+  <p>בנו את <b>חדר החלומות שלכן</b>. אחרי שהוא מוכן, בקשו שינוי אחד, למשל:</p>
+  <ul class="idea-list">
+    <li>🛋️ <b>תוסיף ספה ורודה ומדף ספרים</b></li>
+    <li>🚪 <b>תעשה שאפשר להיכנס לחדרים, לשולחן ולמטבח</b></li>
+    <li>🌙 <b>תוסיף כפתור שהופך את החדר ללילה</b></li>
+    <li>🎨 <b>תצבע את הקירות בצבע שמנת</b></li>
+  </ul>
+  <div class="note"><b>טיפ:</b> כל בקשה חדשה כותבים באותה שיחה. גמיני משפרת את אותו עולם, ולא מתחילה מהתחלה.</div>
+
+  <h2 class="sec">👀 מה בנינו בחוג</h2>
+  <p class="fig-note">עולמות אמיתיים שבנות החוג בנו. לוחצים <b>העתקה</b> ומנסים בעצמכן.</p>
+  <div class="ex-list" id="examples"></div>
+
+  <div class="lesson-end"><a class="btn ghost" href="../index.html">→ לכל השיעורים</a></div>
+
+</main>
+  <footer class="footer"><a class="back" href="../index.html">→ חזרה לאתר החוג</a></footer>
+</div>
+<script>
+(function () {
+  const EX = [
+    { title: "ארמון ענק עם חדר לנסיכה", img: "img/ex3d-palace.jpg", prompt: "צור בקוד הדמיה תלת מימדית של ארמון ענק עם הרבה קומות, עם נסיכה, ולנסיכה יש חדר פרטי" },
+    { title: "טירה מפוארת עם חצר", img: "img/ex3d-castle.jpg", prompt: "צור בקוד הדמיית תלת ממד של טירה מפוארת, ותתחיל מרחוק שיראו גם את החצר", more: "ואחר כך: תעשה שאפשר להיכנס לחדרים, לשולחן ולמטבח" },
+    { title: "חדר ברבי", img: "img/ex3d-barbie.jpg", prompt: "צור בקוד חדר של ברבי" },
+    { title: "ארמון ורוד", img: "img/ex3d-pink.jpg", prompt: "צור בקוד ארמון ענק של בנות בתלת מימד" },
+    { title: "כדור הארץ והחלל", img: "img/ex3d-globe.jpg", prompt: "צור בקוד הדמיה תלת מימדית של כדור הארץ, שאפשר להיכנס לבתים ולראות את אירופה", more: "ואחר כך: שכל הכדור יהיה עם יבשות" }
+  ];
+  const host = document.getElementById("examples");
+  host.innerHTML = EX.map((e, i) => `<div class="ex"><h3>${e.title}</h3><img src="${e.img}" alt="${e.title}, הדמיה תלת־ממדית שנבנתה בגמיני" loading="lazy" width="1019" height="361"><p class="prompt" id="p${i}">${e.prompt}</p>${e.more ? `<p class="more">${e.more}</p>` : ""}<button class="btn ghost copy" type="button" data-i="${i}">העתקה</button></div>`).join("");
+  host.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".copy"); if (!b) return;
+    const text = document.getElementById("p" + b.dataset.i).textContent;
+    const done = () => { b.textContent = "הועתק ✓"; setTimeout(() => (b.textContent = "העתקה"), 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+  });
+})();
+</script>
+<script src="../assets/a11y.js"></script>
+<script src="../assets/shots4.js?v=2026-11-16-3d"></script>
+<script src="../assets/player-plus.js?v=2026-11-16-3d"></script>
+<script src="../assets/fullscreen.js?v=2026-11-16-3d"></script>
+</body>
+</html>
