@@ -64,7 +64,11 @@ window.SITE = {
       { "title": "טירת הנסיכה הוורודה הענקית", "cover": "lessons/img/ex3d-babypink.jpg", "href": "worlds/babypink.html" },
       { "title": "מלון ממילא בירושלים", "cover": "lessons/img/ex3d-mamilla.jpg", "href": "worlds/mamilla.html" },
       { "title": "חדר החלומות בצבע שמנת", "cover": "lessons/img/ex3d-dreamcream.jpg", "href": "worlds/dreamcream.html" },
-      { "title": "סטודיו חדר החלומות", "cover": "lessons/img/ex3d-studio.jpg", "href": "worlds/studio.html" }
+      { "title": "סטודיו חדר החלומות", "cover": "lessons/img/ex3d-studio.jpg", "href": "worlds/studio.html" },
+      { "title": "משרדו של דמבלדור", "cover": "lessons/img/ex3d-dumbledore.jpg", "href": "worlds/dumbledore.html" },
+      { "title": "חדר המעונות של גריפינדור", "cover": "lessons/img/ex3d-gryffindor.jpg", "href": "worlds/gryffindor.html" },
+      { "title": "חדר החלומות בסגנון פנדה", "cover": "lessons/img/ex3d-panda.jpg", "href": "worlds/panda.html" },
+      { "title": "החדר הסודי מתחת לרצפה", "cover": "lessons/img/ex3d-magicroom.jpg", "href": "worlds/magicroom.html" }
   ],
 
   books: [

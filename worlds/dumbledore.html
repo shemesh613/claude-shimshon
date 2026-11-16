@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משרדו של אלבוס דמבלדור - הדמיה תלת-ממדית</title>
+    <!-- טעינת גופן עברי קלאסי ומרשים -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;600;700&family=Rubik:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS לעיצוב ממשק המשתמש -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js ו-OrbitControls מ-CDN אמין -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        :root {
+            --gold-primary: #d4af37;
+            --gold-light: #f3e5ab;
+            --bg-dark: rgba(18, 14, 12, 0.86);
+            --border-gold: rgba(212, 175, 55, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0908;
+            font-family: 'Rubik', sans-serif;
+            color: #f5ebd6;
+        }
+
+        h1, h2, h3, .serif-title {
+            font-family: 'Frank Ruhl Libre', serif;
+        }
+
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* עיצוב קלף עתיק ויוקרתי לחלונות הממשק */
+        .magical-panel {
+            background: var(--bg-dark);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(212, 175, 55, 0.08);
+        }
+
+        .gold-btn {
+            background: linear-gradient(145deg, rgba(45, 34, 24, 0.9), rgba(24, 18, 13, 0.95));
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #f3e5ab;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .gold-btn:hover {
+            border-color: #f3e5ab;
+            background: linear-gradient(145deg, rgba(72, 53, 33, 0.95), rgba(38, 28, 19, 0.98));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(212, 175, 55, 0.25);
+        }
+
+        .gold-btn.active {
+            background: linear-gradient(145deg, #8c6723, #5c4112);
+            border-color: #ffe680;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.45);
+        }
+
+        /* תווית ריחוף מעל חפצים */
+        #hover-tooltip {
+            position: fixed;
+            pointer-events: none;
+            z-index: 30;
+            transform: translate(-50%, -135%);
+            transition: opacity 0.15s ease;
+            white-space: nowrap;
+        }
+
+        /* אנימציית טעינה */
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(212, 175, 55, 0.4); }
+            50% { text-shadow: 0 0 24px rgba(255, 224, 115, 0.9); }
+        }
+
+        .glow-text {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        /* גלילה מותאמת לכרטיס מידע */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(20, 15, 12, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.5);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- מסך טעינה ראשוני -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0d0a08] transition-opacity duration-700">
+        <div class="w-16 h-16 mb-5 rounded-full border-2 border-[#d4af37]/30 border-t-[#f3e5ab] animate-spin"></div>
+        <h2 class="serif-title text-2xl md:text-3xl text-[#f3e5ab] glow-text mb-2">דרופתאות לימון...</h2>
+        <p class="text-sm text-[#c7b699]">הגרגויל מסתובב וחושף את משרדו של המנהל</p>
+    </div>
+
+    <!-- קנבס התלת-ממד -->
+    <div id="canvas-container"></div>
+
+    <!-- תווית ריחוף דינמית על חפצי קסם -->
+    <div id="hover-tooltip" class="hidden magical-panel px-3.5 py-1.5 rounded-full text-sm font-medium text-[#ffe89e] border-[#f3e5ab]">
+        <span id="tooltip-text">חפץ קסם</span>
+    </div>
+
+    <!-- ממשק משתמש עליון (כותרת ובקרי אווירה) -->
+    <header class="fixed top-0 inset-x-0 z-20 p-3 md:p-5 pointer-events-none flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <!-- כותרת החדר -->
+        <div class="magical-panel pointer-events-auto rounded-2xl px-4 py-2.5 md:px-5 md:py-3 max-w-md">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xl md:text-2xl">✨</span>
+                <div>
+                    <h1 class="serif-title text-lg md:text-2xl font-bold text-[#f3e5ab] leading-tight">משרדו של אלבוס דמבלדור</h1>
+                    <p class="text-xs text-[#cbb99d] mt-0.5">גררו לסיבוב • גלגלו לזום • לחצו על חפצי הקסם לחקירה</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- בקרי אווירה ותאורה -->
+        <div class="magical-panel pointer-events-auto rounded-2xl p-2 flex flex-wrap items-center gap-2">
+            <button id="btn-candles" class="gold-btn active px-3 py-1.5 rounded-xl text-xs md:text-sm flex items-center gap-1.5" title="הדלקה/כיבוי נרות מרחפים">
+                <span>🕯️</span>
+                <span>תאורת נרות</span>
+            </button>
+            <button id="btn-dust" class="gold-btn active px-3 py-1.5 rounded-xl text-xs md:text-sm flex items-center gap-1.5" title="אבק קסמים מרחף באוויר">
+                <span>✨</span>
+                <span>אבק קסמים</span>
+            </button>
+            <button id="btn-pensieve" class="gold-btn active px-3 py-1.5 rounded-xl text-xs md:text-sm flex items-center gap-1.5" title="הגברת הילת ההגיגית">
+                <span>🌀</span>
+                <span>אפקט ההגיגית</span>
+            </button>
+            <button id="btn-wall-color" class="gold-btn px-3 py-1.5 rounded-xl text-xs md:text-sm flex items-center gap-1.5" title="החלפת צבע קירות המשרד">
+                <span>🎨</span>
+                <span id="wall-color-label">קירות: כחול חצות</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- כרטיס מידע (Lore Modal) בעת לחיצה על חפץ -->
+    <aside id="lore-card" class="hidden fixed top-24 right-3 md:right-6 z-30 w-[calc(100%-1.5rem)] max-w-sm magical-panel rounded-2xl p-5 transition-all duration-300">
+        <div class="flex justify-between items-start border-b border-[#d4af37]/30 pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+                <span id="lore-icon" class="text-2xl">🔮</span>
+                <h3 id="lore-title" class="serif-title text-xl font-bold text-[#f3e5ab]">שם החפץ</h3>
+            </div>
+            <button id="close-lore" class="text-[#cbb99d] hover:text-white p-1 rounded-lg hover:bg-white/10 transition" aria-label="סגור">
+                ✕
+            </button>
+        </div>
+        <p id="lore-desc" class="text-sm leading-relaxed text-[#ece0c8] mb-4"></p>
+        <div id="lore-quote-box" class="bg-black/40 border-r-2 border-[#d4af37] rounded-l-xl p-3 text-xs italic text-[#f3e5ab]">
+            "<span id="lore-quote">ציטוט קסום</span>"
+        </div>
+    </aside>
+
+    <!-- סרגל ניווט מצלמה תחתון -->
+    <nav class="fixed bottom-3 md:bottom-5 inset-x-0 z-20 px-3 pointer-events-none flex justify-center">
+        <div class="magical-panel pointer-events-auto rounded-2xl p-2 flex flex-wrap justify-center gap-1.5 md:gap-2 max-w-full">
+            <button data-cam="overview" class="cam-btn gold-btn active px-3 py-2 rounded-xl text-xs md:text-sm font-medium">
+                🏰 מבט כללי
+            </button>
+            <button data-cam="desk" class="cam-btn gold-btn px-3 py-2 rounded-xl text-xs md:text-sm font-medium">
+                📜 שולחן העבודה
+            </button>
+            <button data-cam="pensieve" class="cam-btn gold-btn px-3 py-2 rounded-xl text-xs md:text-sm font-medium">
+                🌀 ההגיגית
+            </button>
+            <button data-cam="fawkes" class="cam-btn gold-btn px-3 py-2 rounded-xl text-xs md:text-sm font-medium">
+                🔥 פוקס עוף החול
+            </button>
+            <button data-cam="shelves" class="cam-btn gold-btn px-3 py-2 rounded-xl text-xs md:text-sm font-medium">
+                📚 המדפים והספרים
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        /**
+         * מערכת הדמיה תלת-ממדית של משרד אלבוס דמבלדור
+         * בנויה באמצעות Three.js וטקסטורות פרוצדורליות בקנבס
+         */
+
+        // משתנים גלובליים לסצנה
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2(-99, -99);
+        let hoveredObject = null;
+
+        // מערכים לאנימציה ואינטראקציה
+        const interactiveObjects = [];
+        const animatedCandles = [];
+        const spinningInstruments = [];
+        const lightBeams = [];
+        let dustParticles, dustMaterial;
+        let fawkesEmbers, fawkesGroup, fawkesHead, fawkesTail, fawkesLight;
+        let pensieveLiquid, pensieveRings = [], pensieveLight;
+        let sortingHatGroup;
+        let crystalBallLight;
+
+        // משתנים עבור דמותו של דמבלדור וצבעי הקירות
+        let dumbledoreGroup, dumbledoreRightArm, dumbledoreHead, dumbledoreBeard, wandTipLight, wandSparks;
+        let wallsMesh, pillarsMat;
+        let currentWallThemeIdx = 0;
+
+        const wallThemes = [
+            { name: 'כחול חצות', wallColor: 0x263859, pillarColor: 0x3b4d70 },
+            { name: 'ארגמן גריפינדור', wallColor: 0x5e1d26, pillarColor: 0x732c36 },
+            { name: 'ירוק אזמרגד', wallColor: 0x1e463b, pillarColor: 0x2e5e50 },
+            { name: 'אבן עתיקה', wallColor: 0x8c8275, pillarColor: 0x6e665f }
+        ];
+
+        // מצבי אווירה
+        const state = {
+            candlesOn: true,
+            dustOn: true,
+            pensieveBoost: true,
+            fawkesBurstTimer: 0,
+            hatWiggleTimer: 0,
+            pensieveSwirlBoost: 0,
+            dumbledoreWaveTimer: 0
+        };
+
+        // הגדרות זוויות מצלמה (Presets)
+        const cameraPresets = {
+            overview: {
+                pos: new THREE.Vector3(0, 5.2, 11.2),
+                target: new THREE.Vector3(0, 3.2, -1.5)
+            },
+            desk: {
+                pos: new THREE.Vector3(0.4, 3.8, 1.8),
+                target: new THREE.Vector3(0, 2.3, -2.5)
+            },
+            pensieve: {
+                pos: new THREE.Vector3(-3.3, 3.2, 2.2),
+                target: new THREE.Vector3(-5.2, 2.1, 0.2)
+            },
+            fawkes: {
+                pos: new THREE.Vector3(2.8, 3.6, 0.6),
+                target: new THREE.Vector3(4.5, 2.8, -1.6)
+            },
+            shelves: {
+                pos: new THREE.Vector3(-2.5, 6.8, 6.5),
+                target: new THREE.Vector3(2.0, 5.5, -5.0)
+            }
+        };
+
+        let targetCamPos = cameraPresets.overview.pos.clone();
+        let targetLookAt = cameraPresets.overview.target.clone();
+        let isTransitioningCam = false;
+
+        // מאגר מידע בעברית על החפצים הקסומים והדמויות
+        const artifactLore = {
+            dumbledore: {
+                icon: '🧙‍♂️',
+                title: 'פרופסור אלבוס דמבלדור',
+                desc: 'מנהל בית הספר הוגוורטס לכישוף ולקוסמות, וגדול הקוסמים בדורו. עוטה גלימות קסמים סגולות-כחולות רקומות זהב, מביט מבעד למשקפי חצי-הסהר שלו ואוחז בשרביט הבכור האגדי.',
+                quote: 'ניתן למצוא אושר אפילו בזמנים האפלים ביותר, אם רק זוכרים להדליק את האור.'
+            },
+            pensieve: {
+                icon: '🌀',
+                title: 'ההגיגית (The Pensieve)',
+                desc: 'אגן אבן עתיק החרוט ברוּנוֹת מסתוריות. דמבלדור משתמש בו כדי לאחסן זיכרונות עודפים ממוחו, לצפות בהם מנקודת מבט חיצונית ולנתח רמזים נסתרים.',
+                quote: 'פשוט שואבים את המחשבות העודפות מן הראש, שופכים אותן אל תוך האגן, ובוחנים אותן בשעות הפנאי.'
+            },
+            fawkes: {
+                icon: '🔥',
+                title: 'פוקס, עוף החול',
+                desc: 'בן לווייתו הנאמן של דמבלדור. עופות חול מסוגלים לשאת משאות כבדים להפליא, דמעותיהם בעלות סגולות ריפוי מופלאות, וכאשר זמנם מגיע הם עולים באש ונולדים מחדש מן האפר.',
+                quote: 'יצורים מרתקים, עופות החול. נאמנים עד אין קץ, ודמעותיהם ניחנות בכוח ריפוי אדיר.'
+            },
+            sortingHat: {
+                icon: '🧙‍♂️',
+                title: 'מצנפת המיון',
+                desc: 'מצנפת עתיקה ומטולאת שהייתה שייכת לגודריק גריפינדור. היא ניחנה בבינה של ארבעת מייסדי הוגוורטס וממיינת מדי שנה את התלמידים החדשים לבתים המתאימים להם.',
+                quote: 'אין דבר הנסתר מעיניי בתוך ראשך — חבוש אותי ואומר לך לאיזה בית אתה שייך!'
+            },
+            sword: {
+                icon: '⚔️',
+                title: 'חרב גריפינדור',
+                desc: 'חרב כסף מחושלת בידי גובלינים המשובצת באבני אודם בוהקות. היא סופגת רק את מה שמחזק אותה, ומופיעה מתוך מצנפת המיון בפני כל תלמיד גריפינדור אמיתי בשעת צרה.',
+                quote: 'רק תלמיד גריפינדור אמיתי יכול היה לשלוף את החרב הזו מתוך המצנפת.'
+            },
+            crystalBall: {
+                icon: '🔮',
+                title: 'כדור הבדולח המכושף',
+                desc: 'כדור קריסטל זוהר המונח על שולחנו של המנהל. בתוכו מתערבלים אדי כסף וזהב המגיבים לזרמי הקסם העתיקים שבטירת הוגוורטס.',
+                quote: 'הבחירות שלנו, הארי, הן שמראות מי אנחנו באמת — הרבה יותר מאשר היכולות שלנו.'
+            },
+            instruments: {
+                icon: '⚙️',
+                title: 'מכשירי הכסף העדינים',
+                desc: 'אוסף מרתק של אצטרולבים, כדורי ארמילר ומכשירים מכניים-קסומים עדינים הפולטים אדים קלים ומסתובבים ללא הרף לניטור תנועות הכוכבים וקסמים אפלים.',
+                quote: 'מכשירים עדינים ומסתוריים המשמיעים זמזום חרישי ופולטים ענני עשן זעירים.'
+            }
+        };
+
+        /**
+         * יצירת טקסטורות פרוצדורליות באמצעות HTML5 Canvas
+         * מבטיח מראה עשיר ומפורט ללא תלות בתמונות חיצוניות
+         */
+        function createProceduralTextures() {
+            const textures = {};
+
+            // 1. טקסטורת קירות אבן עתיקים
+            const stoneCanvas = document.createElement('canvas');
+            stoneCanvas.width = 512;
+            stoneCanvas.height = 512;
+            const sCtx = stoneCanvas.getContext('2d');
+            sCtx.fillStyle = '#38332e';
+            sCtx.fillRect(0, 0, 512, 512);
+
+            const rows = 8;
+            const rowH = 512 / rows;
+            for (let r = 0; r < rows; r++) {
+                const cols = 4;
+                const colW = 512 / cols;
+                const offset = (r % 2) * (colW / 2);
+                for (let c = -1; c <= cols; c++) {
+                    const x = c * colW + offset;
+                    const y = r * rowH;
+                    const shade = 45 + Math.floor(Math.random() * 22);
+                    sCtx.fillStyle = `rgb(${shade + 5}, ${shade}, ${shade - 4})`;
+                    sCtx.fillRect(x + 3, y + 3, colW - 6, rowH - 6);
+
+                    // הוספת מרקם אבן מחוספס
+                    for (let i = 0; i < 40; i++) {
+                        sCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)';
+                        sCtx.fillRect(x + Math.random() * colW, y + Math.random() * rowH, 4, 4);
+                    }
+                }
+            }
+            textures.stone = new THREE.CanvasTexture(stoneCanvas);
+            textures.stone.wrapS = THREE.RepeatWrapping;
+            textures.stone.wrapT = THREE.RepeatWrapping;
+            textures.stone.repeat.set(6, 3);
+
+            // 2. טקסטורת עץ מהגוני כהה ועשיר
+            const woodCanvas = document.createElement('canvas');
+            woodCanvas.width = 512;
+            woodCanvas.height = 512;
+            const wCtx = woodCanvas.getContext('2d');
+            wCtx.fillStyle = '#3b1e10';
+            wCtx.fillRect(0, 0, 512, 512);
+            for (let y = 0; y < 512; y += 2) {
+                const wave = Math.sin(y * 0.05) * 10;
+                wCtx.fillStyle = y % 4 === 0 ? 'rgba(20, 8, 3, 0.28)' : 'rgba(95, 50, 26, 0.2)';
+                wCtx.fillRect(0, y, 512, 2 + Math.sin(y * 0.1 + wave));
+            }
+            textures.wood = new THREE.CanvasTexture(woodCanvas);
+            textures.wood.wrapS = THREE.RepeatWrapping;
+            textures.wood.wrapT = THREE.RepeatWrapping;
+
+            // 3. טקסטורת שטיח פרסי/קוסמים עגול
+            const rugCanvas = document.createElement('canvas');
+            rugCanvas.width = 512;
+            rugCanvas.height = 512;
+            const rCtx = rugCanvas.getContext('2d');
+            rCtx.fillStyle = '#4a1219';
+            rCtx.fillRect(0, 0, 512, 512);
+
+            const cx = 256, cy = 256;
+            const rings = [
+                { r: 245, color: '#d4af37', width: 8 },
+                { r: 225, color: '#24142b', width: 25 },
+                { r: 195, color: '#d4af37', width: 5 },
+                { r: 140, color: '#691922', width: 45 },
+                { r: 85, color: '#d4af37', width: 6 }
+            ];
+            rings.forEach(ring => {
+                rCtx.beginPath();
+                rCtx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+                rCtx.strokeStyle = ring.color;
+                rCtx.lineWidth = ring.width;
+                rCtx.stroke();
+            });
+            // עיטורי כוכבים בשטיח
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+                rCtx.beginPath();
+                rCtx.arc(cx + Math.cos(a) * 165, cy + Math.sin(a) * 165, 5, 0, Math.PI * 2);
+                rCtx.fillStyle = '#f3e5ab';
+                rCtx.fill();
+            }
+            textures.rug = new THREE.CanvasTexture(rugCanvas);
+
+            // 4. טקסטורת מערבולת הזיכרונות של ההגיגית
+            const penCanvas = document.createElement('canvas');
+            penCanvas.width = 256;
+            penCanvas.height = 256;
+            const pCtx = penCanvas.getContext('2d');
+            const grad = pCtx.createRadialGradient(128, 128, 10, 128, 128, 128);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.4, '#a8e6ff');
+            grad.addColorStop(0.8, '#4a89dc');
+            grad.addColorStop(1, '#1c3b6e');
+            pCtx.fillStyle = grad;
+            pCtx.fillRect(0, 0, 256, 256);
+
+            pCtx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+            pCtx.lineWidth = 4;
+            for (let i = 0; i < 6; i++) {
+                pCtx.beginPath();
+                for (let t = 0; t < 40; t++) {
+                    const angle = t * 0.25 + i;
+                    const rad = t * 2.8;
+                    const px = 128 + Math.cos(angle) * rad;
+                    const py = 128 + Math.sin(angle) * rad;
+                    if (t === 0) pCtx.moveTo(px, py);
+                    else pCtx.lineTo(px, py);
+                }
+                pCtx.stroke();
+            }
+            textures.pensieve = new THREE.CanvasTexture(penCanvas);
+
+            // 5. טקסטורת חלון ויטראז' גותי
+            const glassCanvas = document.createElement('canvas');
+            glassCanvas.width = 256;
+            glassCanvas.height = 512;
+            const gCtx = glassCanvas.getContext('2d');
+            const gGrad = gCtx.createLinearGradient(0, 0, 0, 512);
+            gGrad.addColorStop(0, '#4f7cac');
+            gGrad.addColorStop(0.5, '#9ec5ab');
+            gGrad.addColorStop(1, '#f3d58d');
+            gCtx.fillStyle = gGrad;
+            gCtx.fillRect(0, 0, 256, 512);
+
+            gCtx.strokeStyle = '#1b1815';
+            gCtx.lineWidth = 6;
+            for (let y = 0; y <= 512; y += 64) {
+                gCtx.beginPath();
+                gCtx.moveTo(0, y);
+                gCtx.lineTo(256, y);
+                gCtx.stroke();
+            }
+            for (let x = 0; x <= 256; x += 64) {
+                gCtx.beginPath();
+                gCtx.moveTo(x, 0);
+                gCtx.lineTo(x, 512);
+                gCtx.stroke();
+            }
+            // מדליון מרכזי בויטראז'
+            gCtx.beginPath();
+            gCtx.arc(128, 180, 55, 0, Math.PI * 2);
+            gCtx.fillStyle = 'rgba(255, 223, 128, 0.75)';
+            gCtx.fill();
+            gCtx.stroke();
+
+            textures.stainedGlass = new THREE.CanvasTexture(glassCanvas);
+
+            return textures;
+        }
+
+        /**
+         * אתחול הסצנה, המצלמה, התאורה וכל האובייקטים
+         */
+        function init() {
+            const container = document.getElementById('canvas-container');
+            const textures = createProceduralTextures();
+
+            // יצירת הסצנה עם ערפל עומק אטמוספרי
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0a0e);
+            scene.fog = new THREE.FogExp2(0x120e14, 0.024);
+
+            // הגדרת מצלמה
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(cameraPresets.overview.pos);
+
+            // הגדרת מרנדר עם צללים רכים ו-Tone Mapping קולנועי
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            // בקרת מצלמה (OrbitControls)
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.copy(cameraPresets.overview.target);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.minDistance = 2.0;
+            controls.maxDistance = 14.5;
+            controls.maxPolarAngle = Math.PI * 0.49; // מניעת ירידה מתחת לרצפה
+            controls.minPolarAngle = Math.PI * 0.12;
+
+            // הפסקת מעבר אוטומטי אם המשתמש מזיז ידנית את המצלמה
+            controls.addEventListener('start', () => {
+                isTransitioningCam = false;
+            });
+
+            // בניית חלקי החדר השונים
+            setupLighting();
+            buildArchitecture(textures);
+            buildGalleryAndStairs(textures);
+            buildBookshelves(textures);
+            buildDeskArea(textures);
+            buildDumbledore();
+            buildPensieve(textures);
+            buildFawkes();
+            buildSortingHat();
+            buildSwordOfGryffindor(textures);
+            buildSilverInstruments();
+            buildFloatingCandles();
+            buildMagicDust();
+
+            // רישום מאזינים לאירועים
+            setupEvents();
+
+            // הסתרת מסך הטעינה לאחר בנייה מוצלחת
+            setTimeout(() => {
+                const loader = document.getElementById('loading-screen');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 700);
+            }, 600);
+
+            // התחלת לולאת האנימציה
+            animate();
+        }
+
+        /**
+         * הגדרת מערך התאורה הקסום בחדר
+         */
+        function setupLighting() {
+            // תאורה סביבתית חמה-קרירה מאוזנת
+            const hemiLight = new THREE.HemisphereLight(0x8899cc, 0x3b2616, 0.65);
+            scene.add(hemiLight);
+
+            // אור ירח/שמיים רך החודר מהחלונות הגבוהים
+            const moonDirLight = new THREE.DirectionalLight(0xaaccff, 0.9);
+            moonDirLight.position.set(-6, 12, -8);
+            moonDirLight.castShadow = true;
+            moonDirLight.shadow.mapSize.width = 1024;
+            moonDirLight.shadow.mapSize.height = 1024;
+            moonDirLight.shadow.camera.near = 1;
+            moonDirLight.shadow.camera.far = 30;
+            const d = 12;
+            moonDirLight.shadow.camera.left = -d;
+            moonDirLight.shadow.camera.right = d;
+            moonDirLight.shadow.camera.top = d;
+            moonDirLight.shadow.camera.bottom = -d;
+            moonDirLight.shadow.bias = -0.001;
+            scene.add(moonDirLight);
+
+            // אור חם מרכזי מעל שולחן המנהל
+            const deskWarmLight = new THREE.PointLight(0xffaa44, 1.3, 14);
+            deskWarmLight.position.set(0, 4.5, -2.2);
+            deskWarmLight.castShadow = true;
+            scene.add(deskWarmLight);
+        }
+
+        /**
+         * בניית מבנה המגדל העגול, הרצפה, השטיח, החלונות הגותיים וקרני האור
+         */
+        function buildArchitecture(textures) {
+            const roomRadius = 11.5;
+            const roomHeight = 14;
+
+            // רצפת עץ כהה
+            const floorGeo = new THREE.CircleGeometry(roomRadius, 48);
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: textures.wood,
+                roughness: 0.65,
+                metalness: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // שטיח קוסמים עגול במרכז החדר
+            const rugGeo = new THREE.CircleGeometry(5.6, 48);
+            const rugMat = new THREE.MeshStandardMaterial({
+                map: textures.rug,
+                roughness: 0.88
+            });
+            const rug = new THREE.Mesh(rugGeo, rugMat);
+            rug.rotation.x = -Math.PI / 2;
+            rug.position.set(0, 0.015, -1.2);
+            rug.receiveShadow = true;
+            scene.add(rug);
+            // קירות המגדל העגולים מאבן בגוון עשיר
+            const wallGeo = new THREE.CylinderGeometry(roomRadius, roomRadius, roomHeight, 48, 1, true);
+            const wallMat = new THREE.MeshStandardMaterial({
+                map: textures.stone,
+                color: wallThemes[0].wallColor,
+                roughness: 0.82,
+                side: THREE.BackSide
+            });
+            wallsMesh = new THREE.Mesh(wallGeo, wallMat);
+            wallsMesh.position.y = roomHeight / 2;
+            wallsMesh.receiveShadow = true;
+            scene.add(wallsMesh);
+
+            // תקרה כיפתית גבוהה עם קורות עץ
+            const ceilingGeo = new THREE.ConeGeometry(roomRadius + 0.2, 4.5, 32, 1, true);
+            const ceilingMat = new THREE.MeshStandardMaterial({
+                map: textures.wood,
+                roughness: 0.8,
+                side: THREE.BackSide
+            });
+            const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+            ceiling.position.y = roomHeight + 2.2;
+            scene.add(ceiling);
+
+            // עמודי אבן אנכיים מסביב להיקף
+            pillarsMat = new THREE.MeshStandardMaterial({
+                map: textures.stone,
+                color: wallThemes[0].pillarColor,
+                roughness: 0.78
+            });
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, roomHeight, 12), pillarsMat);
+                pillar.position.set(Math.cos(angle) * (roomRadius - 0.25), roomHeight / 2, Math.sin(angle) * (roomRadius - 0.25));
+                pillar.castShadow = true;
+                pillar.receiveShadow = true;
+                scene.add(pillar);
+            }
+
+            // חלונות ויטראז' גותיים גבוהים וקרני אור אטמוספריות
+            const winAngles = [-Math.PI * 0.72, -Math.PI * 0.5, -Math.PI * 0.28];
+            const glassMat = new THREE.MeshBasicMaterial({
+                map: textures.stainedGlass,
+                transparent: true,
+                opacity: 0.9
+            });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x26211d, roughness: 0.7 });
+
+            winAngles.forEach(angle => {
+                const winGroup = new THREE.Group();
+                const wx = Math.cos(angle) * (roomRadius - 0.15);
+                const wz = Math.sin(angle) * (roomRadius - 0.15);
+                winGroup.position.set(wx, 6.2, wz);
+                winGroup.lookAt(0, 6.2, 0);
+
+                // זכוכית צבעונית
+                const pane = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5.2), glassMat);
+                winGroup.add(pane);
+
+                // מסגרת גותית
+                const topFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 0.3), frameMat);
+                topFrame.position.y = 2.6;
+                winGroup.add(topFrame);
+
+                const botFrame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.25, 0.35), frameMat);
+                botFrame.position.y = -2.6;
+                winGroup.add(botFrame);
+
+                scene.add(winGroup);
+
+                // קרן אור אלכסונית רכה החודרת לחדר (Volumetric Light Beam)
+                const beamGeo = new THREE.ConeGeometry(2.6, 12, 24, 1, true);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: 0xcfe2ff,
+                    transparent: true,
+                    opacity: 0.045,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.set(wx * 0.65, 4.2, wz * 0.65);
+                beam.lookAt(0, 0.5, 0);
+                beam.rotateX(Math.PI / 2);
+                scene.add(beam);
+                lightBeams.push(beam);
+            });
+        }
+
+        /**
+         * בניית גלריית המדפים העליונה (מרפסת עץ היקפית) ומדרגות לולייניות
+         */
+        function buildGalleryAndStairs(textures) {
+            const galleryGroup = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({
+                map: textures.wood,
+                roughness: 0.65
+            });
+            const goldAccentMat = new THREE.MeshStandardMaterial({
+                color: 0xb89230,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+
+            // רצפת המרפסת העליונה (קשת אחורית וצדדית)
+            const galleryY = 5.4;
+            const ringGeo = new THREE.RingGeometry(8.4, 11.4, 40, 1, Math.PI * 0.85, Math.PI * 1.3);
+            const ringMesh = new THREE.Mesh(ringGeo, woodMat);
+            ringMesh.rotation.x = -Math.PI / 2;
+            ringMesh.position.y = galleryY;
+            ringMesh.receiveShadow = true;
+            galleryGroup.add(ringMesh);
+
+            // מעקה עץ לגלריה
+            const railRadius = 8.55;
+            const startAng = Math.PI * 0.85;
+            const endAng = Math.PI * 2.15;
+            const steps = 28;
+            for (let i = 0; i <= steps; i++) {
+                const a = startAng + (i / steps) * (endAng - startAng);
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.05, 8), woodMat);
+                post.position.set(Math.cos(a) * railRadius, galleryY + 0.52, Math.sin(a) * railRadius);
+                galleryGroup.add(post);
+            }
+
+            // מדרגות לולייניות בצד ימין המובילות לגלריה
+            const stairCenter = new THREE.Vector3(7.6, 0, -3.2);
+            const numSteps = 18;
+            const stepHeight = galleryY / numSteps;
+
+            // עמוד מרכזי למדרגות
+            const centerPole = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, galleryY + 1.2, 16), woodMat);
+            centerPole.position.set(stairCenter.x, (galleryY + 1.2) / 2, stairCenter.z);
+            centerPole.castShadow = true;
+            galleryGroup.add(centerPole);
+
+            for (let s = 0; s < numSteps; s++) {
+                const angle = s * 0.34;
+                const stepY = (s + 1) * stepHeight;
+                const stepPivot = new THREE.Group();
+                stepPivot.position.set(stairCenter.x, stepY, stairCenter.z);
+                stepPivot.rotation.y = angle;
+
+                const tread = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.12, 0.52), woodMat);
+                tread.position.x = 0.95;
+                tread.castShadow = true;
+                tread.receiveShadow = true;
+                stepPivot.add(tread);
+
+                const railPost = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.95, 6), goldAccentMat);
+                railPost.position.set(1.72, 0.48, 0);
+                stepPivot.add(railPost);
+
+                galleryGroup.add(stepPivot);
+            }
+
+            scene.add(galleryGroup);
+        }
+
+        /**
+         * בניית ספריות עץ גבוהות ומלאות בספרים צבעוניים ועתיקים
+         */
+        function buildBookshelves(textures) {
+            const shelfGroup = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ map: textures.wood, roughness: 0.7 });
+            const bookColors = [0x6b1d1d, 0x1d3b58, 0x24472c, 0x5c3a1d, 0x45224a, 0x7a591c, 0x2b2623];
+
+            // מיקום כונניות ספרים לאורך הקירות (קומה תחתונה ועליונה)
+            const shelfAngles = [
+                -Math.PI * 0.86, -Math.PI * 0.14,
+                Math.PI * 0.12, Math.PI * 0.88
+            ];
+
+            shelfAngles.forEach(angle => {
+                // כוננית תחתונה + כוננית עליונה בגלריה
+                [0, 5.45].forEach(baseY => {
+                    const unit = new THREE.Group();
+                    const r = 10.65;
+                    unit.position.set(Math.cos(angle) * r, baseY, Math.sin(angle) * r);
+                    unit.lookAt(0, baseY, 0);
+
+                    // גב ודפנות הכוננית
+                    const back = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.6, 0.15), woodMat);
+                    back.position.set(0, 2.3, -0.35);
+                    unit.add(back);
+
+                    [-1.55, 1.55].forEach(sx => {
+                        const side = new THREE.Mesh(new THREE.BoxGeometry(0.16, 4.6, 0.75), woodMat);
+                        side.position.set(sx, 2.3, 0);
+                        side.castShadow = true;
+                        unit.add(side);
+                    });
+
+                    // 5 מדפים מלאים בספרים
+                    for (let row = 0; row < 5; row++) {
+                        const sy = 0.35 + row * 0.92;
+                        const plank = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.1, 0.72), woodMat);
+                        plank.position.set(0, sy, 0);
+                        plank.receiveShadow = true;
+                        unit.add(plank);
+
+                        // מילוי ספרים אקראי על המדף
+                        let curX = -1.42;
+                        while (curX < 1.35) {
+                            const bw = 0.08 + Math.random() * 0.09;
+                            const bh = 0.52 + Math.random() * 0.25;
+                            const bd = 0.45 + Math.random() * 0.1;
+                            const color = bookColors[Math.floor(Math.random() * bookColors.length)];
+                            const bookMat = new THREE.MeshStandardMaterial({
+                                color: color,
+                                roughness: 0.75
+                            });
+                            const book = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bookMat);
+                            book.position.set(curX + bw / 2, sy + 0.05 + bh / 2, 0.04);
+                            // הטיה קלה לחלק מהספרים
+                            if (Math.random() > 0.88) {
+                                book.rotation.z = 0.15;
+                                curX += 0.04;
+                            }
+                            unit.add(book);
+                            curX += bw + 0.015;
+                        }
+                    }
+
+                    shelfGroup.add(unit);
+                });
+            });
+
+            scene.add(shelfGroup);
+        }
+
+        /**
+         * בניית במת העץ, שולחן המנהל, כיסא המלכות, מגילות, נוצה וכדור הבדולח
+         */
+        function buildDeskArea(textures) {
+            const deskArea = new THREE.Group();
+            deskArea.position.set(0, 0, -2.6);
+
+            const woodMat = new THREE.MeshStandardMaterial({ map: textures.wood, roughness: 0.55 });
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.25 });
+            const velvetMat = new THREE.MeshStandardMaterial({ color: 0x5c1422, roughness: 0.85 });
+            const parchmentMat = new THREE.MeshStandardMaterial({ color: 0xf0dfb8, roughness: 0.8 });
+
+            // 1. במת עץ מוגבהת (Dais)
+            const dais = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.6, 0.24, 32), woodMat);
+            dais.position.y = 0.12;
+            dais.receiveShadow = true;
+            deskArea.add(dais);
+
+            const daisTrim = new THREE.Mesh(new THREE.TorusGeometry(3.42, 0.04, 8, 48), goldMat);
+            daisTrim.rotation.x = Math.PI / 2;
+            daisTrim.position.y = 0.24;
+            deskArea.add(daisTrim);
+
+            // 2. שולחן העבודה המגולף של דמבלדור
+            const deskY = 0.24;
+            const tableTop = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.16, 1.55), woodMat);
+            tableTop.position.set(0, deskY + 1.25, 0.2);
+            tableTop.castShadow = true;
+            tableTop.receiveShadow = true;
+            deskArea.add(tableTop);
+
+            // עיטור זהב סביב פלטת השולחן
+            const deskRim = new THREE.Mesh(new THREE.BoxGeometry(3.26, 0.06, 1.61), goldMat);
+            deskRim.position.set(0, deskY + 1.25, 0.2);
+            deskArea.add(deskRim);
+
+            // רגליים ושידות צד מגולפות לשולחן
+            [-1.15, 1.15].forEach(px => {
+                const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.2, 1.35), woodMat);
+                pedestal.position.set(px, deskY + 0.6, 0.2);
+                pedestal.castShadow = true;
+                pedestal.receiveShadow = true;
+                deskArea.add(pedestal);
+
+                // ידיות זהב למגירות
+                for (let dy = 0.35; dy <= 0.95; dy += 0.3) {
+                    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), goldMat);
+                    knob.position.set(px, deskY + dy, 0.9);
+                    deskArea.add(knob);
+                }
+            });
+
+            // 3. כיסא הכבוד המפואר מאחורי השולחן
+            const chair = new THREE.Group();
+            chair.position.set(0, deskY, -0.85);
+
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.18, 0.85), velvetMat);
+            seat.position.y = 0.72;
+            seat.castShadow = true;
+            chair.add(seat);
+
+            const backRest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.65, 0.16), velvetMat);
+            backRest.position.set(0, 1.55, -0.36);
+            backRest.castShadow = true;
+            chair.add(backRest);
+
+            const backFrame = new THREE.Mesh(new THREE.BoxGeometry(1.06, 1.76, 0.12), goldMat);
+            backFrame.position.set(0, 1.55, -0.39);
+            chair.add(backFrame);
+
+            // משענות יד ורגלי כיסא
+            [-0.48, 0.48].forEach(cx => {
+                const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.85), woodMat);
+                arm.position.set(cx, 1.08, 0);
+                chair.add(arm);
+
+                [-0.35, 0.35].forEach(cz => {
+                    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.72, 8), woodMat);
+                    leg.position.set(cx * 0.9, 0.36, cz);
+                    chair.add(leg);
+                });
+            });
+            deskArea.add(chair);
+
+            // 4. פריטים על השולחן: מגילות קלף, קסת דיו ונוצה, ערימת ספרים
+            const topSurfaceY = deskY + 1.33;
+
+            // מגילת קלף פתוחה במרכז
+            const scrollSheet = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.015, 0.55), parchmentMat);
+            scrollSheet.position.set(0, topSurfaceY + 0.008, 0.25);
+            scrollSheet.rotation.y = 0.08;
+            deskArea.add(scrollSheet);
+
+            // מגילות מגולגלות
+            for (let i = 0; i < 3; i++) {
+                const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 12), parchmentMat);
+                roll.rotation.z = Math.PI / 2;
+                roll.rotation.y = 0.3 + i * 0.25;
+                roll.position.set(-0.85 + i * 0.08, topSurfaceY + 0.04 + (i === 2 ? 0.06 : 0), 0.35);
+                deskArea.add(roll);
+            }
+
+            // קסת דיו ונוצת כתיבה לבנה
+            const inkwell = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.1, 12), goldMat);
+            inkwell.position.set(0.55, topSurfaceY + 0.05, 0.32);
+            deskArea.add(inkwell);
+
+            const quill = new THREE.Mesh(
+                new THREE.ConeGeometry(0.04, 0.48, 6),
+                new THREE.MeshStandardMaterial({ color: 0xfffcf2, roughness: 0.4 })
+            );
+            quill.position.set(0.62, topSurfaceY + 0.26, 0.32);
+            quill.rotation.z = -0.38;
+            deskArea.add(quill);
+
+            // ערימת ספרים עבים בצד שמאל של השולחן
+            const stackColors = [0x591818, 0x1b3b2b, 0x26294a];
+            stackColors.forEach((col, idx) => {
+                const b = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.52, 0.11, 0.38),
+                    new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 })
+                );
+                b.position.set(-1.15, topSurfaceY + 0.055 + idx * 0.11, -0.05);
+                b.rotation.y = idx * 0.18;
+                b.castShadow = true;
+                deskArea.add(b);
+            });
+
+            // 5. כדור הבדולח המכושף (פריט אינטראקטיבי)
+            const crystalGroup = new THREE.Group();
+            crystalGroup.position.set(0.95, topSurfaceY, 0.05);
+
+            const baseStand = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.12, 16), goldMat);
+            baseStand.position.y = 0.06;
+            crystalGroup.add(baseStand);
+
+            const orbMat = new THREE.MeshPhysicalMaterial({
+                color: 0xd9f2ff,
+                emissive: 0x3b82f6,
+                emissiveIntensity: 0.45,
+                roughness: 0.1,
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.88
+            });
+            const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), orbMat);
+            orb.position.y = 0.31;
+            orb.userData = { id: 'crystalBall', name: 'כדור הבדולח המכושף' };
+            interactiveObjects.push(orb);
+            crystalGroup.add(orb);
+
+            crystalBallLight = new THREE.PointLight(0x66b3ff, 0.7, 3.5);
+            crystalBallLight.position.y = 0.35;
+            crystalGroup.add(crystalBallLight);
+
+            deskArea.add(crystalGroup);
+            scene.add(deskArea);
+        }
+
+        /**
+         * בניית דמותו התלת-ממדית המפורטת של אלבוס דמבלדור ליד שולחן העבודה
+         */
+        function buildDumbledore() {
+            dumbledoreGroup = new THREE.Group();
+            // מיקום על במת העץ בצד שולחן העבודה, פונה לעבר מרכז החדר וההגיגית
+            dumbledoreGroup.position.set(1.85, 0.24, -1.85);
+            dumbledoreGroup.rotation.y = -0.55;
+
+            const robeMat = new THREE.MeshStandardMaterial({
+                color: 0x2a1b4d, // סגול-כחול מלכותי עמוק
+                roughness: 0.72,
+                metalness: 0.1
+            });
+            const cloakMat = new THREE.MeshStandardMaterial({
+                color: 0x1e1338,
+                roughness: 0.78
+            });
+            const goldTrimMat = new THREE.MeshStandardMaterial({
+                color: 0xe5be46,
+                metalness: 0.82,
+                roughness: 0.25
+            });
+            const silverHairMat = new THREE.MeshStandardMaterial({
+                color: 0xeef2f7,
+                roughness: 0.55
+            });
+            const skinMat = new THREE.MeshStandardMaterial({
+                color: 0xf0cbb0,
+                roughness: 0.65
+            });
+
+            // 1. גלימת קוסמים ארוכה ורחבה
+            const robeLower = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.52, 1.45, 20), robeMat);
+            robeLower.position.y = 0.725;
+            robeLower.castShadow = true;
+            robeLower.receiveShadow = true;
+            robeLower.userData = { id: 'dumbledore', name: 'פרופסור אלבוס דמבלדור' };
+            interactiveObjects.push(robeLower);
+            dumbledoreGroup.add(robeLower);
+
+            // פס רקמת זהב בתחתית הגלימה
+            const bottomGoldTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.515, 0.525, 0.06, 20, 1, true), goldTrimMat);
+            bottomGoldTrim.position.y = 0.04;
+            dumbledoreGroup.add(bottomGoldTrim);
+
+            // פלג גוף עליון וגלימה עליונה
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.29, 0.62, 18), robeMat);
+            torso.position.y = 1.65;
+            torso.castShadow = true;
+            torso.userData = { id: 'dumbledore', name: 'פרופסור אלבוס דמבלדור' };
+            interactiveObjects.push(torso);
+            dumbledoreGroup.add(torso);
+
+            // שכמיית כתפיים ועיטור זהב מרכזי
+            const cape = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.38, 0.55, 18, 1, true), cloakMat);
+            cape.position.y = 1.72;
+            dumbledoreGroup.add(cape);
+
+            const sash = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.4, 0.04), goldTrimMat);
+            sash.position.set(0, 1.15, 0.34);
+            sash.rotation.x = -0.14;
+            dumbledoreGroup.add(sash);
+
+            // 2. ראש, שיער ארוך, זקן כסוף ומשקפי חצי-סהר
+            dumbledoreHead = new THREE.Group();
+            dumbledoreHead.position.set(0, 2.16, 0.02);
+
+            const face = new THREE.Mesh(new THREE.SphereGeometry(0.19, 18, 18), skinMat);
+            face.scale.set(0.92, 1.08, 0.95);
+            face.castShadow = true;
+            face.userData = { id: 'dumbledore', name: 'פרופסור אלבוס דמבלדור' };
+            interactiveObjects.push(face);
+            dumbledoreHead.add(face);
+
+            // אף מעוקל עדין
+            const nose = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.09, 8), skinMat);
+            nose.position.set(0, -0.01, 0.19);
+            nose.rotation.x = Math.PI * 0.42;
+            dumbledoreHead.add(nose);
+
+            // משקפי חצי-סהר מזהב וזכוכית תכלכלה
+            const glassLensMat = new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.65 });
+            [-0.065, 0.065].forEach(ex => {
+                const frame = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.006, 8, 16, Math.PI), goldTrimMat);
+                frame.rotation.z = Math.PI;
+                frame.position.set(ex, 0.025, 0.175);
+                dumbledoreHead.add(frame);
+
+                const lens = new THREE.Mesh(new THREE.CircleGeometry(0.033, 12, Math.PI, Math.PI), glassLensMat);
+                lens.position.set(ex, 0.025, 0.174);
+                dumbledoreHead.add(lens);
+            });
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.006, 0.006), goldTrimMat);
+            bridge.position.set(0, 0.025, 0.176);
+            dumbledoreHead.add(bridge);
+
+            // שיער כסוף ארוך הגולש מאחור ומהצדדים
+            const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.24, 0.68, 16, 1, false, Math.PI * 0.65, Math.PI * 1.7), silverHairMat);
+            backHair.position.set(0, -0.22, -0.03);
+            dumbledoreHead.add(backHair);
+
+            // זקן כסוף ארוך ומרשים התחוב בחגורה
+            dumbledoreBeard = new THREE.Group();
+            const upperBeard = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.45, 14), silverHairMat);
+            upperBeard.rotation.x = Math.PI;
+            upperBeard.position.set(0, -0.24, 0.12);
+            dumbledoreBeard.add(upperBeard);
+
+            const lowerBeard = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.55, 14), silverHairMat);
+            lowerBeard.rotation.x = Math.PI;
+            lowerBeard.position.set(0, -0.58, 0.15);
+            dumbledoreBeard.add(lowerBeard);
+
+            // קשר זהב קטן במרכז הזקן
+            const beardClasp = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 12), goldTrimMat);
+            beardClasp.position.set(0, -0.45, 0.14);
+            dumbledoreBeard.add(beardClasp);
+
+            dumbledoreHead.add(dumbledoreBeard);
+
+            // כובע קוסמים מחודד בצבע סגול-כחול עם עיטור זהב
+            const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.34, 0.025, 22), robeMat);
+            hatBrim.position.set(0, 0.15, -0.01);
+            hatBrim.rotation.x = -0.12;
+            dumbledoreHead.add(hatBrim);
+
+            const hatCone = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.48, 20), robeMat);
+            hatCone.position.set(0, 0.38, -0.04);
+            hatCone.rotation.x = -0.18;
+            hatCone.userData = { id: 'dumbledore', name: 'פרופסור אלבוס דמבלדור' };
+            interactiveObjects.push(hatCone);
+            dumbledoreHead.add(hatCone);
+
+            const hatBand = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.015, 8, 22), goldTrimMat);
+            hatBand.rotation.x = Math.PI / 2 - 0.12;
+            hatBand.position.set(0, 0.17, -0.015);
+            dumbledoreHead.add(hatBand);
+
+            dumbledoreGroup.add(dumbledoreHead);
+
+            // 3. זרוע שמאל רגועה לצד הגוף
+            const leftArm = new THREE.Group();
+            leftArm.position.set(-0.29, 1.88, 0);
+            const leftSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.13, 0.62, 12), robeMat);
+            leftSleeve.position.y = -0.28;
+            leftSleeve.rotation.z = -0.14;
+            leftArm.add(leftSleeve);
+            const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 10), skinMat);
+            leftHand.position.set(-0.05, -0.58, 0.05);
+            leftArm.add(leftHand);
+            dumbledoreGroup.add(leftArm);
+
+            // 4. זרוע ימין האוחזת בשרביט הבכור (Elder Wand)
+            dumbledoreRightArm = new THREE.Group();
+            dumbledoreRightArm.position.set(0.29, 1.88, 0.04);
+            dumbledoreRightArm.rotation.x = -0.55;
+            dumbledoreRightArm.rotation.z = 0.15;
+
+            const rightSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.62, 12), robeMat);
+            rightSleeve.position.y = -0.28;
+            dumbledoreRightArm.add(rightSleeve);
+
+            const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 10), skinMat);
+            rightHand.position.set(0, -0.58, 0);
+            dumbledoreRightArm.add(rightHand);
+
+            // שרביט הבכור (עץ סמבוק כהה עם בליטות אופייניות)
+            const elderWandMat = new THREE.MeshStandardMaterial({ color: 0x3b2618, roughness: 0.45 });
+            const wandGroup = new THREE.Group();
+            wandGroup.position.set(0, -0.58, 0.04);
+            wandGroup.rotation.x = Math.PI * 0.42;
+
+            const wandShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, 0.46, 10), elderWandMat);
+            wandShaft.position.y = 0.22;
+            wandGroup.add(wandShaft);
+
+            // קשרי העץ האופייניים לשרביט הבכור
+            [0.08, 0.18, 0.28].forEach(ky => {
+                const knot = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 8), elderWandMat);
+                knot.position.y = ky;
+                wandGroup.add(knot);
+            });
+
+            // הילת קסם וניצוץ בקצה השרביט
+            const tipGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(0.025, 10, 10),
+                new THREE.MeshBasicMaterial({ color: 0xdff6ff })
+            );
+            tipGlow.position.y = 0.46;
+            wandGroup.add(tipGlow);
+
+            wandTipLight = new THREE.PointLight(0x8be9fd, 0.85, 3.2);
+            wandTipLight.position.y = 0.48;
+            wandGroup.add(wandTipLight);
+
+            // ניצוצות קטנים מרחפים סביב קצה השרביט
+            const sparkGeo = new THREE.BufferGeometry();
+            const sparkPos = new Float32Array(18 * 3);
+            for (let i = 0; i < 18; i++) {
+                sparkPos[i * 3] = (Math.random() - 0.5) * 0.18;
+                sparkPos[i * 3 + 1] = 0.42 + Math.random() * 0.22;
+                sparkPos[i * 3 + 2] = (Math.random() - 0.5) * 0.18;
+            }
+            sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+            wandSparks = new THREE.Points(
+                sparkGeo,
+                new THREE.PointsMaterial({
+                    color: 0xfff0a6,
+                    size: 0.04,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending
+                })
+            );
+            wandGroup.add(wandSparks);
+
+            dumbledoreRightArm.add(wandGroup);
+            dumbledoreGroup.add(dumbledoreRightArm);
+
+            scene.add(dumbledoreGroup);
+        }
+
+        /**
+         * בניית ההגיגית (The Pensieve) - אגן אבן עם רונות ונוזל זיכרונות מסתחרר
+         */
+        function buildPensieve(textures) {
+            const pensieveGroup = new THREE.Group();
+            pensieveGroup.position.set(-5.2, 0, 0.2);
+
+            const stoneMat = new THREE.MeshStandardMaterial({
+                map: textures.stone,
+                color: 0x5c5852,
+                roughness: 0.75
+            });
+            const runeGlowMat = new THREE.MeshBasicMaterial({
+                color: 0x8be9fd,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            // כן אבן מגולף
+            const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.75, 1.55, 16), stoneMat);
+            pedestal.position.y = 0.775;
+            pedestal.castShadow = true;
+            pedestal.receiveShadow = true;
+            pensieveGroup.add(pedestal);
+
+            // טבעת רונות זוהרת סביב הכן
+            const runeRing = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.025, 8, 32), runeGlowMat);
+            runeRing.rotation.x = Math.PI / 2;
+            runeRing.position.y = 1.35;
+            pensieveGroup.add(runeRing);
+
+            // אגן ההגיגית הרחב
+            const basin = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 0.65, 0.48, 24), stoneMat);
+            basin.position.y = 1.78;
+            basin.castShadow = true;
+            pensieveGroup.add(basin);
+
+            // שפת האגן
+            const rim = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.08, 12, 32), stoneMat);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = 2.02;
+            pensieveGroup.add(rim);
+
+            // נוזל הזיכרונות הכסוף-תכול המסתובב
+            const liquidGeo = new THREE.CircleGeometry(1.06, 32);
+            const liquidMat = new THREE.MeshBasicMaterial({
+                map: textures.pensieve,
+                color: 0xd4f4ff
+            });
+            pensieveLiquid = new THREE.Mesh(liquidGeo, liquidMat);
+            pensieveLiquid.rotation.x = -Math.PI / 2;
+            pensieveLiquid.position.y = 1.98;
+            pensieveLiquid.userData = { id: 'pensieve', name: 'ההגיגית (The Pensieve)' };
+            interactiveObjects.push(pensieveLiquid);
+            pensieveGroup.add(pensieveLiquid);
+
+            // טבעות אדי זיכרון מרחפות מעל ההגיגית
+            for (let i = 0; i < 3; i++) {
+                const rGeo = new THREE.RingGeometry(0.25 + i * 0.24, 0.31 + i * 0.24, 32);
+                const rMat = new THREE.MeshBasicMaterial({
+                    color: 0x9be7ff,
+                    transparent: true,
+                    opacity: 0.35 - i * 0.08,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(rGeo, rMat);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = 2.04 + i * 0.06;
+                pensieveGroup.add(ring);
+                pensieveRings.push(ring);
+            }
+
+            // תאורה כחולה-כסופה הבוקעת מתוך ההגיגית
+            pensieveLight = new THREE.PointLight(0x70d6ff, 1.5, 6);
+            pensieveLight.position.set(0, 2.4, 0);
+            pensieveGroup.add(pensieveLight);
+
+            scene.add(pensieveGroup);
+        }
+
+        /**
+         * בניית פוקס עוף החול (Fawkes) על מעמד הזהב שלו עם חלקיקי גחלים
+         */
+        function buildFawkes() {
+            const standGroup = new THREE.Group();
+            standGroup.position.set(4.5, 0, -1.6);
+
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xe6b83a,
+                metalness: 0.85,
+                roughness: 0.2
+            });
+
+            // בסיס ומוט עמידה מזהב
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.14, 20), goldMat);
+            base.position.y = 0.07;
+            base.castShadow = true;
+            standGroup.add(base);
+
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.35, 12), goldMat);
+            pole.position.y = 1.2;
+            pole.castShadow = true;
+            standGroup.add(pole);
+
+            const perchBar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.85, 12), goldMat);
+            perchBar.rotation.z = Math.PI / 2;
+            perchBar.position.y = 2.35;
+            standGroup.add(perchBar);
+
+            // דמות עוף החול
+            fawkesGroup = new THREE.Group();
+            fawkesGroup.position.set(0, 2.38, 0);
+            fawkesGroup.rotation.y = -0.5;
+
+            const crimsonMat = new THREE.MeshStandardMaterial({
+                color: 0xd92626,
+                emissive: 0x590909,
+                roughness: 0.45
+            });
+            const goldFeatherMat = new THREE.MeshStandardMaterial({
+                color: 0xffaa00,
+                emissive: 0x663300,
+                roughness: 0.35
+            });
+
+            // גוף עוף החול
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), crimsonMat);
+            body.scale.set(0.85, 1.35, 0.95);
+            body.position.y = 0.32;
+            body.userData = { id: 'fawkes', name: 'פוקס, עוף החול' };
+            interactiveObjects.push(body);
+            fawkesGroup.add(body);
+
+            // כנפיים מקופלות
+            [-0.22, 0.22].forEach(wx => {
+                const wing = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), crimsonMat);
+                wing.scale.set(0.4, 1.4, 0.85);
+                wing.position.set(wx, 0.32, -0.03);
+                wing.userData = { id: 'fawkes', name: 'פוקס, עוף החול' };
+                interactiveObjects.push(wing);
+                fawkesGroup.add(wing);
+            });
+
+            // ראש, מקור וציצית זהב
+            fawkesHead = new THREE.Group();
+            fawkesHead.position.set(0, 0.68, 0.08);
+
+            const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14), crimsonMat);
+            fawkesHead.add(headMesh);
+
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 8), goldFeatherMat);
+            beak.rotation.x = Math.PI / 2;
+            beak.position.set(0, -0.01, 0.16);
+            fawkesHead.add(beak);
+
+            // נוצות ציצית על הראש
+            for (let c = 0; c < 3; c++) {
+                const crest = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.22, 6), goldFeatherMat);
+                crest.position.set(0, 0.15, -0.05 - c * 0.04);
+                crest.rotation.x = -0.5 - c * 0.2;
+                fawkesHead.add(crest);
+            }
+            fawkesGroup.add(fawkesHead);
+
+            // נוצות זנב זהובות ארוכות ומשתפלות
+            fawkesTail = new THREE.Group();
+            fawkesTail.position.set(0, 0.12, -0.16);
+            for (let t = -1; t <= 1; t++) {
+                const feather = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.95, 6), goldFeatherMat);
+                feather.position.set(t * 0.07, -0.42, -0.08);
+                feather.rotation.x = Math.PI + 0.18;
+                feather.rotation.z = t * 0.12;
+                fawkesTail.add(feather);
+            }
+            fawkesGroup.add(fawkesTail);
+
+            standGroup.add(fawkesGroup);
+
+            // אור חם וזוהר מפוקס
+            fawkesLight = new THREE.PointLight(0xff7722, 1.1, 6);
+            fawkesLight.position.set(0, 2.8, 0.2);
+            standGroup.add(fawkesLight);
+
+            // חלקיקי גחלים נוצצים הנושרים מפוקס
+            const emberCount = 35;
+            const emberGeo = new THREE.BufferGeometry();
+            const emberPos = new Float32Array(emberCount * 3);
+            for (let i = 0; i < emberCount; i++) {
+                emberPos[i * 3] = (Math.random() - 0.5) * 0.8;
+                emberPos[i * 3 + 1] = 1.2 + Math.random() * 1.8;
+                emberPos[i * 3 + 2] = (Math.random() - 0.5) * 0.8;
+            }
+            emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
+            const emberMat = new THREE.PointsMaterial({
+                color: 0xffbb33,
+                size: 0.06,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            fawkesEmbers = new THREE.Points(emberGeo, emberMat);
+            standGroup.add(fawkesEmbers);
+
+            scene.add(standGroup);
+        }
+
+        /**
+         * בניית מצנפת המיון (The Sorting Hat) על מדף תצוגה גבוה
+         */
+        function buildSortingHat() {
+            const hatStand = new THREE.Group();
+            hatStand.position.set(-3.8, 0, -5.6);
+
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x3b2010, roughness: 0.65 });
+            const leatherMat = new THREE.MeshStandardMaterial({
+                color: 0x473323,
+                roughness: 0.9
+            });
+
+            // עמוד תצוגה גבוה למצנפת
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 3.1, 16), woodMat);
+            pillar.position.y = 1.55;
+            pillar.castShadow = true;
+            hatStand.add(pillar);
+
+            const topPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.14, 20), woodMat);
+            topPlate.position.y = 3.12;
+            hatStand.add(topPlate);
+
+            // מצנפת המיון המטולאת והכפופה
+            sortingHatGroup = new THREE.Group();
+            sortingHatGroup.position.set(0, 3.2, 0);
+
+            // שולי המצנפת
+            const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.58, 0.05, 24), leatherMat);
+            brim.userData = { id: 'sortingHat', name: 'מצנפת המיון' };
+            interactiveObjects.push(brim);
+            sortingHatGroup.add(brim);
+
+            // חלק תחתון של החרוט
+            const lowerCone = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.38, 0.45, 20), leatherMat);
+            lowerCone.position.y = 0.24;
+            lowerCone.userData = { id: 'sortingHat', name: 'מצנפת המיון' };
+            interactiveObjects.push(lowerCone);
+            sortingHatGroup.add(lowerCone);
+
+            // קצה המצנפת הכפוף
+            const tipCone = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.55, 20), leatherMat);
+            tipCone.position.set(0.08, 0.62, 0.06);
+            tipCone.rotation.z = -0.45;
+            tipCone.rotation.x = 0.25;
+            tipCone.userData = { id: 'sortingHat', name: 'מצנפת המיון' };
+            interactiveObjects.push(tipCone);
+            sortingHatGroup.add(tipCone);
+
+            hatStand.add(sortingHatGroup);
+            scene.add(hatStand);
+        }
+
+        /**
+         * בניית חרב גריפינדור בתוך ויטרינת זכוכית תלויה על הקיר
+         */
+        function buildSwordOfGryffindor(textures) {
+            const caseGroup = new THREE.Group();
+            const angle = -Math.PI * 0.38;
+            const r = 10.95;
+            caseGroup.position.set(Math.cos(angle) * r, 3.6, Math.sin(angle) * r);
+            caseGroup.lookAt(0, 3.6, 0);
+
+            const woodMat = new THREE.MeshStandardMaterial({ map: textures.wood, roughness: 0.5 });
+            const velvetBack = new THREE.MeshStandardMaterial({ color: 0x5c0e18, roughness: 0.9 });
+            const silverMat = new THREE.MeshStandardMaterial({
+                color: 0xf0f4f8,
+                metalness: 0.95,
+                roughness: 0.12
+            });
+            const rubyMat = new THREE.MeshStandardMaterial({
+                color: 0xe60026,
+                emissive: 0x660011,
+                roughness: 0.15
+            });
+
+            // מסגרת העץ והגב הקטיפתי
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.35, 0.18), woodMat);
+            caseGroup.add(frame);
+
+            const backing = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 2.15), velvetBack);
+            backing.position.z = 0.095;
+            caseGroup.add(backing);
+
+            // להב החרב הכסוף
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.45, 0.025), silverMat);
+            blade.position.set(0, -0.18, 0.13);
+            blade.userData = { id: 'sword', name: 'חרב גריפינדור' };
+            interactiveObjects.push(blade);
+            caseGroup.add(blade);
+
+            // ניצב החרב (Crossguard & Grip)
+            const guard = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.05), silverMat);
+            guard.position.set(0, 0.55, 0.13);
+            caseGroup.add(guard);
+
+            const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.34, 12), silverMat);
+            grip.position.set(0, 0.74, 0.13);
+            caseGroup.add(grip);
+
+            // אבני אודם על ניצב החרב
+            [-0.14, 0, 0.14].forEach(rx => {
+                const ruby = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 10), rubyMat);
+                ruby.position.set(rx, 0.55, 0.16);
+                caseGroup.add(ruby);
+            });
+
+            // חזית זכוכית שקופה
+            const glassFront = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.95, 2.18),
+                new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.22,
+                    roughness: 0.05
+                })
+            );
+            glassFront.position.z = 0.18;
+            glassFront.userData = { id: 'sword', name: 'חרב גריפינדור' };
+            interactiveObjects.push(glassFront);
+            caseGroup.add(glassFront);
+
+            scene.add(caseGroup);
+        }
+
+        /**
+         * בניית שולחנות צד ועליהם מכשירי כסף וזהב מסתובבים (אצטרולבים וכדורי ארמילר)
+         */
+        function buildSilverInstruments() {
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x3b2010, roughness: 0.6 });
+            const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.85, roughness: 0.22 });
+            const silverMat = new THREE.MeshStandardMaterial({ color: 0xd8dee9, metalness: 0.9, roughness: 0.18 });
+
+            const tablePositions = [
+                new THREE.Vector3(3.6, 0, 2.4),
+                new THREE.Vector3(-3.8, 0, 3.4)
+            ];
+
+            tablePositions.forEach((pos, idx) => {
+                const instTable = new THREE.Group();
+                instTable.position.copy(pos);
+
+                // שולחן עגול קטן
+                const top = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.08, 24), woodMat);
+                top.position.y = 1.25;
+                top.castShadow = true;
+                top.receiveShadow = true;
+                instTable.add(top);
+
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.28, 1.25, 16), woodMat);
+                leg.position.y = 0.625;
+                instTable.add(leg);
+
+                // מכשיר ארמילר/אצטרולב מסתובב
+                const device = new THREE.Group();
+                device.position.y = 1.29;
+
+                const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 0.14, 16), brassMat);
+                stand.position.y = 0.07;
+                device.add(stand);
+
+                const outerRing = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.022, 10, 32), brassMat);
+                outerRing.position.y = 0.52;
+                outerRing.userData = { id: 'instruments', name: 'מכשירי הכסף העדינים' };
+                interactiveObjects.push(outerRing);
+                device.add(outerRing);
+
+                const innerRing = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.018, 10, 32), silverMat);
+                innerRing.position.y = 0.52;
+                innerRing.rotation.x = Math.PI / 3;
+                device.add(innerRing);
+
+                const coreSphere = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), brassMat);
+                coreSphere.position.y = 0.52;
+                coreSphere.userData = { id: 'instruments', name: 'מכשירי הכסף העדינים' };
+                interactiveObjects.push(coreSphere);
+                device.add(coreSphere);
+
+                spinningInstruments.push({
+                    outer: outerRing,
+                    inner: innerRing,
+                    speed: idx === 0 ? 0.7 : -0.55
+                });
+
+                instTable.add(device);
+                scene.add(instTable);
+            });
+        }
+
+        /**
+         * בניית נרות מרחפים מתחת לתקרה עם להבות מהבהבות
+         */
+        function buildFloatingCandles() {
+            const waxMat = new THREE.MeshStandardMaterial({ color: 0xf7eed7, roughness: 0.5 });
+            const flameMat = new THREE.MeshBasicMaterial({ color: 0xffcc44 });
+
+            const candleCount = 24;
+            for (let i = 0; i < candleCount; i++) {
+                const candle = new THREE.Group();
+                const angle = (i / candleCount) * Math.PI * 2 + Math.random() * 0.2;
+                const radius = 2.2 + Math.random() * 6.5;
+                const baseY = 6.2 + Math.random() * 3.2;
+
+                candle.position.set(Math.cos(angle) * radius, baseY, Math.sin(angle) * radius);
+
+                const height = 0.35 + Math.random() * 0.25;
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.036, height, 10), waxMat);
+                candle.add(body);
+
+                const flame = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.11, 8), flameMat);
+                flame.position.y = height / 2 + 0.06;
+                candle.add(flame);
+
+                scene.add(candle);
+                animatedCandles.push({
+                    group: candle,
+                    flame: flame,
+                    baseY: baseY,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.8 + Math.random() * 0.6
+                });
+            }
+
+            // מספר תאורות נקודתיות חמות המדמות את אור הנרות הכללי
+            const candleGlow1 = new THREE.PointLight(0xffb84d, 0.95, 16);
+            candleGlow1.position.set(-3, 7.5, 2);
+            scene.add(candleGlow1);
+
+            const candleGlow2 = new THREE.PointLight(0xffb84d, 0.95, 16);
+            candleGlow2.position.set(3.5, 7.8, -1);
+            scene.add(candleGlow2);
+
+            animatedCandles.lights = [candleGlow1, candleGlow2];
+        }
+
+        /**
+         * יצירת חלקיקי אבק קסמים מוזהבים המרחפים ברחבי החדר
+         */
+        function buildMagicDust() {
+            const count = 320;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                const r = Math.random() * 10;
+                const theta = Math.random() * Math.PI * 2;
+                positions[i * 3] = Math.cos(theta) * r;
+                positions[i * 3 + 1] = 0.5 + Math.random() * 10;
+                positions[i * 3 + 2] = Math.sin(theta) * r;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            dustMaterial = new THREE.PointsMaterial({
+                color: 0xffe49e,
+                size: 0.055,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            dustParticles = new THREE.Points(geometry, dustMaterial);
+            scene.add(dustParticles);
+        }
+
+        /**
+         * ניהול אירועי עכבר, מגע, ממשק משתמש ושינוי גודל חלון
+         */
+        function setupEvents() {
+            const tooltip = document.getElementById('hover-tooltip');
+            const tooltipText = document.getElementById('tooltip-text');
+
+            // תזוזת עכבר לזיהוי ריחוף על חפצי קסם
+            window.addEventListener('pointermove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(interactiveObjects, false);
+
+                if (intersects.length > 0) {
+                    const obj = intersects[0].object;
+                    hoveredObject = obj;
+                    document.body.style.cursor = 'pointer';
+                    tooltipText.textContent = obj.userData.name;
+                    tooltip.style.left = `${e.clientX}px`;
+                    tooltip.style.top = `${e.clientY}px`;
+                    tooltip.classList.remove('hidden');
+                } else {
+                    hoveredObject = null;
+                    document.body.style.cursor = 'grab';
+                    tooltip.classList.add('hidden');
+                }
+            });
+
+            // לחיצה (קליק/הקשה) לפתיחת כרטיס מידע והפעלת אפקט ייחודי
+            let pointerDownPos = { x: 0, y: 0 };
+            renderer.domElement.addEventListener('pointerdown', (e) => {
+                pointerDownPos = { x: e.clientX, y: e.clientY };
+                document.body.style.cursor = 'grabbing';
+            });
+
+            renderer.domElement.addEventListener('pointerup', (e) => {
+                document.body.style.cursor = hoveredObject ? 'pointer' : 'grab';
+                const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+                if (dist > 6) return; // התעלמות מגרירת מצלמה
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(interactiveObjects, false);
+
+                if (intersects.length > 0) {
+                    const id = intersects[0].object.userData.id;
+                    triggerArtifactInteraction(id);
+                }
+            });
+
+            // סגירת כרטיס המידע
+            document.getElementById('close-lore').addEventListener('click', () => {
+                document.getElementById('lore-card').classList.add('hidden');
+            });
+
+            // כפתורי זוויות צילום
+            document.querySelectorAll('.cam-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const presetKey = btn.getAttribute('data-cam');
+                    const preset = cameraPresets[presetKey];
+                    if (!preset) return;
+
+                    document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    targetCamPos.copy(preset.pos);
+                    targetLookAt.copy(preset.target);
+                    isTransitioningCam = true;
+                });
+            });
+
+            // כפתורי בקרת אווירה
+            const btnCandles = document.getElementById('btn-candles');
+            btnCandles.addEventListener('click', () => {
+                state.candlesOn = !state.candlesOn;
+                btnCandles.classList.toggle('active', state.candlesOn);
+                animatedCandles.forEach(c => {
+                    c.flame.visible = state.candlesOn;
+                });
+                animatedCandles.lights.forEach(l => {
+                    l.intensity = state.candlesOn ? 0.95 : 0.05;
+                });
+            });
+
+            const btnDust = document.getElementById('btn-dust');
+            btnDust.addEventListener('click', () => {
+                state.dustOn = !state.dustOn;
+                btnDust.classList.toggle('active', state.dustOn);
+                dustParticles.visible = state.dustOn;
+            });
+
+            const btnPensieve = document.getElementById('btn-pensieve');
+            btnPensieve.addEventListener('click', () => {
+                state.pensieveBoost = !state.pensieveBoost;
+                btnPensieve.classList.toggle('active', state.pensieveBoost);
+                pensieveLight.intensity = state.pensieveBoost ? 1.5 : 0.35;
+                pensieveRings.forEach(r => r.visible = state.pensieveBoost);
+            });
+
+            // כפתור להחלפת ערכת צבעי הקירות בזמן אמת
+            const btnWallColor = document.getElementById('btn-wall-color');
+            const wallColorLabel = document.getElementById('wall-color-label');
+            btnWallColor.addEventListener('click', () => {
+                currentWallThemeIdx = (currentWallThemeIdx + 1) % wallThemes.length;
+                const theme = wallThemes[currentWallThemeIdx];
+                if (wallsMesh) wallsMesh.material.color.setHex(theme.wallColor);
+                if (pillarsMat) pillarsMat.color.setHex(theme.pillarColor);
+                wallColorLabel.textContent = `קירות: ${theme.name}`;
+            });
+
+            // התאמה לשינוי גודל מסך
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        /**
+         * הפעלת תגובה חזותית והצגת מידע בעברית בעת לחיצה על חפץ קסם
+         */
+        function triggerArtifactInteraction(id) {
+            const info = artifactLore[id];
+            if (!info) return;
+
+            // עדכון והצגת כרטיס המידע
+            document.getElementById('lore-icon').textContent = info.icon;
+            document.getElementById('lore-title').textContent = info.title;
+            document.getElementById('lore-desc').textContent = info.desc;
+            document.getElementById('lore-quote').textContent = info.quote;
+            // אנימציית תגובה ייעודית לחפץ או לדמות שנלחצו
+            if (id === 'dumbledore') {
+                state.dumbledoreWaveTimer = 2.0;
+            } else if (id === 'fawkes') {
+                state.fawkesBurstTimer = 1.6;
+            } else if (id === 'sortingHat') {
+                state.hatWiggleTimer = 1.8;
+            } else if (id === 'pensieve') {
+                state.pensieveSwirlBoost = 2.0;
+            }
+        }
+
+        /**
+         * לולאת האנימציה המרכזית (60 FPS)
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // 1. מעבר חלק של המצלמה בעת בחירת זווית צילום
+            if (isTransitioningCam) {
+                camera.position.lerp(targetCamPos, 0.045);
+                controls.target.lerp(targetLookAt, 0.045);
+
+                if (camera.position.distanceTo(targetCamPos) < 0.05 &&
+                    controls.target.distanceTo(targetLookAt) < 0.05) {
+                    isTransitioningCam = false;
+                }
+            }
+
+            // שמירה שהמצלמה לא תצא מחוץ לקירות המגדל
+            const horizontalDist = Math.hypot(camera.position.x, camera.position.z);
+            if (horizontalDist > 10.2) {
+                const ratio = 10.2 / horizontalDist;
+                camera.position.x *= ratio;
+                camera.position.z *= ratio;
+            }
+
+            controls.update();
+
+            // 2. אנימציית נרות מרחפים והבהוב להבות
+            if (state.candlesOn) {
+                animatedCandles.forEach(c => {
+                    c.group.position.y = c.baseY + Math.sin(elapsed * c.speed + c.phase) * 0.14;
+                    const flicker = 0.85 + Math.sin(elapsed * 14 + c.phase) * 0.2;
+                    c.flame.scale.set(flicker, 0.9 + Math.cos(elapsed * 11 + c.phase) * 0.25, flicker);
+                });
+            }
+
+            // 3. סיבוב ההגיגית ואדי הזיכרונות
+            if (pensieveLiquid) {
+                const swirlSpeed = 0.35 + state.pensieveSwirlBoost * 1.6;
+                pensieveLiquid.rotation.z += dt * swirlSpeed;
+                if (state.pensieveSwirlBoost > 0) {
+                    state.pensieveSwirlBoost = Math.max(0, state.pensieveSwirlBoost - dt);
+                }
+
+                pensieveRings.forEach((ring, i) => {
+                    ring.rotation.z -= dt * (0.4 + i * 0.2);
+                    const pulse = 1 + Math.sin(elapsed * 2 + i) * 0.06;
+                    ring.scale.set(pulse, pulse, 1);
+                });
+            }
+
+            // 4. אנימציית פוקס עוף החול וגחלי האש
+            if (fawkesGroup) {
+                fawkesGroup.position.y = 2.38 + Math.sin(elapsed * 2.2) * 0.025;
+                fawkesHead.rotation.y = Math.sin(elapsed * 1.1) * 0.35;
+                fawkesHead.rotation.z = Math.cos(elapsed * 1.5) * 0.08;
+                fawkesTail.rotation.x = Math.sin(elapsed * 2.0) * 0.06;
+
+                // הבזק אור זהוב כשלוחצים על פוקס
+                if (state.fawkesBurstTimer > 0) {
+                    state.fawkesBurstTimer -= dt;
+                    fawkesLight.intensity = 1.1 + Math.sin(state.fawkesBurstTimer * 12) * 2.4;
+                } else {
+                    fawkesLight.intensity = 1.05 + Math.sin(elapsed * 4) * 0.15;
+                }
+            }
+
+            if (fawkesEmbers) {
+                const posAttr = fawkesEmbers.geometry.attributes.position;
+                for (let i = 0; i < posAttr.count; i++) {
+                    let y = posAttr.getY(i) - dt * 0.45;
+                    if (y < 0.8) y = 2.6 + Math.random() * 0.4;
+                    posAttr.setY(i, y);
+                }
+                posAttr.needsUpdate = true;
+            }
+
+            // 5. אנימציית מצנפת המיון (מתנועעת כשלוחצים עליה)
+            if (sortingHatGroup) {
+                if (state.hatWiggleTimer > 0) {
+                    state.hatWiggleTimer -= dt;
+                    sortingHatGroup.rotation.z = Math.sin(state.hatWiggleTimer * 18) * 0.18;
+                    sortingHatGroup.rotation.x = Math.cos(state.hatWiggleTimer * 15) * 0.12;
+                } else {
+                    sortingHatGroup.rotation.z = Math.sin(elapsed * 0.9) * 0.02;
+                    sortingHatGroup.rotation.x = 0;
+                }
+            }
+
+            // 6. סיבוב מכשירי הכסף העדינים
+            spinningInstruments.forEach(inst => {
+                inst.outer.rotation.y += dt * inst.speed;
+                inst.inner.rotation.x += dt * inst.speed * 1.4;
+                inst.inner.rotation.z += dt * inst.speed * 0.8;
+            });
+
+            // 7. פעימת כדור הבדולח וריחוף אבק הקסמים
+            if (crystalBallLight) {
+                crystalBallLight.intensity = 0.65 + Math.sin(elapsed * 2.8) * 0.25;
+            }
+
+            // 8. אנימציית נשימה והנפת שרביט של אלבוס דמבלדור
+            if (dumbledoreGroup) {
+                // תנועת נשימה עדינה ומבט מתבונן
+                dumbledoreGroup.position.y = 0.24 + Math.sin(elapsed * 1.6) * 0.012;
+                dumbledoreHead.rotation.y = Math.sin(elapsed * 0.75) * 0.14;
+                dumbledoreHead.rotation.x = Math.cos(elapsed * 0.9) * 0.04;
+                dumbledoreBeard.rotation.z = Math.sin(elapsed * 1.4) * 0.025;
+
+                if (state.dumbledoreWaveTimer > 0) {
+                    state.dumbledoreWaveTimer -= dt;
+                    const waveProgress = Math.sin(state.dumbledoreWaveTimer * 6);
+                    dumbledoreRightArm.rotation.x = -0.85 - waveProgress * 0.35;
+                    dumbledoreRightArm.rotation.z = 0.15 + Math.cos(state.dumbledoreWaveTimer * 6) * 0.22;
+                    if (wandTipLight) wandTipLight.intensity = 1.2 + Math.abs(waveProgress) * 2.8;
+                } else {
+                    dumbledoreRightArm.rotation.x = -0.55 + Math.sin(elapsed * 1.5) * 0.05;
+                    dumbledoreRightArm.rotation.z = 0.15;
+                    if (wandTipLight) wandTipLight.intensity = 0.8 + Math.sin(elapsed * 3.5) * 0.2;
+                }
+
+                if (wandSparks) {
+                    wandSparks.rotation.y += dt * 1.8;
+                }
+            }
+
+            if (dustParticles && state.dustOn) {
+                dustParticles.rotation.y += dt * 0.03;
+                dustParticles.position.y = Math.sin(elapsed * 0.5) * 0.25;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // הפעלה לאחר טעינת העמוד
+        window.onload = init;
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חדר הקסמים התת-קרקעי</title>
+    <!-- Tailwind CSS for styling UI controls -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for interactive camera movement -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Google Font for mystical feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Varela Round', sans-serif;
+            background-color: #050508;
+            color: #e2e8f0;
+        }
+        .title-font {
+            font-family: 'Cinzel', serif;
+        }
+        /* Custom scrollbar and glassmorphism */
+        .glass {
+            background: rgba(15, 15, 25, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI Overlay -->
+    <div class="absolute top-4 right-4 z-10 p-4 glass rounded-2xl shadow-2xl max-w-sm pointer-events-auto">
+        <h1 class="title-font text-2xl font-bold text-amber-400 mb-1 tracking-wider drop-shadow-[0_2px_10px_rgba(245,158,11,0.5)]">החדר הנסתר מתחת לרצפה</h1>
+        <p class="text-xs text-amber-200/80 mb-3">מעוז קסמים עתיק, מדפי ספרים נסתרים ושולחן שיקויים זוהר.</p>
+        
+        <div class="space-y-2 text-sm border-t border-amber-500/20 pt-3">
+            <div class="flex items-center justify-between bg-black/30 p-2 rounded-lg">
+                <span class="text-amber-100 font-medium">מצב תאורה קסומה:</span>
+                <button id="toggle-light" class="px-3 py-1 bg-amber-600/80 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-md shadow-amber-900/50">החלף זוהר</button>
+            </div>
+            <div class="flex items-center justify-between bg-black/30 p-2 rounded-lg">
+                <span class="text-amber-100 font-medium">ריחוף רונות:</span>
+                <button id="toggle-runes" class="px-3 py-1 bg-purple-600/80 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition shadow-md shadow-purple-900/50">הפעל/כבה</button>
+            </div>
+        </div>
+        <div class="mt-3 text-[11px] text-amber-300/60 text-center">
+            גרור עם העכבר או מגע לסיבוב המבט • גלגל להתרחקות/התקרבות
+        </div>
+    </div>
+
+    <!-- Instructions / Notification popup -->
+    <div id="info-box" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 glass px-6 py-3 rounded-full shadow-lg text-amber-200 text-sm tracking-wide transition-opacity duration-500 pointer-events-none">
+        ברוכים הבאים לחדר הנסתר... חקרו את פינות הקסם בתלת-ממד ✨
+    </div>
+
+    <!-- Three.js Application Logic -->
+    <script>
+        // Global variables for Three.js scene, camera, renderer, and animation objects
+        let scene, camera, renderer, controls;
+        let magicalRunes = [];
+        let potionLiquid, cauldronGlow;
+        let floatingSpheres = [];
+        let clock = new THREE.Clock();
+        let isMagicalGlowActive = true;
+        let areRunesVisible = true;
+
+        // Initialize Scene
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup with mystical dark fog
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x06060c);
+            scene.fog = new THREE.FogExp2(0x06060c, 0.045);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 4, 12);
+
+            // Renderer setup with shadows enabled
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls for interactive camera exploration
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent going below floor
+            controls.minDistance = 3;
+            controls.maxDistance = 22;
+            controls.target.set(0, 2, 0);
+
+            // Build Room & Environment
+            setupLighting();
+            buildRoom();
+            buildBookcases();
+            buildPotionTable();
+            buildRunes();
+            buildFloatingDust();
+
+            // Window resize handler
+            window.addEventListener('resize', onWindowResize, false);
+
+            // UI Event Listeners
+            document.getElementById('toggle-light').addEventListener('click', toggleMagicalAtmosphere);
+            document.getElementById('toggle-runes').addEventListener('click', toggleRunesVisibility);
+
+            // Start animation loop
+            animate();
+        }
+
+        // Lighting Configuration
+        let ambientLight, pointLightMagical, directionalLight;
+        function setupLighting() {
+            // Soft atmospheric ambient light
+            ambientLight = new THREE.AmbientLight(0x1a233a, 0.8);
+            scene.add(ambientLight);
+
+            // Main mysterious magical glow from the center cauldron / table
+            pointLightMagical = new THREE.PointLight(0x00ffcc, 3.5, 18);
+            pointLightMagical.position.set(0, 3.5, -1);
+            pointLightMagical.castShadow = true;
+            pointLightMagical.shadow.bias = -0.001;
+            scene.add(pointLightMagical);
+
+            // Warm hearth / torch light on the side
+            const warmLight = new THREE.PointLight(0xff7722, 2.5, 15);
+            warmLight.position.set(-6, 5, -2);
+            warmLight.castShadow = true;
+            scene.add(warmLight);
+
+            const warmLight2 = new THREE.PointLight(0x9333ea, 2.0, 15);
+            warmLight2.position.set(6, 5, -2);
+            scene.add(warmLight2);
+        }
+
+        // Build Stone Dungeon Room (Floor, Walls, Ceiling)
+        function buildRoom() {
+            // Room dimensions
+            const width = 16, height = 8, depth = 14;
+
+            // Floor with stone slab look
+            const floorGeo = new THREE.PlaneGeometry(width, depth, 32, 32);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x1f242d,
+                roughness: 0.85,
+                metalness: 0.1,
+                flatShading: true
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Add stone grid pattern / magical runes on floor
+            const circleGeo = new THREE.RingGeometry(2.5, 2.7, 32);
+            const circleMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            const floorCircle = new THREE.Mesh(circleGeo, circleMat);
+            floorCircle.rotation.x = -Math.PI / 2;
+            floorCircle.position.y = 0.01;
+            scene.add(floorCircle);
+
+            // Back Wall
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0x222831,
+                roughness: 0.9,
+                metalness: 0.2
+            });
+
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(width, height), wallMat);
+            backWall.position.set(0, height / 2, -depth / 2);
+            backWall.receiveShadow = true;
+            scene.add(backWall);
+
+            // Left Wall
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMat);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.position.set(-width / 2, height / 2, 0);
+            leftWall.receiveShadow = true;
+            scene.add(leftWall);
+
+            // Right Wall
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMat);
+            rightWall.rotation.y = -Math.PI / 2;
+            rightWall.position.set(width / 2, height / 2, 0);
+            rightWall.receiveShadow = true;
+            scene.add(rightWall);
+
+            // Ceiling
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), wallMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(0, height, 0);
+            scene.add(ceiling);
+
+            // Add pillars for architectural depth
+            const pillarGeo = new THREE.BoxGeometry(1.2, height, 1.2);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x181c24, roughness: 0.8 });
+            
+            [-width/2 + 1, width/2 - 1].forEach(x => {
+                [-depth/2 + 2, depth/2 - 2].forEach(z => {
+                    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                    pillar.position.set(x, height / 2, z);
+                    pillar.castShadow = true;
+                    pillar.receiveShadow = true;
+                    scene.add(pillar);
+                });
+            });
+        }
+
+        // Build Ancient Bookcases with Spellbooks
+        function buildBookcases() {
+            const shelfGroup = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
+            const bookColors = [0x8b0000, 0x191970, 0x006400, 0x4b0082, 0x8b4513, 0x2f4f4f];
+
+            // Create two large bookcases on the back wall
+            [-4.5, 4.5].forEach(xPos => {
+                const caseWidth = 4;
+                const caseHeight = 6;
+                const caseDepth = 1.2;
+
+                // Main frame
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(caseWidth, caseHeight, caseDepth), woodMat);
+                frame.position.set(xPos, caseHeight / 2, -6.4);
+                frame.castShadow = true;
+                frame.receiveShadow = true;
+                shelfGroup.add(frame);
+
+                // Shelves and books
+                for (let y = 1; y < caseHeight; y += 1.2) {
+                    const shelf = new THREE.Mesh(new THREE.BoxGeometry(caseWidth - 0.2, 0.15, caseDepth - 0.1), woodMat);
+                    shelf.position.set(xPos, y, -6.4);
+                    shelf.castShadow = true;
+                    shelfGroup.add(shelf);
+
+                    // Add random ancient books on each shelf
+                    let currentX = xPos - (caseWidth / 2) + 0.4;
+                    while (currentX < xPos + (caseWidth / 2) - 0.5) {
+                        const bookWidth = 0.2 + Math.random() * 0.25;
+                        const bookHeight = 0.8 + Math.random() * 0.3;
+                        const bookDepth = 0.8;
+
+                        const bookMat = new THREE.MeshStandardMaterial({
+                            color: bookColors[Math.floor(Math.random() * bookColors.length)],
+                            roughness: 0.5
+                        });
+
+                        const book = new THREE.Mesh(new THREE.BoxGeometry(bookWidth, bookHeight, bookDepth), bookMat);
+                        book.position.set(currentX + bookWidth / 2, y + 0.1 + bookHeight / 2, -6.4 + (Math.random() * 0.2 - 0.1));
+                        book.castShadow = true;
+                        shelfGroup.add(book);
+
+                        currentX += bookWidth + 0.08;
+                    }
+                }
+            });
+
+            scene.add(shelfGroup);
+        }
+
+        // Build Mysterious Potion Table and Cauldron in the center
+        function buildPotionTable() {
+            const tableGroup = new THREE.Group();
+
+            // Stone Table Base
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.8 });
+            const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.5, 0.6, 32), baseMat);
+            tableTop.position.set(0, 1.8, -1);
+            tableTop.castShadow = true;
+            tableTop.receiveShadow = true;
+            tableGroup.add(tableTop);
+
+            // Table Legs
+            for (let i = 0; i < 3; i++) {
+                const angle = (i / 3) * Math.PI * 2;
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.8, 16), baseMat);
+                leg.position.set(Math.cos(angle) * 1.4, 0.9, -1 + Math.sin(angle) * 1.4);
+                leg.castShadow = true;
+                tableGroup.add(leg);
+            }
+
+            // Magical Cauldron
+            const cauldronGeo = new THREE.SphereGeometry(1.2, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.75);
+            const cauldronMat = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.3, metalness: 0.8 });
+            const cauldron = new THREE.Mesh(cauldronGeo, cauldronMat);
+            cauldron.rotation.x = Math.PI;
+            cauldron.position.set(0, 3.0, -1);
+            cauldron.castShadow = true;
+            tableGroup.add(cauldron);
+
+            // Glowing Potion Liquid inside Cauldron
+            const liquidGeo = new THREE.CylinderGeometry(0.95, 0.95, 0.1, 32);
+            const liquidMat = new THREE.MeshStandardMaterial({
+                color: 0x00ffcc,
+                emissive: 0x00aa88,
+                emissiveIntensity: 0.8,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.9
+            });
+            potionLiquid = new THREE.Mesh(liquidGeo, liquidMat);
+            potionLiquid.position.set(0, 3.4, -1);
+            tableGroup.add(potionLiquid);
+
+            // Magical floating crystals on table
+            for (let i = 0; i < 4; i++) {
+                const angle = i * (Math.PI / 2) + 0.5;
+                const crystalGeo = new THREE.ConeGeometry(0.2, 0.8, 4);
+                const crystalMat = new THREE.MeshStandardMaterial({
+                    color: i % 2 === 0 ? 0x9333ea : 0x38bdf8,
+                    emissive: i % 2 === 0 ? 0x581c87 : 0x0369a1,
+                    emissiveIntensity: 0.6,
+                    roughness: 0.2
+                });
+                const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+                crystal.position.set(Math.cos(angle) * 1.2, 2.3, -1 + Math.sin(angle) * 1.2);
+                crystal.rotation.z = (Math.random() - 0.5) * 0.4;
+                crystal.castShadow = true;
+                tableGroup.add(crystal);
+            }
+
+            scene.add(tableGroup);
+        }
+
+        // Build Floating Magical Runes & Symbols
+        function buildRunes() {
+            const runeGroup = new THREE.Group();
+            const runeShapes = [];
+
+            // Create glowing magical floating rings and rune stones
+            for (let i = 0; i < 12; i++) {
+                const radius = 0.6 + Math.random() * 0.5;
+                const ringGeo = new THREE.TorusGeometry(radius, 0.03, 16, 48);
+                const ringMat = new THREE.MeshStandardMaterial({
+                    color: i % 2 === 0 ? 0x38bdf8 : 0xc084fc,
+                    emissive: i % 2 === 0 ? 0x0284c7 : 0x9333ea,
+                    emissiveIntensity: 1.0,
+                    roughness: 0.1
+                });
+                const runeRing = new THREE.Mesh(ringGeo, ringMat);
+
+                // Random positions floating around the room
+                runeRing.position.set(
+                    (Math.random() - 0.5) * 10,
+                    2 + Math.random() * 4,
+                    (Math.random() - 0.5) * 8
+                );
+
+                runeRing.userData = {
+                    speedX: (Math.random() - 0.5) * 0.01,
+                    speedY: (Math.random() - 0.5) * 0.015,
+                    rotSpeed: (Math.random() - 0.5) * 0.02,
+                    baseY: runeRing.position.y
+                };
+
+                runeGroup.add(runeRing);
+                magicalRunes.push(runeRing);
+            }
+
+            scene.add(runeGroup);
+        }
+
+        // Build Floating Dust / Magical Sparkles
+        function buildFloatingDust() {
+            const particleCount = 200;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 14;
+                positions[i + 1] = Math.random() * 7;
+                positions[i + 2] = (Math.random() - 0.5) * 12;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xa5f3fc,
+                size: 0.06,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            floatingSpheres.push(particles);
+        }
+
+        // UI Interactions
+        function toggleMagicalAtmosphere() {
+            isMagicalGlowActive = !isMagicalGlowActive;
+            if (isMagicalGlowActive) {
+                pointLightMagical.intensity = 3.5;
+                ambientLight.intensity = 0.8;
+                scene.fog.density = 0.045;
+                showInfo("הקסם התחזק! החדר זוהר בעוצמה.");
+            } else {
+                pointLightMagical.intensity = 1.0;
+                ambientLight.intensity = 0.3;
+                scene.fog.density = 0.07;
+                showInfo("הקסם נחלש... הצללים משתלטים.");
+            }
+        }
+
+        function toggleRunesVisibility() {
+            areRunesVisible = !areRunesVisible;
+            magicalRunes.forEach(rune => {
+                rune.visible = areRunesVisible;
+            });
+            showInfo(areRunesVisible ? "הרונות המרחפות הופעלו.": "הרונות הוסתרו.");
+        }
+
+        function showInfo(text) {
+            const box = document.getElementById('info-box');
+            box.innerText = text;
+            box.style.opacity = '1';
+            setTimeout(() => {
+                box.style.opacity = '0.8';
+            }, 3000);
+        }
+
+        // Window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Animate magical runes floating and rotating
+            magicalRunes.forEach((rune, index) => {
+                rune.rotation.x += rune.userData.rotSpeed;
+                rune.rotation.y += rune.userData.rotSpeed * 1.5;
+                rune.position.y = rune.userData.baseY + Math.sin(elapsedTime * 1.5 + index) * 0.3;
+            });
+
+            // Animate potion liquid bubbling/pulsing
+            if (potionLiquid) {
+                potionLiquid.scale.x = 1 + Math.sin(elapsedTime * 4) * 0.03;
+                potionLiquid.scale.z = 1 + Math.cos(elapsedTime * 4) * 0.03;
+                pointLightMagical.intensity = 3.5 + Math.sin(elapsedTime * 5) * 0.8;
+            }
+
+            // Animate dust particles floating slowly
+            floatingSpheres.forEach(particles => {
+                const positions = particles.geometry.attributes.position.array;
+                for (let i = 1; i < positions.length; i += 3) {
+                    positions[i] += 0.002;
+                    if (positions[i] > 7) positions[i] = 0;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Run application on window load
+        // start as soon as the page is ready (window.onload may never fire)
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>
