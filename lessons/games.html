@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>משחק תלת־ממד בקוד</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Varela+Round&family=Rubik:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-kid">
+<style>
+  .ex-list { display: grid; gap: 22px; margin: 16px auto 0; max-width: 860px; }
+  .ex { background: var(--surface); border: 2.5px solid var(--line); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .ex h3 { margin: 0; font: 600 1.2em/1.3 var(--font-display); }
+  .ex img { width: 100%; height: auto; border-radius: 14px; display: block; background: var(--line); }
+  .ex .prompt { margin: 0; font-size: 1em; background: var(--bg, #f6f8fc); border-radius: 12px; padding: 8px 12px; }
+  .ex .more { margin: 0; font-size: .95em; color: var(--muted); }
+  .ex .copy { align-self: flex-start; min-height: 44px; padding: 6px 18px; font-size: .9em; }
+  .live { position: relative; border-radius: 14px; overflow: hidden; background: #111; aspect-ratio: 1019 / 520; }
+  .live img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .live iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .live.on img, .live.on .live-play { display: none; }
+  .live-play { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 0; cursor: pointer; background: rgba(20,26,46,.35); color: #fff; font: 600 1.15em/1.2 var(--font-display); }
+  .live-play span { width: 84px; height: 84px; border-radius: 50%; background: var(--coral); display: grid; place-items: center; font-size: 36px; box-shadow: 0 6px 0 #d9584a; }
+  .live-play b { background: rgba(0,0,0,.55); padding: 6px 16px; border-radius: 999px; }
+  .open-full { align-self: flex-start; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
+  .idea-list { display: grid; gap: 10px; padding: 0; list-style: none; margin: 14px 0 0; }
+  .idea-list li { background: var(--surface); border: 2.5px dashed var(--line); border-radius: 16px; padding: 10px 14px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">דילוג לתוכן</a>
+<div class="wrap">
+  <header class="top"><div class="crumbs"><a href="../index.html">→ חזרה לאתר החוג</a></div><nav aria-label="הגדרות"><button class="size-btn" id="size-btn" type="button" aria-pressed="false" aria-label="הגדלת טקסט">א+ טקסט גדול</button></nav></header>
+<main id="main">
+
+  <section class="lesson-hero">
+    <span class="icon coral"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg></span>
+    <div>
+      <h1>יוצרות משחק תלת־ממד בקוד</h1>
+      <p>מבקשים מגמיני לכתוב משחק, ומקבלים משחק אמיתי עם דמויות, שלבים ונקודות.</p>
+    </div>
+  </section>
+  <section class="wow"><h2>🎮 זה מה שתבנו היום! (לחצו ושחקו)</h2><div class="wow-row"><a href="../games/blackhole.html"><img src="img/game-blackhole.jpg" alt="חור שחור וכלבים" loading="lazy"><span>חור שחור וכלבים</span></a><a href="../games/flying-dogs.html"><img src="img/game-flying-dogs.jpg" alt="כלבים עם כנפיים" loading="lazy"><span>כלבים עם כנפיים</span></a><a href="../games/champions.html"><img src="img/game-champions.jpg" alt="מרוץ האלופים 3D" loading="lazy"><span>מרוץ האלופים 3D</span></a></div></section>
+
+  <section class="today">
+    <h2>🎯 מה נעשה היום?</h2>
+    <ol>
+      <li>מבקשות מגמיני משחק תלת־ממד</li>
+      <li>משחקות במשחק, ומבקשות לשפר אותו</li>
+    </ol>
+  </section>
+  <p class="fig-note">בשיעור הקודם בנינו עולם תלת־ממד. היום אותו דבר, רק משחק! <a href="sim3d.html">לשיעור העולם התלת־ממדי</a></p>
+
+  <h2 class="sec">צופים בסרטון</h2>
+  <div class="player" data-set="G" data-intro="לוחצים ▶ וצופים איך יוצרים משחק">
+    <div class="caption"><span class="step-num movie-num">1</span><span class="movie-caption"></span></div>
+    <div class="movie-host"></div>
+    <div class="controls">
+      <button class="btn movie-play" type="button">נגן ▶</button>
+      <button class="btn ghost movie-restart" type="button">מההתחלה</button>
+      <div class="progress movie-progress"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">עכשיו אתן!</h2>
+  <section class="step">
+    <div class="step-head"><span class="step-num">1</span><h3>כותבות איזה משחק רוצים</h3></div>
+    <p>בצ׳אט של גמיני כותבים: <b>צור בקוד משחק תלת מימדי של...</b> ושולחים.</p>
+    <figure class="real" data-shot="gmtyped" data-marks="gText:1,gSend:1" aria-label="ההוראה וכפתור השליחה מסומנים"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">2</span><h3>המשחק מופיע</h3></div>
+    <p>גמיני כותבת את כל הקוד לבד, והמשחק מופיע ב<b>תצוגה מקדימה</b>. בוחרים דמות ולוחצים <b>התחל משחק</b>.</p>
+    <figure class="real" data-shot="gmchat" data-marks="gGame:2" aria-label="המשחק בתצוגה המקדימה מסומן"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">3</span><h3>משחקות!</h3></div>
+    <p>מזיזים את הדמות עם <b>החצים</b> או עם <b>W A S D</b>. ברוב המשחקים <b>רווח</b> זה קפיצה או טורבו.</p>
+    <figure class="real" data-shot="gmplay" data-marks="gPlay:3" aria-label="מכונית במשחק המרוץ"></figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-num">4</span><h3>משפרות את המשחק</h3></div>
+    <p>באותה שיחה כותבים מה לשנות. גמיני בונה גרסה חדשה, ולוחצים <b>פתיחה</b> כדי לשחק בה.</p>
+    <figure class="real" data-shot="gmmore" data-marks="gMore:4,gOpen:4" aria-label="הבקשה לשינוי וכפתור הפתיחה מסומנים"></figure>
+  </section>
+  <div class="note"><b>לא עובד?</b> המסך ריק או שהמשחק נתקע? זה קורה גם למתכנתים! כותבים: <b>תתקן, זה לא עובד</b>.</div>
+
+  <h2 class="sec">🏆 האתגר שלכן</h2>
+  <p>צרו <b>משחק משלכן</b>, ואז בקשו שיפור אחד, למשל:</p>
+  <ul class="idea-list">
+    <li>⭐ <b>תוסיף שלבים, נקודות ומטבעות לאיסוף</b></li>
+    <li>🛒 <b>תוסיף חנות שאפשר לקנות בה דמויות חדשות</b></li>
+    <li>🎵 <b>תוסיף צלילים ומוזיקה</b></li>
+    <li>📱 <b>תעשה שאפשר לשחק גם בטלפון, עם כפתורים על המסך</b></li>
+  </ul>
+  <div class="note"><b>טיפ:</b> כל בקשה חדשה כותבים באותה שיחה. גמיני משפרת את אותו משחק, ולא מתחילה מהתחלה.</div>
+
+  <h2 class="sec">👀 מה יצרנו בחוג</h2>
+  <p class="fig-note">משחקים אמיתיים שבנות החוג יצרו ביום שני. לוחצים ▶, ואז לוחצים בתוך המשחק כדי שהמקשים יעבדו. אפשר גם ללחוץ <b>העתקה</b> ולנסות בעצמכן.</p>
+  <div class="ex-list" id="examples"></div>
+
+  <div class="lesson-end"><a class="btn ghost" href="../index.html">→ לכל השיעורים</a></div>
+
+</main>
+  <footer class="footer"><a class="back" href="../index.html">→ חזרה לאתר החוג</a></footer>
+</div>
+<script>
+(function () {
+  const EX = [
+    {"title": "חור שחור וכלבים", "img": "img/game-blackhole.jpg", "world": "blackhole", "prompt": "תיצור לי משחק תלת ממדי של חור שחור וכלבים"},
+    {"title": "כלבים עם כנפיים", "img": "img/game-flying-dogs.jpg", "world": "flying-dogs", "prompt": "תיצור משחק תלת ממדי של כלבים עם כנפיים"},
+    {"title": "מרוץ האלופים 3D", "img": "img/game-champions.jpg", "world": "champions", "prompt": "צור בקוד משחק תלת מימדי של מרוץ מכוניות עם שלבים"},
+    {"title": "שליח של טוב 3D", "img": "img/game-good-deeds.jpg", "world": "good-deeds", "prompt": "צור בקוד משחק תלת מימדי מדהים ברמה הכי גבוהה שיש, עם שלבים, נקודות, איסוף ועוד", "more": "ואחר כך: אני רוצה אדם שרץ בין רחובות ועושה מעשים טובים"},
+    {"title": "מסע בכדור הארץ", "img": "img/game-earth.jpg", "world": "earth", "prompt": "תיצור משחק תלת ממדי של כדור הארץ"},
+    {"title": "האיים המרחפים", "img": "img/game-islands.jpg", "world": "islands", "prompt": "תיצור משחק תלת ממדי מדהים"},
+    {"title": "מרוץ הלילה המהיר", "img": "img/game-night-race.jpg", "world": "night-race", "prompt": "צור קוד משחק מדהים מדהים מדהים של מרוץ מכוניות"},
+    {"title": "שומר הניאון", "img": "img/game-neon.jpg", "world": "neon", "prompt": "צור קוד משחק נדיר, נדיר מאוד, הכי טוב"}
+  ];
+  const host = document.getElementById("examples");
+  host.innerHTML = EX.map((e, i) => `<div class="ex"><h3>${e.title}</h3><div class="live" data-world="${e.world}"><img src="${e.img}" alt="${e.title}, משחק שנבנה בגמיני" loading="lazy" width="1019" height="361"><button class="live-play" type="button"><span aria-hidden="true">▶</span><b>לשחק במשחק</b></button></div><a class="open-full" href="../games/${e.world}.html" target="_blank" rel="noopener">⛶ לפתוח במסך מלא</a><p class="prompt" id="p${i}">${e.prompt}</p>${e.more ? `<p class="more">${e.more}</p>` : ""}<button class="btn ghost copy" type="button" data-i="${i}">העתקה</button></div>`).join("");
+  host.addEventListener("click", (ev) => {
+    const lp = ev.target.closest(".live-play");
+    if (lp) {
+      const box = lp.closest(".live");
+      host.querySelectorAll(".live iframe").forEach((f) => f.closest(".live").classList.remove("on") || f.remove());
+      const fr = document.createElement("iframe");
+      fr.src = "../games/" + box.dataset.world + ".html"; fr.title = "משחק תלת־ממד"; fr.allow = "fullscreen";
+      box.appendChild(fr); box.classList.add("on");
+      return;
+    }
+    const b = ev.target.closest(".copy"); if (!b) return;
+    const text = document.getElementById("p" + b.dataset.i).textContent;
+    const done = () => { b.textContent = "הועתק ✓"; setTimeout(() => (b.textContent = "העתקה"), 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+  });
+})();
+</script>
+<script src="../assets/a11y.js"></script>
+<script src="../assets/shots4.js?v=2026-11-25-games"></script>
+<script src="../assets/player-plus.js?v=2026-11-16-3d"></script>
+<script src="../assets/lesson-kid.js?v=2026-11-16-kid"></script>
+<script src="../assets/fullscreen.js?v=2026-11-16-3d"></script>
+</body>
+</html>

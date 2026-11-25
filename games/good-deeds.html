@@ -1,0 +1,3111 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>שליח של טוב 3D - עיר העתיד ומירוצי ארקייד</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Rubik', sans-serif;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050a18;
+            touch-action: none;
+        }
+        #game-canvas, #race-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #game-canvas { z-index: 1; }
+        #race-canvas { z-index: 2; }
+
+        .neo-glass {
+            background: rgba(8, 15, 34, 0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        }
+        .neo-btn {
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(129, 140, 248, 0.22));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .neo-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            border-color: rgba(250, 204, 21, 0.85);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.45);
+        }
+        .neo-btn:active {
+            transform: translateY(1px) scale(0.97);
+        }
+        .cyber-monitor-frame {
+            box-shadow: 0 0 60px rgba(34, 211, 238, 0.45), inset 0 0 30px rgba(34, 211, 238, 0.25);
+            border: 3px solid rgba(34, 211, 238, 0.75);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 14px rgba(34, 211, 238, 0.4); }
+            50% { box-shadow: 0 0 28px rgba(250, 204, 21, 0.75); }
+        }
+        .animate-neo-glow {
+            animation: pulseGlow 2.2s infinite ease-in-out;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s infinite ease-in-out;
+        }
+        #joystick-zone {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 126px;
+            height: 126px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.55);
+            border: 2px solid rgba(34, 211, 238, 0.55);
+            z-index: 30;
+            display: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            margin-top: -25px;
+            margin-left: -25px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #67e8f9, #0284c7);
+            box-shadow: 0 0 18px rgba(34, 211, 238, 0.9);
+            pointer-events: none;
+        }
+        @media (pointer: coarse), (max-width: 820px) {
+            #joystick-zone, #mobile-actions {
+                display: flex !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <!-- קנבס עולם העיר התלת-ממדי -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- שכבת תוויות צפות בעולם התלת-ממדי -->
+    <div id="world-labels-layer" class="fixed inset-0 z-10 pointer-events-none overflow-hidden"></div>
+
+    <!-- הודעות מערכת צפות -->
+    <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2 w-full max-w-lg px-4"></div>
+
+    <!-- ממשק משחק עירוני (City HUD) -->
+    <div id="hud" class="fixed inset-0 z-20 pointer-events-none hidden flex-col justify-between p-3 sm:p-5">
+        <!-- סרגל עליון -->
+        <div class="flex flex-wrap items-start justify-between gap-2.5 w-full">
+            <!-- רובע עתידני ומד אושר עירוני -->
+            <div class="neo-glass rounded-2xl px-4 py-2.5 flex items-center gap-3.5 pointer-events-auto">
+                <div>
+                    <div class="text-xs text-cyan-300 font-bold tracking-wide" id="hud-stage-num">רובע 1 מתוך 3</div>
+                    <div class="text-base sm:text-lg font-black text-white" id="hud-stage-name">שדרת הנאון הירוקה</div>
+                </div>
+                <div class="h-8 w-px bg-cyan-400/20"></div>
+                <div>
+                    <div class="flex items-center justify-between gap-2 text-xs mb-1">
+                        <span class="text-emerald-300 font-bold">✨ מד אושר עירוני</span>
+                        <span class="font-black text-white" id="hud-happiness-pct">0%</span>
+                    </div>
+                    <div class="w-28 sm:w-36 h-2.5 bg-slate-900 rounded-full overflow-hidden border border-cyan-400/30">
+                        <div id="hud-happiness-bar" class="h-full bg-gradient-to-l from-emerald-400 via-cyan-300 to-amber-300 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- מעשים טובים, ניצוצות וניקוד -->
+            <div class="neo-glass rounded-2xl px-4 py-2.5 flex items-center gap-3.5 pointer-events-auto">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🤝</span>
+                    <div>
+                        <div class="text-[11px] text-slate-300">מעשים טובים</div>
+                        <div class="text-base sm:text-lg font-black text-emerald-300" id="hud-deeds-count">0 / 4</div>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-cyan-400/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">💎</span>
+                    <div>
+                        <div class="text-[11px] text-slate-300">ניצוצות אור</div>
+                        <div class="text-base sm:text-lg font-black text-cyan-300" id="hud-hearts-count">0</div>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-cyan-400/20 hidden sm:block"></div>
+                <div class="hidden sm:block">
+                    <div class="text-[11px] text-slate-300">נקודות אושר</div>
+                    <div class="text-lg font-black text-amber-300" id="hud-score">0</div>
+                </div>
+            </div>
+
+            <!-- כפתורי שליטה -->
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button id="btn-sound" title="הפעל / השתק שמע" class="neo-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg cursor-pointer">🔊</button>
+                <button id="btn-pause" title="השהה משחק" class="neo-btn w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg cursor-pointer">⏸️</button>
+                <button id="btn-menu" title="תפריט ראשי" class="neo-btn px-3 h-10 sm:h-11 rounded-xl flex items-center justify-center text-xs sm:text-sm font-bold cursor-pointer">תפריט</button>
+            </div>
+        </div>
+
+        <!-- אמצע מסך: רשימת משימות בצד ימין + מיני-מפה בצד שמאל -->
+        <div class="flex items-start justify-between w-full my-auto pointer-events-none">
+            <!-- רשימת משימות -->
+            <div class="neo-glass rounded-2xl p-3.5 max-w-xs pointer-events-auto hidden md:block">
+                <div class="text-xs font-bold text-amber-300 mb-2 flex items-center gap-1.5">
+                    <span>📋</span> משימות חסד ברובע:
+                </div>
+                <ul id="hud-mission-list" class="space-y-1.5 text-xs text-slate-200 mb-3"></ul>
+                <div class="pt-2 border-t border-cyan-400/20 text-[11px] text-cyan-200 flex items-center gap-1.5">
+                    <span>🖥️</span> גש לעמדות המחשב ברחוב למירוץ מכוניות!
+                </div>
+            </div>
+
+            <!-- מיני-מפה (Radar / Minimap) -->
+            <div class="neo-glass rounded-2xl p-2.5 pointer-events-auto hidden sm:flex flex-col items-center gap-1.5 mr-auto">
+                <div class="text-[11px] font-bold text-cyan-300 flex items-center gap-1">
+                    <span>🛰️</span> מפת הרובע
+                </div>
+                <canvas id="minimap-canvas" width="136" height="176" class="rounded-xl bg-slate-950/90 border border-cyan-400/30"></canvas>
+                <div class="flex items-center gap-2 text-[10px] text-slate-300">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>חסד</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>מחשב</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-white inline-block"></span>אתה</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- פס תחתון: הנחיית אינטראקציה ומד ספרינט -->
+        <div class="flex flex-col items-center gap-2.5 mb-2 sm:mb-0">
+            <!-- כפתור אינטראקציה דינמי (מעשה טוב או עמדת מחשב) -->
+            <div id="action-prompt" class="hidden pointer-events-auto">
+                <button id="btn-interact-prompt" class="px-6 py-3 rounded-2xl bg-gradient-to-l from-cyan-400 via-emerald-400 to-amber-300 text-slate-950 font-black text-sm sm:text-base shadow-2xl border-2 border-white flex items-center gap-2.5 animate-bounce cursor-pointer">
+                    <span id="action-prompt-icon" class="text-xl">🤝</span>
+                    <span id="action-prompt-text">לחץ [E] לפעולה!</span>
+                </button>
+            </div>
+
+            <!-- תגית ליווי / נשיאה פעילה -->
+            <div id="carrying-badge" class="hidden neo-glass rounded-full px-5 py-2 border border-amber-400/70 flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-200">
+                <span id="carrying-text">מלווה תושב ליעד!</span>
+            </div>
+
+            <!-- מד אנרגיית ריצה -->
+            <div class="neo-glass rounded-full px-4 py-1.5 flex items-center gap-4 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-cyan-300">⚡ ספרינט (Shift):</span>
+                    <div class="w-24 h-2 bg-slate-900 rounded-full overflow-hidden border border-white/10">
+                        <div id="hud-stamina-bar" class="h-full bg-gradient-to-l from-cyan-300 to-indigo-400 w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+                <span class="hidden md:inline text-slate-300">WASD/חצים לריצה • רווח לקפיצה • E למעשה טוב / עמדת מחשב • עכבר לסיבוב מבט</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- בקרי מגע למובייל (עיר) -->
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+    <div id="mobile-actions" class="fixed bottom-6 left-6 z-30 hidden flex-col gap-2.5">
+        <button id="btn-mobile-act" class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-400 to-amber-300 text-slate-950 font-black flex flex-col items-center justify-center shadow-lg border-2 border-white active:scale-90">
+            <span class="text-xl">⚡</span>
+            <span class="text-[11px]">פעל [E]</span>
+        </button>
+        <div class="flex gap-2">
+            <button id="btn-mobile-sprint" class="w-14 h-14 rounded-full neo-btn flex flex-col items-center justify-center shadow-lg active:scale-90">
+                <span class="text-lg">💨</span>
+                <span class="text-[10px] font-bold">מהר</span>
+            </button>
+            <button id="btn-mobile-jump" class="w-16 h-16 rounded-full neo-btn flex flex-col items-center justify-center shadow-lg border-2 border-cyan-300/70 active:scale-90">
+                <span class="text-xl">⬆️</span>
+                <span class="text-xs font-bold">קפוץ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ממשק עמדת המחשב העתידנית: משחק מירוץ מכוניות תלת-ממדי מלא!               -->
+    <!-- ======================================================================== -->
+    <div id="arcade-computer-overlay" class="fixed inset-0 z-40 hidden items-center justify-center p-2 sm:p-5 bg-slate-950/85 backdrop-blur-md">
+        <div class="relative w-full h-full max-w-6xl max-h-[860px] rounded-3xl bg-slate-900 cyber-monitor-frame overflow-hidden flex flex-col">
+            <!-- מסגרת עליונה של מסך המחשב העתידני -->
+            <div class="bg-slate-950/95 border-b border-cyan-400/40 px-4 py-2.5 flex items-center justify-between z-20">
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>
+                    <span class="text-xs sm:text-sm font-black text-cyan-300 tracking-wide mr-2">
+                        🖥️ NEO-RACER OS v4.2 // סימולטור מירוצים תלת-ממדי
+                    </span>
+                </div>
+                <button id="btn-exit-race" class="px-4 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 border border-rose-400/60 text-rose-200 font-bold text-xs sm:text-sm transition cursor-pointer">
+                    חזור לרחוב [ESC] 🚪
+                </button>
+            </div>
+
+            <!-- אזור התצוגה התלת-ממדי של המירוץ -->
+            <div class="relative flex-1 w-full h-full overflow-hidden">
+                <canvas id="race-canvas"></canvas>
+
+                <!-- HUD של משחק המירוצים -->
+                <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6 z-10">
+                    <!-- עליון: מיקום, הקפות, זמן -->
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="neo-glass rounded-2xl px-4 py-2.5 flex items-center gap-4">
+                            <div>
+                                <div class="text-[11px] text-cyan-300 font-bold">מיקום במירוץ</div>
+                                <div class="text-2xl sm:text-3xl font-black text-amber-300" id="race-hud-pos">1 / 4</div>
+                            </div>
+                            <div class="h-8 w-px bg-white/15"></div>
+                            <div>
+                                <div class="text-[11px] text-cyan-300 font-bold">הקפה (LAP)</div>
+                                <div class="text-xl sm:text-2xl font-black text-white" id="race-hud-lap">1 / 3</div>
+                            </div>
+                            <div class="h-8 w-px bg-white/15"></div>
+                            <div>
+                                <div class="text-[11px] text-cyan-300 font-bold">זמן הקפה</div>
+                                <div class="text-lg sm:text-xl font-black text-emerald-300 font-mono" id="race-hud-time">00:00.0</div>
+                            </div>
+                        </div>
+
+                        <div class="neo-glass rounded-2xl px-4 py-2 text-xs text-cyan-200 hidden sm:block">
+                            🏆 ניצחון במירוץ מעניק <span class="text-amber-300 font-black">+400 נקודות אושר</span> לעיר!
+                        </div>
+                    </div>
+
+                    <!-- ספירה לאחור בהתחלת המירוץ -->
+                    <div id="race-countdown" class="self-center text-6xl sm:text-8xl font-black text-amber-300 drop-shadow-[0_0_25px_rgba(250,204,21,0.9)]">
+                        3
+                    </div>
+
+                    <!-- תחתון: מד מהירות, מד ניטרו והנחיות -->
+                    <div class="flex flex-wrap items-end justify-between gap-3">
+                        <div class="neo-glass rounded-2xl px-4 py-2.5 flex items-center gap-4">
+                            <div>
+                                <div class="text-[11px] text-slate-300">מהירות</div>
+                                <div class="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">
+                                    <span id="race-hud-speed">0</span> <span class="text-xs font-normal text-slate-400">קמ״ש</span>
+                                </div>
+                            </div>
+                            <div class="h-8 w-px bg-white/15"></div>
+                            <div>
+                                <div class="flex justify-between text-[11px] font-bold text-amber-300 mb-1">
+                                    <span>🔥 בוסט ניטרו (Shift/Space)</span>
+                                    <span id="race-hud-nitro-pct">100%</span>
+                                </div>
+                                <div class="w-32 sm:w-40 h-3 bg-slate-950 rounded-full overflow-hidden border border-amber-400/40">
+                                    <div id="race-hud-nitro-bar" class="h-full bg-gradient-to-l from-amber-300 via-orange-500 to-rose-500 w-full transition-all duration-75"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="neo-glass rounded-full px-4 py-2 text-xs text-slate-300 hidden md:block">
+                            W/חץ למעלה: גז • S/חץ למטה: בלם/רוורס • A/D או חצים: היגוי • Shift/רווח: ניטרו
+                        </div>
+                    </div>
+                </div>
+
+                <!-- בקרי מגע למירוץ במובייל -->
+                <div id="race-mobile-controls" class="sm:hidden absolute bottom-20 inset-x-4 flex justify-between items-end z-20 pointer-events-auto">
+                    <div class="flex gap-2">
+                        <button id="race-btn-right" class="w-14 h-14 rounded-2xl neo-glass text-xl font-black active:bg-cyan-500/40">➡️</button>
+                        <button id="race-btn-left" class="w-14 h-14 rounded-2xl neo-glass text-xl font-black active:bg-cyan-500/40">⬅️</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="race-btn-nitro" class="w-14 h-14 rounded-2xl bg-amber-500/30 border border-amber-300 text-lg font-black">🔥</button>
+                        <button id="race-btn-brake" class="w-14 h-14 rounded-2xl bg-rose-500/30 border border-rose-300 text-sm font-black">בלם</button>
+                        <button id="race-btn-gas" class="w-16 h-16 rounded-2xl bg-emerald-500/40 border border-emerald-300 text-base font-black">גז</button>
+                    </div>
+                </div>
+
+                <!-- מסך סיום מירוץ בתוך המחשב -->
+                <div id="race-finish-overlay" class="absolute inset-0 z-30 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                    <div class="neo-glass rounded-3xl max-w-md w-full p-7 text-center border border-amber-300/60">
+                        <div class="text-5xl mb-2 animate-bounce" id="race-finish-emoji">🏆</div>
+                        <h3 class="text-2xl sm:text-3xl font-black text-white mb-1" id="race-finish-title">מקום ראשון במירוץ!</h3>
+                        <p class="text-cyan-300 text-sm mb-5" id="race-finish-sub">זכית בבונוס נקודות אושר לקהילה!</p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="btn-race-again" class="flex-1 py-3 rounded-xl neo-btn font-bold text-sm cursor-pointer">מירוץ נוסף 🔄</button>
+                            <button id="btn-race-return-street" class="flex-1 py-3 rounded-xl bg-gradient-to-l from-cyan-400 to-emerald-400 text-slate-950 font-black text-sm cursor-pointer">חזור לרחוב עם הבונוס 🏙️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך פתיחה ראשי -->
+    <div id="start-screen" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm overflow-y-auto">
+        <div class="neo-glass rounded-3xl max-w-4xl w-full p-6 sm:p-9 text-center relative overflow-hidden my-auto">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-400/15 border border-cyan-300/40 text-cyan-200 text-xs sm:text-sm font-bold mb-3 animate-float">
+                <span>🌆</span> עיר עתידנית אינטראקטיבית • מעשים טובים + מירוצי ארקייד 3D
+            </div>
+
+            <h1 class="text-4xl sm:text-6xl font-black tracking-tight mb-3 bg-gradient-to-l from-cyan-300 via-white to-amber-300 bg-clip-text text-transparent">
+                שליח של טוב 3D
+            </h1>
+            <p class="text-slate-200 text-sm sm:text-lg max-w-2xl mx-auto mb-6 leading-relaxed">
+                רוץ ברחובות עיר העתיד המוארים בניאון, השלם מעשים טובים עבור התושבים, צפה במסכי הענק מתעדכנים בזמן אמת – וגש לעמדות המחשב ברחוב כדי לשחק במירוץ מכוניות תלת-ממדי מלא!
+            </p>
+
+            <!-- בחירת רובע -->
+            <div class="mb-6 text-right">
+                <h2 class="text-sm font-bold text-cyan-300 mb-3 flex items-center gap-2">
+                    <span>🏙️</span> בחר רובע עתידני להתחלת המסע:
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="stage-cards-container"></div>
+            </div>
+
+            <!-- מדריך מקשים -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-7 text-xs sm:text-sm">
+                <div class="bg-white/5 border border-cyan-400/20 rounded-2xl p-3 flex flex-col items-center gap-1">
+                    <span class="text-xl">🏃</span>
+                    <span class="font-bold text-white">WASD / חצים</span>
+                    <span class="text-slate-300 text-xs">ריצה ברחובות העיר</span>
+                </div>
+                <div class="bg-white/5 border border-cyan-400/20 rounded-2xl p-3 flex flex-col items-center gap-1">
+                    <span class="text-xl">🤝</span>
+                    <span class="font-bold text-white">מקש E / Enter</span>
+                    <span class="text-slate-300 text-xs">מעשה טוב או מחשב</span>
+                </div>
+                <div class="bg-white/5 border border-cyan-400/20 rounded-2xl p-3 flex flex-col items-center gap-1">
+                    <span class="text-xl">🏎️</span>
+                    <span class="font-bold text-white">עמדות מחשב ברחוב</span>
+                    <span class="text-slate-300 text-xs">מירוץ מכוניות 3D מלא</span>
+                </div>
+                <div class="bg-white/5 border border-cyan-400/20 rounded-2xl p-3 flex flex-col items-center gap-1">
+                    <span class="text-xl">🚀</span>
+                    <span class="font-bold text-white">Space + Shift</span>
+                    <span class="text-slate-300 text-xs">קפיצה כפולה וספרינט</span>
+                </div>
+            </div>
+
+            <button id="btn-start-game" class="w-full sm:w-auto px-12 py-4 rounded-2xl bg-gradient-to-l from-cyan-400 via-emerald-400 to-amber-300 hover:from-cyan-300 hover:to-amber-200 text-slate-950 font-black text-xl shadow-xl animate-neo-glow transition transform hover:scale-105 active:scale-95 cursor-pointer">
+                היכנס לעיר העתיד 🌟
+            </button>
+        </div>
+    </div>
+
+    <!-- מסך השהיה -->
+    <div id="pause-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+        <div class="neo-glass rounded-3xl max-w-sm w-full p-7 text-center">
+            <div class="text-4xl mb-2">⏸️</div>
+            <h2 class="text-2xl font-black text-white mb-2">המשחק מושהה</h2>
+            <p class="text-slate-300 text-sm mb-6">תושבי עיר העתיד מחכים לעזרתך!</p>
+            <div class="flex flex-col gap-3">
+                <button id="btn-resume" class="w-full py-3 rounded-xl bg-gradient-to-l from-cyan-400 to-emerald-400 text-slate-950 font-black cursor-pointer">המשך לשחק ▶️</button>
+                <button id="btn-restart-stage" class="w-full py-3 rounded-xl neo-btn font-bold text-sm cursor-pointer">התחל רובע מחדש 🔄</button>
+                <button id="btn-pause-menu" class="w-full py-3 rounded-xl neo-btn font-bold text-sm cursor-pointer">חזרה לתפריט הראשי</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך ניצחון שלב -->
+    <div id="victory-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="neo-glass rounded-3xl max-w-lg w-full p-7 sm:p-8 text-center border border-cyan-300/50">
+            <div class="text-5xl mb-2 animate-bounce" id="victory-emoji">🎉</div>
+            <h2 class="text-3xl font-black text-white mb-1" id="victory-title">הרובע זוהר מאושר!</h2>
+            <p class="text-cyan-300 text-sm font-medium mb-5" id="victory-subtitle">השלמת את כל מעשי החסד ברובע</p>
+
+            <div class="bg-slate-900/75 rounded-2xl p-4 mb-5 border border-cyan-400/25 text-right">
+                <div class="text-xs font-bold text-emerald-300 mb-2">✨ מעשים טובים שהושלמו:</div>
+                <ul id="victory-deeds-list" class="space-y-1.5 text-xs sm:text-sm text-slate-100 mb-3"></ul>
+                <div class="h-px bg-white/15 my-2"></div>
+                <div class="flex justify-between items-center text-sm mb-1">
+                    <span class="text-slate-300">ניצוצות אור שנאספו:</span>
+                    <span class="font-bold text-cyan-300" id="victory-hearts">12</span>
+                </div>
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-bold text-white">סך נקודות אושר:</span>
+                    <span class="font-black text-amber-300" id="victory-score">1,850</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-next-stage" class="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-l from-cyan-400 to-amber-300 text-slate-950 font-black text-base shadow-lg transition transform hover:scale-105 cursor-pointer">
+                    לרובע הבא ⬅️
+                </button>
+                <button id="btn-victory-menu" class="py-3.5 px-5 rounded-2xl neo-btn font-bold text-sm cursor-pointer">
+                    תפריט ראשי
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * ============================================================================
+     * שליח של טוב 3D: עיר העתיד ומירוצי ארקייד (Neo-Futuristic City + 3D Racing)
+     * קובץ יחיד מלא הכולל עולם עירוני תלת-ממדי, שלטי ענק חיים, מעשים טובים ומשחק מירוצים
+     * ============================================================================
+     */
+
+    // ----------------------------------------------------------------------------
+    // 1. מנוע סאונד פרוצדורלי (Web Audio API - עיר + מנוע מירוצים)
+    // ----------------------------------------------------------------------------
+    class NeoAudioEngine {
+        constructor() {
+            this.ctx = null;
+            this.muted = false;
+            this.musicTimer = null;
+            this.step = 0;
+            this.engineOsc = null;
+            this.engineGain = null;
+        }
+
+        init() {
+            if (!this.ctx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioCtx();
+            }
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+
+        toggleMute() {
+            this.muted = !this.muted;
+            if (this.muted && this.engineGain) {
+                this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+            }
+            return this.muted;
+        }
+
+        playTone(freq, type = 'sine', dur = 0.2, vol = 0.14, slideTo = null, delay = 0) {
+            if (this.muted) return;
+            this.init();
+            const t = this.ctx.currentTime + delay;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+        }
+
+        playJump(isDouble = false) {
+            if (isDouble) {
+                this.playTone(420, 'sine', 0.22, 0.14, 820);
+                this.playTone(620, 'triangle', 0.18, 0.1, 980, 0.04);
+            } else {
+                this.playTone(260, 'sine', 0.16, 0.13, 540);
+            }
+        }
+
+        playSparkCollect() {
+            this.playTone(659.25, 'sine', 0.15, 0.14);
+            this.playTone(987.77, 'triangle', 0.22, 0.12, null, 0.05);
+        }
+
+        playPickup() {
+            this.playTone(440, 'sine', 0.14, 0.14);
+            this.playTone(659.25, 'sine', 0.2, 0.14, null, 0.06);
+        }
+
+        playDeedDone() {
+            const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+            notes.forEach((n, i) => this.playTone(n, 'triangle', 0.36, 0.16, null, i * 0.07));
+        }
+
+        playComputerBoot() {
+            this.playTone(330, 'square', 0.1, 0.09);
+            this.playTone(440, 'square', 0.1, 0.09, null, 0.08);
+            this.playTone(660, 'sawtooth', 0.22, 0.11, 880, 0.16);
+        }
+
+        playTurboPad() {
+            this.playTone(320, 'sawtooth', 0.3, 0.15, 960);
+        }
+
+        playCountdown(finalGo = false) {
+            if (finalGo) {
+                this.playTone(880, 'triangle', 0.35, 0.2);
+            } else {
+                this.playTone(440, 'sine', 0.18, 0.16);
+            }
+        }
+
+        playVictory() {
+            const notes = [523.25, 659.25, 783.99, 1046.5, 880, 1046.5];
+            const times = [0, 0.12, 0.24, 0.38, 0.54, 0.7];
+            notes.forEach((n, i) => this.playTone(n, 'triangle', 0.4, 0.18, null, times[i]));
+        }
+
+        startAmbientMusic() {
+            if (this.musicTimer) return;
+            const scale = [261.63, 329.63, 392.00, 493.88, 523.25, 392.00, 329.63, 293.66];
+            this.musicTimer = setInterval(() => {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running' || Game.state === 'RACING') return;
+                const freq = scale[this.step % scale.length];
+                this.step++;
+                this.playTone(freq, 'sine', 0.42, 0.025);
+            }, 480);
+        }
+
+        startEngineSound() {
+            if (this.muted) return;
+            this.init();
+            if (this.engineOsc) return;
+            this.engineOsc = this.ctx.createOscillator();
+            this.engineGain = this.ctx.createGain();
+            this.engineOsc.type = 'sawtooth';
+            this.engineOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
+            this.engineGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(320, this.ctx.currentTime);
+
+            this.engineOsc.connect(filter);
+            filter.connect(this.engineGain);
+            this.engineGain.connect(this.ctx.destination);
+            this.engineOsc.start();
+        }
+
+        updateEnginePitch(speedRatio, isNitro) {
+            if (!this.engineOsc || !this.engineGain) return;
+            if (this.muted) {
+                this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+                return;
+            }
+            const targetFreq = 60 + speedRatio * 135 + (isNitro ? 45 : 0);
+            this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.06);
+            this.engineGain.gain.setTargetAtTime(0.045 + speedRatio * 0.04, this.ctx.currentTime, 0.06);
+        }
+
+        stopEngineSound() {
+            if (this.engineOsc) {
+                try { this.engineOsc.stop(); } catch (e) {}
+                this.engineOsc.disconnect();
+                this.engineOsc = null;
+                this.engineGain = null;
+            }
+        }
+    }
+
+    const audio = new NeoAudioEngine();
+
+    // ----------------------------------------------------------------------------
+    // 2. הגדרות 3 הרבעים העתידניים והמעשים הטובים (Neo-Futuristic Districts)
+    // ----------------------------------------------------------------------------
+    const STAGES = [
+        {
+            id: 0,
+            name: "שדרת הנאון הירוקה",
+            subtitle: "מגדלי זכוכית מעוגלים, גשרים שקופים, מסכי ענק ועמדות ארקייד",
+            badge: "רובע 1",
+            skyColor: 0x07132b,
+            fogColor: 0x0b1f42,
+            sunColor: 0xe0f2fe,
+            roadColor: 0x111827,
+            sidewalkColor: 0x1e293b,
+            parkColor: 0x064e3b,
+            neonPrimary: 0x22d3ee,
+            neonSecondary: 0xfbbf24,
+            buildingPalette: [0x172554, 0x1e1b4b, 0x0f172a, 0x164e63],
+            bounds: { minX: -24, maxX: 24, minZ: -102, maxZ: 14 },
+            spawn: { x: 0, y: 0, z: 6 },
+            terminals: [
+                { id: 'pc_1a', x: -8.5, z: -26, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' },
+                { id: 'pc_1b', x: 8.5, z: -64, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' }
+            ],
+            deeds: [
+                {
+                    id: 'd1_elderly',
+                    type: 'escort',
+                    title: 'ליווי סבתא לאה במעבר החציה ההולוגרפי',
+                    shortLabel: '👵 עזור לסבתא לחצות',
+                    carryLabel: '👵 מלווה את סבתא לאה אל הצד השני של מעבר החציה!',
+                    startPos: { x: -9.5, y: 0.25, z: -14 },
+                    targetPos: { x: 9.5, y: 0.25, z: -14 },
+                    targetLabel: '🎯 הובל את סבתא לכאן',
+                    npcColor: 0xc084fc,
+                    points: 250
+                },
+                {
+                    id: 'd1_drone_kitten',
+                    type: 'fetch',
+                    title: 'הצלת חתול-רובוט אבוד מראש הבמה והחזרתו לילדה',
+                    shortLabel: '🐱 הצל את החתלתול',
+                    carryLabel: '🐱 מחזיק את החתלתול בזהירות – החזר אותו לילדה!',
+                    itemPos: { x: 13.5, y: 2.3, z: -38 },
+                    targetPos: { x: -11, y: 0.25, z: -40 },
+                    targetLabel: '👧 החזר לילדה',
+                    itemKind: 'kitten',
+                    npcColor: 0xf472b6,
+                    points: 300
+                },
+                {
+                    id: 'd1_eco',
+                    type: 'cleanup',
+                    title: 'איסוף קפסולות אנרגיה למיחזור חכם',
+                    shortLabel: '♻️ מחזר קפסולות אנרגיה',
+                    carryLabel: '♻️ לוקח קפסולות אנרגיה למתקן המיחזור הזוהר!',
+                    itemPos: { x: -13, y: 0.5, z: -58 },
+                    targetPos: { x: -6.5, y: 0.25, z: -62 },
+                    targetLabel: '♻️ מתקן מיחזור חכם',
+                    itemKind: 'trash',
+                    points: 250
+                },
+                {
+                    id: 'd1_biogarden',
+                    type: 'instant',
+                    title: 'הפעלת גינה ביו-טכנולוגית קהילתית',
+                    shortLabel: '🌻 הפעל גינה חכמה',
+                    startPos: { x: 11.5, y: 0.25, z: -80 },
+                    points: 250
+                }
+            ]
+        },
+        {
+            id: 1,
+            name: "כיכר החדשנות והקהילה",
+            subtitle: "כיכר ניאון זהובה עם רחפנים, גשרים מוארים ותחרויות ארקייד",
+            badge: "רובע 2",
+            skyColor: 0x13092b,
+            fogColor: 0x24124d,
+            sunColor: 0xfef3c7,
+            roadColor: 0x0f172a,
+            sidewalkColor: 0x1e1b4b,
+            parkColor: 0x065f46,
+            neonPrimary: 0xfbbf24,
+            neonSecondary: 0x38bdf8,
+            buildingPalette: [0x2e1065, 0x1e1b4b, 0x311042, 0x172554],
+            bounds: { minX: -24, maxX: 24, minZ: -110, maxZ: 14 },
+            spawn: { x: 0, y: 0, z: 6 },
+            terminals: [
+                { id: 'pc_2a', x: 8.5, z: -28, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' },
+                { id: 'pc_2b', x: -8.5, z: -72, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' }
+            ],
+            deeds: [
+                {
+                    id: 'd2_basket',
+                    type: 'fetch',
+                    title: 'משלוח סל פירות אורגניים לאדון יוסף',
+                    shortLabel: '🧺 הבא סל פירות',
+                    carryLabel: '🧺 סוחב סל פירות – מסור לאדון יוסף!',
+                    itemPos: { x: -13, y: 1.4, z: -18 },
+                    targetPos: { x: 11, y: 0.25, z: -22 },
+                    targetLabel: '👴 מסור לאדון יוסף',
+                    itemKind: 'basket',
+                    npcColor: 0x60a5fa,
+                    points: 250
+                },
+                {
+                    id: 'd2_ball',
+                    type: 'fetch',
+                    title: 'החזרת כדור-אור אבוד לילד בכיכר',
+                    shortLabel: '⚽ החזר כדור-אור',
+                    carryLabel: '⚽ מצאת את הכדור! החזר אותו לילד',
+                    itemPos: { x: 13.5, y: 3.1, z: -46 },
+                    targetPos: { x: -9.5, y: 0.25, z: -48 },
+                    targetLabel: '👦 החזר כדור לילד',
+                    itemKind: 'ball',
+                    npcColor: 0x34d399,
+                    points: 300
+                },
+                {
+                    id: 'd2_water',
+                    type: 'fetch',
+                    title: 'הגשת מים צוננים לטכנאי הרחפנים',
+                    shortLabel: '💧 הגש מים לטכנאי',
+                    carryLabel: '💧 מביא מים קרים לטכנאי הרחוב!',
+                    itemPos: { x: -12, y: 1.2, z: -68 },
+                    targetPos: { x: 10.5, y: 0.25, z: -72 },
+                    targetLabel: '🧹 מסור לטכנאי',
+                    itemKind: 'water_bottle',
+                    npcColor: 0xfbbf24,
+                    points: 250
+                },
+                {
+                    id: 'd2_garden',
+                    type: 'instant',
+                    title: 'הפרחת כיכר הפרחים הזוהרת',
+                    shortLabel: '🌷 הפרח את הכיכר',
+                    startPos: { x: 0, y: 0.25, z: -90 },
+                    points: 250
+                }
+            ]
+        },
+        {
+            id: 2,
+            name: "טיילת האופק העתידנית",
+            subtitle: "שדרת שקיעה קוסמית עם מגדלי קריסטל ומסכי ענק",
+            badge: "רובע 3",
+            skyColor: 0x1a0b2e,
+            fogColor: 0x3b1354,
+            sunColor: 0xffedd5,
+            roadColor: 0x18181b,
+            sidewalkColor: 0x27272a,
+            parkColor: 0x047857,
+            neonPrimary: 0x34d399,
+            neonSecondary: 0xf472b6,
+            buildingPalette: [0x3b0764, 0x1e1b4b, 0x4c0519, 0x0f172a],
+            bounds: { minX: -24, maxX: 24, minZ: -116, maxZ: 14 },
+            spawn: { x: 0, y: 0, z: 6 },
+            terminals: [
+                { id: 'pc_3a', x: -8.5, z: -30, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' },
+                { id: 'pc_3b', x: 8.5, z: -82, label: '🖥️ עמדת מחשב - משחק מירוץ [E]' }
+            ],
+            deeds: [
+                {
+                    id: 'd3_balloon',
+                    type: 'fetch',
+                    title: 'תפיסת בלון ניאון שנתקע והחזרתו לילדה',
+                    shortLabel: '🎈 הצל בלון ניאון',
+                    carryLabel: '🎈 תפסת את הבלון! החזר אותו לילדה',
+                    itemPos: { x: 12.5, y: 3.3, z: -20 },
+                    targetPos: { x: -10, y: 0.25, z: -22 },
+                    targetLabel: '👧 החזר בלון לילדה',
+                    itemKind: 'balloon',
+                    npcColor: 0xf43f5e,
+                    points: 300
+                },
+                {
+                    id: 'd3_escort',
+                    type: 'escort',
+                    title: 'ליווי סבא אברהם למרפסת התצפית',
+                    shortLabel: '👴 לווה את סבא לתצפית',
+                    carryLabel: '👴 מלווה את סבא אברהם למרפסת התצפית!',
+                    startPos: { x: -10, y: 0.25, z: -46 },
+                    targetPos: { x: 11, y: 0.25, z: -48 },
+                    targetLabel: '🌅 מרפסת התצפית',
+                    npcColor: 0x38bdf8,
+                    points: 250
+                },
+                {
+                    id: 'd3_clean',
+                    type: 'cleanup',
+                    title: 'שמירה על ניקיון הטיילת ומיחזור',
+                    shortLabel: '♻️ מחזר בטיילת',
+                    carryLabel: '♻️ לוקח פסולת למתקן המיחזור!',
+                    itemPos: { x: 11, y: 0.5, z: -72 },
+                    targetPos: { x: -10, y: 0.25, z: -74 },
+                    targetLabel: '♻️ מתקן מיחזור',
+                    itemKind: 'trash',
+                    points: 250
+                },
+                {
+                    id: 'd3_kitten',
+                    type: 'fetch',
+                    title: 'הצלת גור חתולים מראש הגשר והחזרתו למשפחה',
+                    shortLabel: '🐱 הצל גור חתולים',
+                    carryLabel: '🐱 מחזיק את הגור – החזר אותו למשפחה!',
+                    itemPos: { x: -12.5, y: 3.2, z: -96 },
+                    targetPos: { x: 10, y: 0.25, z: -98 },
+                    targetLabel: '👨‍👧 החזר למשפחה',
+                    itemKind: 'kitten',
+                    npcColor: 0xa855f7,
+                    points: 350
+                }
+            ]
+        }
+    ];
+
+    // ----------------------------------------------------------------------------
+    // 3. מצב המשחק הגלובלי (Game State)
+    // ----------------------------------------------------------------------------
+    const Game = {
+        state: 'MENU', // MENU, PLAYING, PAUSED, RACING, VICTORY
+        stageIdx: 0,
+        score: 0,
+        sparks: 0,
+        completedDeeds: [],
+        totalDeeds: 4,
+        stamina: 100,
+        cameraYaw: 0,
+        cameraPitch: 0.34,
+        activeCarryDeed: null,
+        nearestAction: null // { type: 'DEED' | 'COMPUTER', entity, actionType, text }
+    };
+
+    const Player = {
+        pos: new THREE.Vector3(0, 0, 6),
+        vel: new THREE.Vector3(0, 0, 0),
+        facingAngle: Math.PI,
+        onGround: true,
+        jumpsLeft: 2,
+        staminaExhausted: false,
+        celebrateTimer: 0,
+        runCycle: 0,
+        root: null,
+        torso: null,
+        head: null,
+        leftArm: null,
+        rightArm: null,
+        leftLeg: null,
+        rightLeg: null,
+        carryAnchor: null
+    };
+
+    const Input = {
+        keys: {},
+        joyX: 0,
+        joyY: 0,
+        mobileSprint: false,
+        draggingCam: false,
+        lastMouseX: 0,
+        lastMouseY: 0
+    };
+
+    // ----------------------------------------------------------------------------
+    // 4. אתחול סצנת העיר התלת-ממדית (Three.js City Scene)
+    // ----------------------------------------------------------------------------
+    const canvas = document.getElementById('game-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 420);
+
+    const hemiLight = new THREE.HemisphereLight(0x7dd3fc, 0x0f172a, 0.9);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight(0xe0f2fe, 1.25);
+    sunLight.position.set(35, 65, 25);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 5;
+    sunLight.shadow.camera.far = 190;
+    const sb = 65;
+    sunLight.shadow.camera.left = -sb;
+    sunLight.shadow.camera.right = sb;
+    sunLight.shadow.camera.top = sb;
+    sunLight.shadow.camera.bottom = -sb;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+    scene.add(sunLight.target);
+
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    const fxGroup = new THREE.Group();
+    scene.add(fxGroup);
+
+    let solidColliders = [];
+    let sparkCollectibles = [];
+    let deedEntities = [];
+    let computerTerminals = [];
+    let ambientNPCs = [];
+    let flyingDrones = [];
+    let liveBillboards = [];
+    let bloomFlowers = [];
+    let floatingParticles = [];
+
+    // ----------------------------------------------------------------------------
+    // 5. בניית דמות האדם העתידנית המונפשת (Articulated Runner)
+    // ----------------------------------------------------------------------------
+    function buildHumanoidCharacter() {
+        const root = new THREE.Group();
+
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xfdba74, roughness: 0.45 });
+        const suitMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.35, metalness: 0.3 });
+        const jacketMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.35 });
+        const neonTrimMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+        const goldEmblemMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+        const shoeMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, roughness: 0.3 });
+
+        const torsoGroup = new THREE.Group();
+        torsoGroup.position.y = 1.15;
+        root.add(torsoGroup);
+
+        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.82, 0.4), jacketMat);
+        chest.castShadow = true;
+        torsoGroup.add(chest);
+
+        // פסי ניאון על הז'קט + סמל לב זהוב
+        const stripL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.42), neonTrimMat);
+        stripL.position.x = -0.24;
+        const stripR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.42), neonTrimMat);
+        stripR.position.x = 0.24;
+        torsoGroup.add(stripL, stripR);
+
+        const emblem = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), goldEmblemMat);
+        emblem.position.set(0, 0.14, 0.22);
+        torsoGroup.add(emblem);
+
+        // תרמיל אנרגיה עתידני
+        const backpack = new THREE.Mesh(
+            new THREE.BoxGeometry(0.48, 0.58, 0.24),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 })
+        );
+        backpack.position.set(0, 0.05, -0.3);
+        const packGlow = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.4, 0.04), neonTrimMat);
+        packGlow.position.set(0, 0.05, -0.42);
+        torsoGroup.add(backpack, packGlow);
+
+        // ראש ומשקף הולוגרפי
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 0.68, 0);
+        torsoGroup.add(headGroup);
+
+        const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 20), skinMat);
+        headMesh.castShadow = true;
+        headGroup.add(headMesh);
+
+        const hair = new THREE.Mesh(
+            new THREE.SphereGeometry(0.335, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52),
+            new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.6 })
+        );
+        hair.position.y = 0.03;
+        headGroup.add(hair);
+
+        // משקף היי-טק שקוף למחצה
+        const visor = new THREE.Mesh(
+            new THREE.BoxGeometry(0.48, 0.13, 0.22),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 })
+        );
+        visor.position.set(0, 0.04, 0.24);
+        headGroup.add(visor);
+
+        const smile = new THREE.Mesh(
+            new THREE.TorusGeometry(0.08, 0.018, 8, 16, Math.PI),
+            new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+        );
+        smile.position.set(0, -0.09, 0.29);
+        smile.rotation.z = Math.PI;
+        headGroup.add(smile);
+
+        const createLimb = (w, h, d, mat, footMat = null) => {
+            const pivot = new THREE.Group();
+            const limb = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            limb.position.y = -h / 2;
+            limb.castShadow = true;
+            pivot.add(limb);
+
+            if (footMat) {
+                const shoe = new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, 0.18, d + 0.16), footMat);
+                shoe.position.set(0, -h - 0.05, 0.06);
+                pivot.add(shoe);
+            } else {
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(w * 0.55, 10, 10), skinMat);
+                hand.position.set(0, -h - 0.04, 0);
+                pivot.add(hand);
+            }
+            return pivot;
+        };
+
+        const leftArm = createLimb(0.2, 0.64, 0.2, jacketMat);
+        leftArm.position.set(-0.46, 0.34, 0);
+        torsoGroup.add(leftArm);
+
+        const rightArm = createLimb(0.2, 0.64, 0.2, jacketMat);
+        rightArm.position.set(0.46, 0.34, 0);
+        torsoGroup.add(rightArm);
+
+        const leftLeg = createLimb(0.24, 0.72, 0.24, suitMat, shoeMat);
+        leftLeg.position.set(-0.19, 0.76, 0);
+        root.add(leftLeg);
+
+        const rightLeg = createLimb(0.24, 0.72, 0.24, suitMat, shoeMat);
+        rightLeg.position.set(0.19, 0.76, 0);
+        root.add(rightLeg);
+
+        const carryAnchor = new THREE.Group();
+        carryAnchor.position.set(0, 1.35, 0.55);
+        root.add(carryAnchor);
+
+        Player.root = root;
+        Player.torso = torsoGroup;
+        Player.head = headGroup;
+        Player.leftArm = leftArm;
+        Player.rightArm = rightArm;
+        Player.leftLeg = leftLeg;
+        Player.rightLeg = rightLeg;
+        Player.carryAnchor = carryAnchor;
+
+        scene.add(root);
+    }
+
+    buildHumanoidCharacter();
+
+    // ----------------------------------------------------------------------------
+    // 6. יצירת מסכי ענק דינמיים ברחוב (Live CanvasTexture Street Billboards)
+    // ----------------------------------------------------------------------------
+    function createLiveBillboard(x, y, z, rotY, width, height, mode = 'HAPPINESS') {
+        const bCanvas = document.createElement('canvas');
+        bCanvas.width = 512;
+        bCanvas.height = 256;
+        const bCtx = bCanvas.getContext('2d');
+        const tex = new THREE.CanvasTexture(bCanvas);
+
+        const group = new THREE.Group();
+        group.position.set(x, y, z);
+        group.rotation.y = rotY;
+
+        // מסגרת מתכת עתידנית
+        const frame = new THREE.Mesh(
+            new THREE.BoxGeometry(width + 0.45, height + 0.45, 0.35),
+            new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85, roughness: 0.2 })
+        );
+        group.add(frame);
+
+        // פס ניאון היקפי
+        const rim = new THREE.Mesh(
+            new THREE.BoxGeometry(width + 0.55, height + 0.55, 0.2),
+            new THREE.MeshBasicMaterial({ color: mode === 'HAPPINESS' ? 0x22d3ee : 0xfbbf24 })
+        );
+        group.add(rim);
+
+        // משטח המסך הדינמי
+        const screen = new THREE.Mesh(
+            new THREE.PlaneGeometry(width, height),
+            new THREE.MeshBasicMaterial({ map: tex })
+        );
+        screen.position.z = 0.2;
+        group.add(screen);
+
+        worldGroup.add(group);
+        liveBillboards.push({ canvas: bCanvas, ctx: bCtx, tex, mode });
+    }
+
+    function updateLiveBillboards(elapsed) {
+        const pct = Math.round((Game.completedDeeds.length / Game.totalDeeds) * 100);
+        const stageName = STAGES[Game.stageIdx].name;
+
+        liveBillboards.forEach((b, idx) => {
+            const ctx = b.ctx;
+            const w = b.canvas.width;
+            const h = b.canvas.height;
+
+            // רקע דיגיטלי כהה עם רשת עדינה
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            grad.addColorStop(0, '#061229');
+            grad.addColorStop(1, '#141e46');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = 'rgba(34, 211, 238, 0.15)';
+            ctx.lineWidth = 1;
+            for (let gx = 0; gx < w; gx += 32) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+            }
+
+            ctx.textAlign = 'center';
+            if (b.mode === 'HAPPINESS') {
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 22px Rubik, sans-serif';
+                ctx.fillText(`🌆 ${stageName} - מדד האושר העירוני`, w / 2, 46);
+
+                ctx.fillStyle = '#facc15';
+                ctx.font = '900 58px Rubik, sans-serif';
+                ctx.fillText(`${pct}% אושר!`, w / 2, 118);
+
+                // סרגל התקדמות מונפש
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(56, 145, w - 112, 26);
+                ctx.fillStyle = '#34d399';
+                ctx.fillRect(56, 145, (w - 112) * (pct / 100), 26);
+
+                ctx.fillStyle = '#e2e8f0';
+                ctx.font = 'bold 20px Rubik, sans-serif';
+                ctx.fillText('✨ כל מעשה טוב מאיר את העיר באור חדש! ✨', w / 2, 215);
+            } else {
+                // שלט פרסומת חי לעמדות מירוץ המכוניות ברחוב
+                const pulse = Math.sin(elapsed * 5 + idx) * 6;
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = '900 32px Rubik, sans-serif';
+                ctx.fillText('🏎️ NEO-RACER 3D ARCADE 🏎️', w / 2, 56);
+
+                ctx.fillStyle = '#22d3ee';
+                ctx.font = 'bold 26px Rubik, sans-serif';
+                ctx.fillText('עמדות מחשב פעילות ברחוב!', w / 2, 108);
+
+                // גרפיקה של מסלול מואץ
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(40 - pulse / 2, 132, w - 80 + pulse, 54);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 24px Rubik, sans-serif';
+                ctx.fillText('גש לעמדה ולחץ [E] למירוץ מכוניות!', w / 2, 167);
+
+                ctx.fillStyle = '#34d399';
+                ctx.font = 'bold 18px Rubik, sans-serif';
+                ctx.fillText('זכה ב-+400 נקודות אושר לקהילה 🏆', w / 2, 222);
+            }
+
+            b.tex.needsUpdate = true;
+        });
+    }
+
+    // ----------------------------------------------------------------------------
+    // 7. בניית עמדות מחשב אינטראקטיביות ברחוב (Futuristic Computer Kiosks)
+    // ----------------------------------------------------------------------------
+    function createComputerTerminal(tData) {
+        const g = new THREE.Group();
+        g.position.set(tData.x, 0.24, tData.z);
+        // הפניית העמדה לכיוון מרכז הרחוב
+        g.rotation.y = tData.x < 0 ? Math.PI / 2 : -Math.PI / 2;
+
+        // בסיס זוהר על המדרכה
+        const basePad = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.45, 1.65, 0.14, 24),
+            new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 })
+        );
+        g.add(basePad);
+
+        const glowRing = new THREE.Mesh(
+            new THREE.RingGeometry(1.48, 1.72, 32),
+            new THREE.MeshBasicMaterial({ color: 0x22d3ee, side: THREE.DoubleSide })
+        );
+        glowRing.rotation.x = -Math.PI / 2;
+        glowRing.position.y = 0.08;
+        g.add(glowRing);
+
+        // עמוד עמדת המחשב
+        const pedestal = new THREE.Mesh(
+            new THREE.BoxGeometry(0.9, 1.35, 0.65),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.25 })
+        );
+        pedestal.position.y = 0.72;
+        pedestal.castShadow = true;
+        g.add(pedestal);
+
+        // מקלדת הולוגרפית מוארת
+        const keyboard = new THREE.Mesh(
+            new THREE.BoxGeometry(0.95, 0.08, 0.42),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+        );
+        keyboard.position.set(0, 1.38, 0.35);
+        keyboard.rotation.x = 0.25;
+        g.add(keyboard);
+
+        // מסך מחשב קמור וזוהר
+        const monitorFrame = new THREE.Mesh(
+            new THREE.BoxGeometry(1.55, 1.05, 0.14),
+            new THREE.MeshStandardMaterial({ color: 0x090d16, metalness: 0.9 })
+        );
+        monitorFrame.position.set(0, 2.02, -0.05);
+        monitorFrame.rotation.x = -0.12;
+        g.add(monitorFrame);
+
+        const monitorScreen = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.4, 0.9),
+            new THREE.MeshBasicMaterial({ color: 0x06b6d4 })
+        );
+        monitorScreen.position.set(0, 2.02, 0.03);
+        monitorScreen.rotation.x = -0.12;
+        g.add(monitorScreen);
+
+        // סמל מכונית מירוץ הולוגרפי מרחף מעל המסך
+        const holoCar = new THREE.Mesh(
+            new THREE.BoxGeometry(0.55, 0.22, 0.95),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15, wireframe: true })
+        );
+        holoCar.position.set(0, 2.95, 0);
+        g.add(holoCar);
+
+        worldGroup.add(g);
+
+        // תווית צפה מעל עמדת המחשב
+        const labelEl = document.createElement('div');
+        labelEl.className = 'absolute px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-300 text-cyan-200 text-xs font-black shadow-lg whitespace-nowrap transform -translate-x-1/2 -translate-y-full';
+        labelEl.textContent = tData.label;
+        document.getElementById('world-labels-layer').appendChild(labelEl);
+
+        computerTerminals.push({
+            data: tData,
+            group: g,
+            glowRing,
+            holoCar,
+            labelEl
+        });
+    }
+
+    // ----------------------------------------------------------------------------
+    // 8. אובייקטים סביבתיים עתידניים (מבנים מעוגלים, גשרי זכוכית, רחפנים, תושבים)
+    // ----------------------------------------------------------------------------
+    function createFuturisticBuilding(x, z, radius, height, wallHex, neonHex) {
+        const g = new THREE.Group();
+        g.position.set(x, 0, z);
+
+        // מגדל גלילי-מעוגל חדשני
+        const tower = new THREE.Mesh(
+            new THREE.CylinderGeometry(radius * 0.88, radius, height, 20),
+            new THREE.MeshStandardMaterial({ color: wallHex, roughness: 0.25, metalness: 0.75 })
+        );
+        tower.position.y = height / 2;
+        tower.castShadow = true;
+        tower.receiveShadow = true;
+        g.add(tower);
+
+        // טבעות ניאון זוהרות סביב הבניין
+        const ringLevels = [0.28, 0.62, 0.94];
+        ringLevels.forEach(lvl => {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(radius * (1 - lvl * 0.1) + 0.08, 0.1, 8, 28),
+                new THREE.MeshBasicMaterial({ color: neonHex })
+            );
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = height * lvl;
+            g.add(ring);
+        });
+
+        // כיפת אנרגיה בראש המגדל
+        const dome = new THREE.Mesh(
+            new THREE.SphereGeometry(radius * 0.82, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+            new THREE.MeshBasicMaterial({ color: neonHex, transparent: true, opacity: 0.35 })
+        );
+        dome.position.y = height;
+        g.add(dome);
+
+        worldGroup.add(g);
+        solidColliders.push({
+            minX: x - radius * 0.9, maxX: x + radius * 0.9,
+            minY: 0, maxY: height + 1,
+            minZ: z - radius * 0.9, maxZ: z + radius * 0.9
+        });
+    }
+
+    function createGlassSkybridge(z, y, neonHex) {
+        const g = new THREE.Group();
+        g.position.set(0, y, z);
+
+        const deck = new THREE.Mesh(
+            new THREE.BoxGeometry(36, 0.45, 3.6),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.38,
+                roughness: 0.1,
+                metalness: 0.2
+            })
+        );
+        g.add(deck);
+
+        [-1.75, 1.75].forEach(zOff => {
+            const rail = new THREE.Mesh(
+                new THREE.BoxGeometry(36, 0.16, 0.14),
+                new THREE.MeshBasicMaterial({ color: neonHex })
+            );
+            rail.position.set(0, 0.65, zOff);
+            g.add(rail);
+        });
+
+        worldGroup.add(g);
+    }
+
+    function createSmartTree(x, z, neonHex) {
+        const g = new THREE.Group();
+        g.position.set(x, 0.24, z);
+
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.18, 0.3, 2.2, 10),
+            new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6 })
+        );
+        trunk.position.y = 1.1;
+        g.add(trunk);
+
+        const canopy = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(1.35, 1),
+            new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, emissiveIntensity: 0.35, roughness: 0.4 })
+        );
+        canopy.position.y = 2.9;
+        g.add(canopy);
+
+        const halo = new THREE.Mesh(
+            new THREE.TorusGeometry(1.5, 0.05, 8, 24),
+            new THREE.MeshBasicMaterial({ color: neonHex })
+        );
+        halo.rotation.x = Math.PI / 2;
+        halo.position.y = 2.6;
+        g.add(halo);
+
+        worldGroup.add(g);
+    }
+
+    function createNPCMesh(shirtColor, isElderly = false, isChild = false) {
+        const g = new THREE.Group();
+        g.scale.setScalar(isChild ? 0.72 : 0.96);
+
+        const skin = new THREE.MeshStandardMaterial({ color: 0xfed7aa, roughness: 0.5 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.4 });
+        const legsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+        const hairMat = new THREE.MeshStandardMaterial({ color: isElderly ? 0xe2e8f0 : 0x312e81, roughness: 0.6 });
+
+        const legs = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.75, 0.28), legsMat);
+        legs.position.y = 0.375;
+        legs.castShadow = true;
+        g.add(legs);
+
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.78, 0.36), bodyMat);
+        torso.position.y = 1.12;
+        torso.castShadow = true;
+        g.add(torso);
+
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.29, 16, 16), skin);
+        head.position.y = 1.78;
+        g.add(head);
+
+        const hair = new THREE.Mesh(
+            new THREE.SphereGeometry(0.305, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+            hairMat
+        );
+        hair.position.y = 1.81;
+        g.add(hair);
+
+        if (isElderly) {
+            const cane = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.03, 0.85, 8),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+            );
+            cane.position.set(0.4, 0.42, 0.2);
+            g.add(cane);
+        }
+        return g;
+    }
+
+    function createItemModel(kind) {
+        const g = new THREE.Group();
+        if (kind === 'kitten') {
+            const fur = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 });
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 14), fur);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14), fur);
+            head.position.set(0, 0.28, 0.18);
+            const earGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+            const e1 = new THREE.Mesh(earGeo, fur); e1.position.set(-0.11, 0.48, 0.18);
+            const e2 = new THREE.Mesh(earGeo, fur); e2.position.set(0.11, 0.48, 0.18);
+            g.add(body, head, e1, e2);
+        } else if (kind === 'trash') {
+            const cap = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.18, 0.18, 0.55, 12),
+                new THREE.MeshBasicMaterial({ color: 0x34d399 })
+            );
+            cap.rotation.z = 0.7;
+            g.add(cap);
+        } else if (kind === 'basket') {
+            const bsk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.36, 0.26, 0.38, 12),
+                new THREE.MeshStandardMaterial({ color: 0xf59e0b })
+            );
+            g.add(bsk);
+        } else if (kind === 'ball') {
+            const ball = new THREE.Mesh(
+                new THREE.SphereGeometry(0.34, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+            );
+            g.add(ball);
+        } else if (kind === 'water_bottle') {
+            const jug = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.22, 0.62, 12),
+                new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+            );
+            g.add(jug);
+        } else if (kind === 'balloon') {
+            const bal = new THREE.Mesh(
+                new THREE.SphereGeometry(0.38, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+            );
+            bal.scale.y = 1.2;
+            g.add(bal);
+        }
+        return g;
+    }
+
+    function spawnFlowersCluster(x, z, count = 14) {
+        const colors = [0x22d3ee, 0xfacc15, 0xf472b6, 0x34d399, 0xa855f7];
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 0.6 + Math.random() * 3.6;
+            const fg = new THREE.Group();
+            fg.position.set(x + Math.cos(angle) * dist, 0.24, z + Math.sin(angle) * dist);
+
+            const stem = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.04, 0.55, 6),
+                new THREE.MeshBasicMaterial({ color: 0x10b981 })
+            );
+            stem.position.y = 0.27;
+            const petal = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.24, 0),
+                new THREE.MeshBasicMaterial({ color: colors[i % colors.length] })
+            );
+            petal.position.y = 0.58;
+            fg.add(stem, petal);
+            fg.scale.setScalar(0.01);
+            worldGroup.add(fg);
+            bloomFlowers.push({ mesh: fg, targetScale: 0.85 + Math.random() * 0.5 });
+        }
+    }
+
+    // ----------------------------------------------------------------------------
+    // 9. טעינת הרובע העתידני ובניית כל הישויות
+    // ----------------------------------------------------------------------------
+    function loadStage(idx) {
+        Game.stageIdx = idx;
+        const cfg = STAGES[idx];
+
+        while (worldGroup.children.length > 0) {
+            worldGroup.remove(worldGroup.children[0]);
+        }
+        document.getElementById('world-labels-layer').innerHTML = '';
+
+        solidColliders = [];
+        sparkCollectibles = [];
+        deedEntities = [];
+        computerTerminals = [];
+        ambientNPCs = [];
+        flyingDrones = [];
+        liveBillboards = [];
+        bloomFlowers = [];
+
+        Game.completedDeeds = [];
+        Game.totalDeeds = cfg.deeds.length;
+        Game.activeCarryDeed = null;
+        Game.nearestAction = null;
+        Player.carryAnchor.clear();
+
+        scene.background = new THREE.Color(cfg.skyColor);
+        scene.fog = new THREE.FogExp2(cfg.fogColor, 0.0072);
+        sunLight.color.setHex(cfg.sunColor);
+
+        Player.pos.set(cfg.spawn.x, cfg.spawn.y, cfg.spawn.z);
+        Player.vel.set(0, 0, 0);
+        Player.facingAngle = Math.PI;
+        Player.onGround = true;
+        Player.jumpsLeft = 2;
+
+        const lengthZ = Math.abs(cfg.bounds.minZ) + cfg.bounds.maxZ + 24;
+        const centerZ = (cfg.bounds.minZ + cfg.bounds.maxZ) / 2;
+
+        // 1. כביש עתידני כהה עם פסי ניאון מוארים
+        const road = new THREE.Mesh(
+            new THREE.PlaneGeometry(11, lengthZ),
+            new THREE.MeshStandardMaterial({ color: cfg.roadColor, roughness: 0.35, metalness: 0.5 })
+        );
+        road.rotation.x = -Math.PI / 2;
+        road.position.set(0, 0, centerZ);
+        road.receiveShadow = true;
+        worldGroup.add(road);
+
+        // קווי ניאון בשולי הכביש ובמרכזו
+        const neonLineMat = new THREE.MeshBasicMaterial({ color: cfg.neonPrimary });
+        [-5.35, 5.35].forEach(lx => {
+            const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.18, lengthZ), neonLineMat);
+            edge.rotation.x = -Math.PI / 2;
+            edge.position.set(lx, 0.02, centerZ);
+            worldGroup.add(edge);
+        });
+        for (let z = cfg.bounds.maxZ; z > cfg.bounds.minZ; z -= 6) {
+            const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 2.5), new THREE.MeshBasicMaterial({ color: cfg.neonSecondary }));
+            dash.rotation.x = -Math.PI / 2;
+            dash.position.set(0, 0.02, z);
+            worldGroup.add(dash);
+        }
+
+        // מעבר חציה הולוגרפי ב-Z = -14
+        for (let cx = -4.2; cx <= 4.2; cx += 1.4) {
+            const cw = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 3.2), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+            cw.rotation.x = -Math.PI / 2;
+            cw.position.set(cx, 0.03, -14);
+            worldGroup.add(cw);
+        }
+
+        // 2. מדרכות היי-טק ופארקים ביו-אקולוגיים
+        [-1, 1].forEach(side => {
+            const sidewalk = new THREE.Mesh(
+                new THREE.BoxGeometry(8, 0.24, lengthZ),
+                new THREE.MeshStandardMaterial({ color: cfg.sidewalkColor, roughness: 0.4, metalness: 0.4 })
+            );
+            sidewalk.position.set(side * 9.5, 0.12, centerZ);
+            sidewalk.receiveShadow = true;
+            worldGroup.add(sidewalk);
+
+            const park = new THREE.Mesh(
+                new THREE.BoxGeometry(22, 0.2, lengthZ),
+                new THREE.MeshStandardMaterial({ color: cfg.parkColor, roughness: 0.75 })
+            );
+            park.position.set(side * 24.5, 0.1, centerZ);
+            park.receiveShadow = true;
+            worldGroup.add(park);
+        });
+
+        // 3. מבנים עתידניים, גשרי זכוכית, תאורת רחוב הולוגרפית ומסכי ענק
+        let bIndex = 0;
+        for (let z = 4; z >= cfg.bounds.minZ + 8; z -= 16) {
+            const colL = cfg.buildingPalette[bIndex % cfg.buildingPalette.length];
+            const colR = cfg.buildingPalette[(bIndex + 1) % cfg.buildingPalette.length];
+            const hL = 12 + (bIndex % 3) * 4.5;
+            const hR = 13 + ((bIndex + 1) % 3) * 4;
+
+            createFuturisticBuilding(-19.5, z, 4.3, hL, colL, cfg.neonPrimary);
+            createFuturisticBuilding(19.5, z - 5, 4.3, hR, colR, cfg.neonSecondary);
+
+            createSmartTree(-13.8, z - 7, cfg.neonPrimary);
+            createSmartTree(13.8, z + 2, cfg.neonSecondary);
+
+            // עמודי תאורה הולוגרפיים
+            [-6.1, 6.1].forEach((lx, sIdx) => {
+                const pole = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.08, 0.12, 4.2, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 })
+                );
+                pole.position.set(lx, 2.3, z - 2);
+                const orb = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.26, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: sIdx === 0 ? cfg.neonPrimary : cfg.neonSecondary })
+                );
+                orb.position.set(lx, 4.5, z - 2);
+                worldGroup.add(pole, orb);
+            });
+
+            if (bIndex % 2 === 1) {
+                createGlassSkybridge(z - 4, 9.5, cfg.neonPrimary);
+            }
+            bIndex++;
+        }
+
+        // 4. הצבת שלטי ענק חיים (Live Billboards) לאורך השדרה
+        createLiveBillboard(-14.5, 7.5, -20, Math.PI / 3.2, 7.5, 3.8, 'HAPPINESS');
+        createLiveBillboard(14.5, 7.5, -34, -Math.PI / 3.2, 7.5, 3.8, 'ARCADE');
+        createLiveBillboard(-14.5, 7.5, -66, Math.PI / 3.2, 7.5, 3.8, 'ARCADE');
+        createLiveBillboard(14.5, 7.5, -84, -Math.PI / 3.2, 7.5, 3.8, 'HAPPINESS');
+
+        // 5. הצבת עמדות המחשב האינטראקטיביות ברחוב
+        cfg.terminals.forEach(t => createComputerTerminal(t));
+
+        // 6. רחפנים מעופפים בשמי העיר
+        for (let i = 0; i < 6; i++) {
+            const dg = new THREE.Group();
+            const body = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.55, 1),
+                new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 })
+            );
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.85, 0.05, 8, 24),
+                new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? cfg.neonPrimary : cfg.neonSecondary })
+            );
+            ring.rotation.x = Math.PI / 2;
+            dg.add(body, ring);
+            dg.position.set((Math.random() - 0.5) * 28, 8.5 + (i % 3) * 2.5, -15 - i * 16);
+            worldGroup.add(dg);
+            flyingDrones.push({ mesh: dg, baseX: dg.position.x, baseZ: dg.position.z, speed: 0.8 + i * 0.15, phase: i });
+        }
+
+        // 7. תושבים משוטטים ברחוב
+        const npcColors = [0x38bdf8, 0xf472b6, 0xa78bfa, 0xfbbf24, 0x34d399];
+        for (let i = 0; i < 8; i++) {
+            const side = i % 2 === 0 ? -7.6 : 7.6;
+            const zStart = -8 - i * 11;
+            const npc = createNPCMesh(npcColors[i % npcColors.length], false, i % 4 === 0);
+            npc.position.set(side, 0.24, zStart);
+            worldGroup.add(npc);
+            ambientNPCs.push({ mesh: npc, baseZ: zStart, dir: i % 2 === 0 ? 1 : -1, speed: 1.5 + (i % 3) * 0.35 });
+        }
+
+        // 8. ניצוצות אור לאיסוף לאורך השדרה
+        const sparkGeo = new THREE.OctahedronGeometry(0.45, 0);
+        const sparkMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        for (let z = -6; z >= cfg.bounds.minZ + 10; z -= 9) {
+            const laneX = Math.sin(z * 0.32) * 7.5;
+            const elevY = (Math.abs(z) % 18 === 0) ? 2.1 : 1.05;
+            const m = new THREE.Mesh(sparkGeo, sparkMat);
+            m.position.set(laneX, elevY, z);
+            worldGroup.add(m);
+            sparkCollectibles.push({ mesh: m, baseY: elevY, collected: false });
+        }
+
+        // 9. בניית משימות המעשים הטובים
+        cfg.deeds.forEach((d) => {
+            const entity = {
+                data: d,
+                completed: false,
+                stage: 'START',
+                beaconMesh: null,
+                ringMesh: null,
+                targetBeacon: null,
+                targetRing: null,
+                npcMesh: null,
+                itemMesh: null,
+                labelEl: null
+            };
+
+            const createBeacon = (pos, colorHex) => {
+                const g = new THREE.Group();
+                g.position.set(pos.x, 0.26, pos.z);
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(1.15, 1.48, 32),
+                    new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide })
+                );
+                ring.rotation.x = -Math.PI / 2;
+                const beam = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.85, 1.1, 4.5, 20, 1, true),
+                    new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+                );
+                beam.position.y = 2.25;
+                g.add(ring, beam);
+                worldGroup.add(g);
+                return { group: g, ring };
+            };
+
+            if (d.type === 'escort') {
+                const b = createBeacon(d.startPos, 0xfacc15);
+                entity.beaconMesh = b.group;
+                entity.ringMesh = b.ring;
+                entity.npcMesh = createNPCMesh(d.npcColor, true, false);
+                entity.npcMesh.position.set(d.startPos.x, 0.24, d.startPos.z);
+                worldGroup.add(entity.npcMesh);
+
+                const tb = createBeacon(d.targetPos, 0x10b981);
+                tb.group.visible = false;
+                entity.targetBeacon = tb.group;
+                entity.targetRing = tb.ring;
+            } else if (d.type === 'fetch' || d.type === 'cleanup') {
+                if (d.itemPos.y > 1.3) {
+                    const plat = new THREE.Mesh(
+                        new THREE.BoxGeometry(3.2, d.itemPos.y - 0.5, 3.2),
+                        new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.5 })
+                    );
+                    plat.position.set(d.itemPos.x, (d.itemPos.y - 0.5) / 2, d.itemPos.z);
+                    plat.castShadow = true;
+                    plat.receiveShadow = true;
+                    worldGroup.add(plat);
+                    solidColliders.push({
+                        minX: d.itemPos.x - 1.6, maxX: d.itemPos.x + 1.6,
+                        minY: 0, maxY: d.itemPos.y - 0.5,
+                        minZ: d.itemPos.z - 1.6, maxZ: d.itemPos.z + 1.6
+                    });
+                }
+
+                const b = createBeacon(d.itemPos, 0xfacc15);
+                entity.beaconMesh = b.group;
+                entity.ringMesh = b.ring;
+
+                entity.itemMesh = createItemModel(d.itemKind);
+                entity.itemMesh.position.set(d.itemPos.x, d.itemPos.y + 0.35, d.itemPos.z);
+                worldGroup.add(entity.itemMesh);
+
+                const tb = createBeacon(d.targetPos, 0x10b981);
+                tb.group.visible = false;
+                entity.targetBeacon = tb.group;
+                entity.targetRing = tb.ring;
+
+                if (d.npcColor) {
+                    entity.npcMesh = createNPCMesh(d.npcColor, false, d.itemKind === 'kitten' || d.itemKind === 'ball' || d.itemKind === 'balloon');
+                    entity.npcMesh.position.set(d.targetPos.x, 0.24, d.targetPos.z);
+                    worldGroup.add(entity.npcMesh);
+                } else {
+                    const bin = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.55, 0.45, 1.3, 14),
+                        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, emissiveIntensity: 0.4 })
+                    );
+                    bin.position.set(d.targetPos.x, 0.85, d.targetPos.z);
+                    worldGroup.add(bin);
+                }
+            } else if (d.type === 'instant') {
+                const b = createBeacon(d.startPos, 0x38bdf8);
+                entity.beaconMesh = b.group;
+                entity.ringMesh = b.ring;
+
+                const bed = new THREE.Mesh(
+                    new THREE.BoxGeometry(3.6, 0.35, 3.6),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 })
+                );
+                bed.position.set(d.startPos.x, 0.32, d.startPos.z);
+                worldGroup.add(bed);
+            }
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'absolute px-3 py-1 rounded-full bg-slate-900/90 border border-amber-300/80 text-amber-200 text-xs font-bold shadow-lg whitespace-nowrap transform -translate-x-1/2 -translate-y-full';
+            labelEl.textContent = d.shortLabel;
+            document.getElementById('world-labels-layer').appendChild(labelEl);
+            entity.labelEl = labelEl;
+
+            deedEntities.push(entity);
+        });
+
+        updateHUD();
+        updateLiveBillboards(0);
+        showToast(`🌆 ברוכים הבאים ל${cfg.name}! השלם מעשים טובים או שחק במחשב ברחוב`, 'cyan');
+    }
+
+    // ----------------------------------------------------------------------------
+    // 10. אפקטי חלקיקים ופיזיקת הדמות בעיר
+    // ----------------------------------------------------------------------------
+    function spawnJoyBurst(pos, count = 18) {
+        const colors = [0x22d3ee, 0xfacc15, 0x34d399, 0xf472b6];
+        for (let i = 0; i < count; i++) {
+            const m = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.18, 0),
+                new THREE.MeshBasicMaterial({ color: colors[i % colors.length] })
+            );
+            m.position.copy(pos).add(new THREE.Vector3(0, 1.2, 0));
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 2.5 + Math.random() * 4.5;
+            const vel = new THREE.Vector3(Math.cos(angle) * spd, 4.5 + Math.random() * 4.5, Math.sin(angle) * spd);
+            fxGroup.add(m);
+            floatingParticles.push({ mesh: m, vel, life: 0.95 });
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let i = floatingParticles.length - 1; i >= 0; i--) {
+            const p = floatingParticles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                fxGroup.remove(p.mesh);
+                floatingParticles.splice(i, 1);
+                continue;
+            }
+            p.vel.y -= 9.5 * dt;
+            p.mesh.position.addScaledVector(p.vel, dt);
+            p.mesh.rotation.y += 4 * dt;
+            p.mesh.scale.setScalar(Math.max(0.01, p.life));
+        }
+
+        bloomFlowers.forEach(f => {
+            if (f.mesh.scale.x < f.targetScale) {
+                f.mesh.scale.setScalar(Math.min(f.targetScale, f.mesh.scale.x + dt * 1.8));
+            }
+        });
+    }
+
+    function triggerJump() {
+        if (Game.state !== 'PLAYING') return;
+        if (Player.onGround) {
+            Player.vel.y = 11.4;
+            Player.onGround = false;
+            Player.jumpsLeft = 1;
+            audio.playJump(false);
+        } else if (Player.jumpsLeft > 0) {
+            Player.vel.y = 10.4;
+            Player.jumpsLeft = 0;
+            audio.playJump(true);
+            spawnJoyBurst(Player.pos, 8);
+        }
+    }
+
+    function handleInteractKey() {
+        if (Game.state !== 'PLAYING' || !Game.nearestAction) return;
+
+        if (Game.nearestAction.type === 'COMPUTER') {
+            openArcadeRacingGame();
+            return;
+        }
+
+        const { entity, actionType } = Game.nearestAction;
+        const d = entity.data;
+
+        if (actionType === 'START_ESCORT') {
+            Game.activeCarryDeed = entity;
+            entity.stage = 'CARRYING';
+            entity.beaconMesh.visible = false;
+            entity.targetBeacon.visible = true;
+            entity.labelEl.textContent = d.targetLabel;
+            audio.playPickup();
+            showToast(d.carryLabel, 'amber');
+        } else if (actionType === 'PICKUP_ITEM') {
+            Game.activeCarryDeed = entity;
+            entity.stage = 'CARRYING';
+            entity.beaconMesh.visible = false;
+            entity.targetBeacon.visible = true;
+            entity.labelEl.textContent = d.targetLabel;
+            if (entity.itemMesh) {
+                worldGroup.remove(entity.itemMesh);
+                entity.itemMesh.position.set(0, 0, 0);
+                Player.carryAnchor.add(entity.itemMesh);
+            }
+            audio.playPickup();
+            showToast(d.carryLabel, 'amber');
+        } else if (actionType === 'FINISH_DEED') {
+            completeDeed(entity);
+        }
+    }
+
+    function completeDeed(entity) {
+        if (entity.completed) return;
+        entity.completed = true;
+        entity.stage = 'DONE';
+        if (entity.beaconMesh) entity.beaconMesh.visible = false;
+        if (entity.targetBeacon) entity.targetBeacon.visible = false;
+        if (entity.labelEl) entity.labelEl.style.display = 'none';
+
+        if (Game.activeCarryDeed === entity) {
+            Game.activeCarryDeed = null;
+            Player.carryAnchor.clear();
+        }
+
+        if (entity.data.targetPos) {
+            if (entity.npcMesh) {
+                entity.npcMesh.position.set(entity.data.targetPos.x, 0.24, entity.data.targetPos.z);
+            }
+            if (entity.itemMesh && entity.data.type === 'fetch') {
+                entity.itemMesh.position.set(entity.data.targetPos.x + 0.5, 0.85, entity.data.targetPos.z);
+                worldGroup.add(entity.itemMesh);
+            }
+            spawnFlowersCluster(entity.data.targetPos.x, entity.data.targetPos.z, 16);
+        } else if (entity.data.startPos) {
+            spawnFlowersCluster(entity.data.startPos.x, entity.data.startPos.z, 20);
+        }
+
+        Game.completedDeeds.push(entity.data);
+        Game.score += entity.data.points;
+        Player.celebrateTimer = 1.2;
+
+        audio.playDeedDone();
+        spawnJoyBurst(Player.pos, 26);
+        showToast(`🌟 כל הכבוד! ${entity.data.title} (+${entity.data.points} נק׳)`, 'emerald');
+
+        updateHUD();
+
+        if (Game.completedDeeds.length >= Game.totalDeeds) {
+            setTimeout(() => {
+                if (Game.state === 'PLAYING') {
+                    triggerStageVictory();
+                }
+            }, 1350);
+        }
+    }
+
+    function updateCitySimulation(dt, elapsed) {
+        const cfg = STAGES[Game.stageIdx];
+
+        if (Input.keys['KeyQ']) Game.cameraYaw += 2.0 * dt;
+
+        const forward = new THREE.Vector3(-Math.sin(Game.cameraYaw), 0, -Math.cos(Game.cameraYaw));
+        const right = new THREE.Vector3(Math.cos(Game.cameraYaw), 0, -Math.sin(Game.cameraYaw));
+
+        let moveF = 0, moveR = 0;
+        if (Input.keys['KeyW'] || Input.keys['ArrowUp']) moveF += 1;
+        if (Input.keys['KeyS'] || Input.keys['ArrowDown']) moveF -= 1;
+        if (Input.keys['KeyD'] || Input.keys['ArrowRight']) moveR += 1;
+        if (Input.keys['KeyA'] || Input.keys['ArrowLeft']) moveR -= 1;
+
+        moveR += Input.joyX;
+        moveF -= Input.joyY;
+
+        const dir = new THREE.Vector3().addScaledVector(forward, moveF).addScaledVector(right, moveR);
+        const isMoving = dir.lengthSq() > 0.01;
+        if (isMoving) dir.normalize();
+
+        const wantsSprint = (Input.keys['ShiftLeft'] || Input.keys['ShiftRight'] || Input.mobileSprint) && isMoving;
+        let isSprinting = false;
+        if (wantsSprint && !Game.staminaExhausted && Game.stamina > 0) {
+            isSprinting = true;
+            Game.stamina = Math.max(0, Game.stamina - 30 * dt);
+            if (Game.stamina === 0) Game.staminaExhausted = true;
+        } else {
+            Game.stamina = Math.min(100, Game.stamina + 25 * dt);
+            if (Game.stamina > 30) Game.staminaExhausted = false;
+        }
+
+        const speed = isSprinting ? 14.8 : 9.6;
+        Player.vel.x += (dir.x * speed - Player.vel.x) * Math.min(1, 14 * dt);
+        Player.vel.z += (dir.z * speed - Player.vel.z) * Math.min(1, 14 * dt);
+        Player.vel.y -= 28 * dt;
+
+        const prevPos = Player.pos.clone();
+        Player.pos.x = Math.max(cfg.bounds.minX, Math.min(cfg.bounds.maxX, Player.pos.x + Player.vel.x * dt));
+        Player.pos.z = Math.max(cfg.bounds.minZ, Math.min(cfg.bounds.maxZ, Player.pos.z + Player.vel.z * dt));
+
+        const pRadius = 0.45;
+        solidColliders.forEach(box => {
+            if (Player.pos.y < box.maxY - 0.12 && Player.pos.y + 1.8 > box.minY) {
+                if (
+                    Player.pos.x + pRadius > box.minX && Player.pos.x - pRadius < box.maxX &&
+                    Player.pos.z + pRadius > box.minZ && Player.pos.z - pRadius < box.maxZ
+                ) {
+                    if (prevPos.x + pRadius <= box.minX || prevPos.x - pRadius >= box.maxX) Player.pos.x = prevPos.x;
+                    if (prevPos.z + pRadius <= box.minZ || prevPos.z - pRadius >= box.maxZ) Player.pos.z = prevPos.z;
+                }
+            }
+        });
+
+        Player.pos.y += Player.vel.y * dt;
+
+        let groundY = Math.abs(Player.pos.x) > 5.5 ? 0.24 : 0.0;
+        solidColliders.forEach(box => {
+            if (
+                Player.pos.x + pRadius > box.minX && Player.pos.x - pRadius < box.maxX &&
+                Player.pos.z + pRadius > box.minZ && Player.pos.z - pRadius < box.maxZ
+            ) {
+                if (prevPos.y >= box.maxY - 0.15 && Player.vel.y <= 0) {
+                    groundY = Math.max(groundY, box.maxY);
+                }
+            }
+        });
+
+        if (Player.pos.y <= groundY) {
+            Player.pos.y = groundY;
+            Player.vel.y = 0;
+            Player.onGround = true;
+            Player.jumpsLeft = 2;
+        } else {
+            Player.onGround = false;
+        }
+
+        if (isMoving) {
+            const desiredAngle = Math.atan2(dir.x, dir.z);
+            let diff = desiredAngle - Player.facingAngle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            Player.facingAngle += diff * Math.min(1, 14 * dt);
+        }
+
+        // הנפשת הדמות
+        Player.root.position.copy(Player.pos);
+        Player.root.rotation.y = Player.facingAngle;
+
+        const horizSpeed = Math.hypot(Player.vel.x, Player.vel.z);
+        if (Player.celebrateTimer > 0) {
+            Player.celebrateTimer -= dt;
+            Player.leftArm.rotation.x = -2.6;
+            Player.rightArm.rotation.x = -2.6;
+            Player.leftArm.rotation.z = -0.35 + Math.sin(elapsed * 18) * 0.25;
+            Player.rightArm.rotation.z = 0.35 - Math.sin(elapsed * 18) * 0.25;
+        } else if (!Player.onGround) {
+            Player.leftLeg.rotation.x = 0.55;
+            Player.rightLeg.rotation.x = -0.45;
+            Player.leftArm.rotation.x = Game.activeCarryDeed ? -1.2 : -0.9;
+            Player.rightArm.rotation.x = Game.activeCarryDeed ? -1.2 : -0.9;
+        } else if (horizSpeed > 0.6) {
+            Player.runCycle += horizSpeed * dt * 1.45;
+            const swing = Math.sin(Player.runCycle) * (isSprinting ? 1.05 : 0.78);
+            Player.leftLeg.rotation.x = swing;
+            Player.rightLeg.rotation.x = -swing;
+            if (Game.activeCarryDeed && Game.activeCarryDeed.data.type !== 'escort') {
+                Player.leftArm.rotation.x = -1.1;
+                Player.rightArm.rotation.x = -1.1;
+            } else {
+                Player.leftArm.rotation.x = -swing * 0.85;
+                Player.rightArm.rotation.x = swing * 0.85;
+            }
+            Player.leftArm.rotation.z = 0;
+            Player.rightArm.rotation.z = 0;
+            Player.torso.position.y = 1.15 + Math.abs(Math.cos(Player.runCycle)) * 0.08;
+            Player.torso.rotation.x = isSprinting ? 0.22 : 0.08;
+        } else {
+            Player.leftLeg.rotation.x *= 0.85;
+            Player.rightLeg.rotation.x *= 0.85;
+            Player.leftArm.rotation.x = Game.activeCarryDeed ? -1.1 : Math.sin(elapsed * 2.5) * 0.06;
+            Player.rightArm.rotation.x = Game.activeCarryDeed ? -1.1 : -Math.sin(elapsed * 2.5) * 0.06;
+            Player.leftArm.rotation.z = 0;
+            Player.rightArm.rotation.z = 0;
+            Player.torso.rotation.x = 0;
+        }
+
+        // ליווי NPC
+        if (Game.activeCarryDeed && Game.activeCarryDeed.data.type === 'escort') {
+            const npc = Game.activeCarryDeed.npcMesh;
+            const followTarget = new THREE.Vector3(
+                Player.pos.x - Math.sin(Player.facingAngle) * 1.35,
+                0.24,
+                Player.pos.z - Math.cos(Player.facingAngle) * 1.35
+            );
+            npc.position.lerp(followTarget, Math.min(1, 6 * dt));
+            npc.rotation.y = Player.facingAngle;
+            npc.position.y = 0.24 + Math.abs(Math.sin(elapsed * 9)) * 0.08;
+        }
+
+        // רחפנים ותושבים
+        flyingDrones.forEach(d => {
+            d.mesh.position.x = d.baseX + Math.sin(elapsed * d.speed + d.phase) * 7;
+            d.mesh.position.y += Math.sin(elapsed * 3 + d.phase) * 0.01;
+            d.mesh.rotation.y += 1.8 * dt;
+        });
+
+        ambientNPCs.forEach(n => {
+            n.mesh.position.z += n.dir * n.speed * dt;
+            if (Math.abs(n.mesh.position.z - n.baseZ) > 7) n.dir *= -1;
+            n.mesh.rotation.y = n.dir > 0 ? 0 : Math.PI;
+            n.mesh.position.y = 0.24 + Math.abs(Math.sin(elapsed * 8 + n.baseZ)) * 0.06;
+        });
+
+        // איסוף ניצוצות אור
+        sparkCollectibles.forEach(s => {
+            if (s.collected) return;
+            s.mesh.position.y = s.baseY + Math.sin(elapsed * 3.5 + s.mesh.position.z) * 0.18;
+            s.mesh.rotation.y += 2.6 * dt;
+            if (Player.pos.distanceTo(s.mesh.position) < 1.35) {
+                s.collected = true;
+                s.mesh.visible = false;
+                Game.sparks++;
+                Game.score += 50;
+                audio.playSparkCollect();
+                spawnJoyBurst(s.mesh.position, 10);
+                updateHUD();
+            }
+        });
+
+        // בדיקת קרבה למעשים טובים ולעמדות המחשב
+        let foundAction = null;
+
+        // 1. בדיקת עמדות מחשב ברחוב
+        computerTerminals.forEach(term => {
+            term.holoCar.rotation.y += 2.2 * dt;
+            term.holoCar.position.y = 2.95 + Math.sin(elapsed * 3.5) * 0.12;
+            term.glowRing.scale.setScalar(0.96 + Math.sin(elapsed * 5) * 0.08);
+
+            const worldPos = new THREE.Vector3(term.data.x, 3.6, term.data.z);
+            const proj = worldPos.project(camera);
+            if (proj.z < 1) {
+                term.labelEl.style.left = `${(proj.x * 0.5 + 0.5) * window.innerWidth}px`;
+                term.labelEl.style.top = `${(-proj.y * 0.5 + 0.5) * window.innerHeight}px`;
+                term.labelEl.style.opacity = '1';
+            } else {
+                term.labelEl.style.opacity = '0';
+            }
+
+            const dist = Math.hypot(Player.pos.x - term.data.x, Player.pos.z - term.data.z);
+            if (dist < 2.75) {
+                foundAction = {
+                    type: 'COMPUTER',
+                    icon: '🏎️',
+                    text: 'לחץ [E] להתקרב למחשב ולשחק במירוץ מכוניות!'
+                };
+            }
+        });
+
+        // 2. בדיקת משימות מעשים טובים
+        deedEntities.forEach(ent => {
+            if (ent.completed) return;
+            if (ent.ringMesh) ent.ringMesh.scale.setScalar(0.95 + Math.sin(elapsed * 5) * 0.1);
+            if (ent.targetRing) ent.targetRing.scale.setScalar(0.95 + Math.sin(elapsed * 5) * 0.1);
+            if (ent.itemMesh && ent.stage === 'START') ent.itemMesh.rotation.y += 2 * dt;
+
+            let activeWorldPos = null;
+            if (ent.stage === 'START') {
+                const p = ent.data.startPos || ent.data.itemPos;
+                activeWorldPos = new THREE.Vector3(p.x, p.y + 1.8, p.z);
+                const dist = Math.hypot(Player.pos.x - p.x, Player.pos.z - p.z) + Math.abs(Player.pos.y - (p.y - 0.3));
+                if (dist < 2.6 && !Game.activeCarryDeed) {
+                    if (ent.data.type === 'escort') foundAction = { type: 'DEED', entity: ent, actionType: 'START_ESCORT', icon: '👵', text: 'לחץ [E] כדי ללוות!' };
+                    else if (ent.data.type === 'fetch' || ent.data.type === 'cleanup') foundAction = { type: 'DEED', entity: ent, actionType: 'PICKUP_ITEM', icon: '🤝', text: 'לחץ [E] כדי להרים!' };
+                    else if (ent.data.type === 'instant') foundAction = { type: 'DEED', entity: ent, actionType: 'FINISH_DEED', icon: '🌻', text: 'לחץ [E] להפעיל גינה חכמה!' };
+                }
+            } else if (ent.stage === 'CARRYING') {
+                const tp = ent.data.targetPos;
+                activeWorldPos = new THREE.Vector3(tp.x, tp.y + 2.1, tp.z);
+                const dist = Math.hypot(Player.pos.x - tp.x, Player.pos.z - tp.z);
+                if (dist < 2.7) {
+                    foundAction = { type: 'DEED', entity: ent, actionType: 'FINISH_DEED', icon: '🌟', text: 'לחץ [E] להשלמת המעשה הטוב!' };
+                }
+            }
+
+            if (activeWorldPos && ent.labelEl) {
+                const projected = activeWorldPos.clone().project(camera);
+                if (projected.z < 1) {
+                    ent.labelEl.style.left = `${(projected.x * 0.5 + 0.5) * window.innerWidth}px`;
+                    ent.labelEl.style.top = `${(-projected.y * 0.5 + 0.5) * window.innerHeight}px`;
+                    ent.labelEl.style.opacity = '1';
+                } else {
+                    ent.labelEl.style.opacity = '0';
+                }
+            }
+        });
+
+        Game.nearestAction = foundAction;
+        const promptBox = document.getElementById('action-prompt');
+        if (foundAction) {
+            promptBox.classList.remove('hidden');
+            document.getElementById('action-prompt-icon').textContent = foundAction.icon;
+            document.getElementById('action-prompt-text').textContent = foundAction.text;
+        } else {
+            promptBox.classList.add('hidden');
+        }
+
+        const carryBadge = document.getElementById('carrying-badge');
+        if (Game.activeCarryDeed) {
+            carryBadge.classList.remove('hidden');
+            document.getElementById('carrying-text').textContent = Game.activeCarryDeed.data.carryLabel;
+        } else {
+            carryBadge.classList.add('hidden');
+        }
+
+        document.getElementById('hud-stamina-bar').style.width = `${Math.round(Game.stamina)}%`;
+
+        // מצלמת מעקב חלקה
+        const camDist = isSprinting ? 10.6 : 9.4;
+        const desiredCamPos = new THREE.Vector3(
+            Player.pos.x + Math.sin(Game.cameraYaw) * Math.cos(Game.cameraPitch) * camDist,
+            Player.pos.y + Math.sin(Game.cameraPitch) * camDist + 2.1,
+            Player.pos.z + Math.cos(Game.cameraYaw) * Math.cos(Game.cameraPitch) * camDist
+        );
+        camera.position.lerp(desiredCamPos, 1 - Math.pow(0.001, dt));
+        camera.lookAt(Player.pos.x, Player.pos.y + 1.35, Player.pos.z);
+
+        sunLight.position.set(Player.pos.x + 30, Player.pos.y + 55, Player.pos.z + 25);
+        sunLight.target.position.copy(Player.pos);
+
+        drawMinimap();
+    }
+
+    // ----------------------------------------------------------------------------
+    // 11. ציור המיני-מפה (2D Radar Minimap)
+    // ----------------------------------------------------------------------------
+    function drawMinimap() {
+        const mmCanvas = document.getElementById('minimap-canvas');
+        if (!mmCanvas) return;
+        const ctx = mmCanvas.getContext('2d');
+        const w = mmCanvas.width;
+        const h = mmCanvas.height;
+        const cfg = STAGES[Game.stageIdx];
+
+        ctx.clearRect(0, 0, w, h);
+
+        // רקע הכביש
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(w * 0.36, 0, w * 0.28, h);
+
+        const toMapX = (wx) => ((wx - cfg.bounds.minX) / (cfg.bounds.maxX - cfg.bounds.minX)) * w;
+        const toMapY = (wz) => ((wz - cfg.bounds.minZ) / (cfg.bounds.maxZ - cfg.bounds.minZ)) * h;
+
+        // עמדות מחשב (נקודות טורקיז)
+        computerTerminals.forEach(t => {
+            const mx = toMapX(t.data.x);
+            const my = toMapY(t.data.z);
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // מעשים טובים פעילים (נקודות זהב/ירוק)
+        deedEntities.forEach(ent => {
+            if (ent.completed) return;
+            const pos = ent.stage === 'START' ? (ent.data.startPos || ent.data.itemPos) : ent.data.targetPos;
+            const mx = toMapX(pos.x);
+            const my = toMapY(pos.z);
+            ctx.fillStyle = ent.stage === 'START' ? '#facc15' : '#34d399';
+            ctx.beginPath();
+            ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // מיקום השחקן
+        const px = toMapX(Player.pos.x);
+        const py = toMapY(Player.pos.z);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    // ============================================================================
+    // 12. משחק מירוץ המכוניות התלת-ממדי המלא בתוך עמדת המחשב (NEO-RACER 3D)
+    // ============================================================================
+    const Race = {
+        initialized: false,
+        renderer: null,
+        scene: null,
+        camera: null,
+        curve: null,
+        trackPoints: [],
+        trackHalfWidth: 11,
+        totalLaps: 3,
+        countdownTimer: 0,
+        raceTime: 0,
+        finished: false,
+        playerCar: null,
+        aiCars: [],
+        turboPads: [],
+        obstacles: [],
+        mobileInput: { gas: false, brake: false, left: false, right: false, nitro: false }
+    };
+
+    function initRaceEngine() {
+        if (Race.initialized) return;
+        const rCanvas = document.getElementById('race-canvas');
+        Race.renderer = new THREE.WebGLRenderer({ canvas: rCanvas, antialias: true });
+        Race.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        Race.scene = new THREE.Scene();
+        Race.scene.background = new THREE.Color(0x050817);
+        Race.scene.fog = new THREE.FogExp2(0x09122c, 0.0045);
+
+        Race.camera = new THREE.PerspectiveCamera(65, 16 / 9, 0.1, 500);
+
+        const rHemi = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 1.0);
+        Race.scene.add(rHemi);
+
+        const rDir = new THREE.DirectionalLight(0xffffff, 1.3);
+        rDir.position.set(40, 80, 40);
+        Race.scene.add(rDir);
+
+        // מסלול מירוצים מעגלי סגור עם פניות מרגשות
+        const controlPoints = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -90),
+            new THREE.Vector3(65, 0, -155),
+            new THREE.Vector3(145, 0, -135),
+            new THREE.Vector3(175, 0, -45),
+            new THREE.Vector3(120, 0, 25),
+            new THREE.Vector3(145, 0, 95),
+            new THREE.Vector3(85, 0, 145),
+            new THREE.Vector3(10, 0, 110),
+            new THREE.Vector3(0, 0, 50)
+        ];
+        Race.curve = new THREE.CatmullRomCurve3(controlPoints, true);
+        const divisions = 360;
+        Race.trackPoints = Race.curve.getSpacedPoints(divisions);
+
+        // בניית משטח המסלול התלת-ממדי + מעקות ניאון
+        const roadPositions = [];
+        const leftRailPositions = [];
+        const rightRailPositions = [];
+        const up = new THREE.Vector3(0, 1, 0);
+
+        for (let i = 0; i <= divisions; i++) {
+            const t = i / divisions;
+            const pt = Race.curve.getPointAt(t);
+            const tangent = Race.curve.getTangentAt(t).normalize();
+            const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+            const leftEdge = pt.clone().addScaledVector(normal, -Race.trackHalfWidth);
+            const rightEdge = pt.clone().addScaledVector(normal, Race.trackHalfWidth);
+
+            roadPositions.push(leftEdge.x, 0.02, leftEdge.z);
+            roadPositions.push(rightEdge.x, 0.02, rightEdge.z);
+
+            leftRailPositions.push(leftEdge);
+            rightRailPositions.push(rightEdge);
+        }
+
+        const roadGeo = new THREE.BufferGeometry();
+        const vertices = [];
+        for (let i = 0; i < divisions; i++) {
+            const a = i * 2;
+            const b = i * 2 + 1;
+            const c = (i + 1) * 2;
+            const d = (i + 1) * 2 + 1;
+
+            vertices.push(
+                roadPositions[a * 3], roadPositions[a * 3 + 1], roadPositions[a * 3 + 2],
+                roadPositions[b * 3], roadPositions[b * 3 + 1], roadPositions[b * 3 + 2],
+                roadPositions[c * 3], roadPositions[c * 3 + 1], roadPositions[c * 3 + 2],
+
+                roadPositions[b * 3], roadPositions[b * 3 + 1], roadPositions[b * 3 + 2],
+                roadPositions[d * 3], roadPositions[d * 3 + 1], roadPositions[d * 3 + 2],
+                roadPositions[c * 3], roadPositions[c * 3 + 1], roadPositions[c * 3 + 2]
+            );
+        }
+        roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        roadGeo.computeVertexNormals();
+        const roadMesh = new THREE.Mesh(
+            roadGeo,
+            new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.4, metalness: 0.4, side: THREE.DoubleSide })
+        );
+        Race.scene.add(roadMesh);
+
+        // רצפת רשת עתידנית מתחת למסלול
+        const grid = new THREE.GridHelper(520, 52, 0x22d3ee, 0x1e293b);
+        grid.position.set(85, -0.1, -10);
+        Race.scene.add(grid);
+
+        // מעקות ניאון זוהרים משני צידי המסלול
+        const leftCurve = new THREE.CatmullRomCurve3(leftRailPositions, true);
+        const rightCurve = new THREE.CatmullRomCurve3(rightRailPositions, true);
+
+        const leftTube = new THREE.Mesh(
+            new THREE.TubeGeometry(leftCurve, 260, 0.25, 6, true),
+            new THREE.MeshBasicMaterial({ color: 0x22d3ee })
+        );
+        leftTube.position.y = 0.35;
+
+        const rightTube = new THREE.Mesh(
+            new THREE.TubeGeometry(rightCurve, 260, 0.25, 6, true),
+            new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+        );
+        rightTube.position.y = 0.35;
+        Race.scene.add(leftTube, rightTube);
+
+        // קו זינוק / סיום משובץ + שער ניאון
+        const startPt = Race.curve.getPointAt(0);
+        const startTan = Race.curve.getTangentAt(0).normalize();
+        const startAngle = Math.atan2(startTan.x, startTan.z);
+
+        const finishGate = new THREE.Group();
+        finishGate.position.copy(startPt);
+        finishGate.rotation.y = startAngle;
+
+        const arch = new THREE.Mesh(
+            new THREE.TorusGeometry(Race.trackHalfWidth + 0.5, 0.4, 10, 32, Math.PI),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+        );
+        finishGate.add(arch);
+
+        const lineStrip = new THREE.Mesh(
+            new THREE.PlaneGeometry(Race.trackHalfWidth * 2, 2.2),
+            new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+        );
+        lineStrip.rotation.x = -Math.PI / 2;
+        lineStrip.position.y = 0.05;
+        finishGate.add(lineStrip);
+        Race.scene.add(finishGate);
+
+        // מגדלי ניאון דקורטיביים מסביב למסלול
+        for (let i = 0; i < 24; i++) {
+            const ang = (i / 24) * Math.PI * 2;
+            const r = 135 + (i % 3) * 28;
+            const bx = 85 + Math.cos(ang) * r;
+            const bz = -10 + Math.sin(ang) * r;
+            const bh = 22 + (i % 4) * 12;
+            const bMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(10, bh, 10),
+                new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 })
+            );
+            bMesh.position.set(bx, bh / 2, bz);
+            Race.scene.add(bMesh);
+        }
+
+        // פסי האצה (Turbo Pads) על המסלול
+        const turboTs = [0.12, 0.32, 0.55, 0.78];
+        turboTs.forEach(t => {
+            const pt = Race.curve.getPointAt(t);
+            const tan = Race.curve.getTangentAt(t).normalize();
+            const pad = new THREE.Mesh(
+                new THREE.PlaneGeometry(4.2, 6.5),
+                new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
+            );
+            pad.position.set(pt.x, 0.06, pt.z);
+            pad.rotation.x = -Math.PI / 2;
+            pad.rotation.z = -Math.atan2(tan.x, tan.z);
+            Race.scene.add(pad);
+            Race.turboPads.push({ pos: pt.clone() });
+        });
+
+        // מכשולי אנרגיה כתומים על המסלול
+        const obsTs = [0.18, 0.42, 0.66, 0.88];
+        obsTs.forEach((t, idx) => {
+            const pt = Race.curve.getPointAt(t);
+            const tan = Race.curve.getTangentAt(t).normalize();
+            const norm = new THREE.Vector3().crossVectors(tan, up).normalize();
+            const offset = (idx % 2 === 0 ? -4.5 : 4.5);
+            const obsPos = pt.clone().addScaledVector(norm, offset);
+
+            const cone = new THREE.Mesh(
+                new THREE.ConeGeometry(0.95, 2.0, 12),
+                new THREE.MeshBasicMaterial({ color: 0xf97316 })
+            );
+            cone.position.set(obsPos.x, 1.0, obsPos.z);
+            Race.scene.add(cone);
+            Race.obstacles.push({ mesh: cone, pos: obsPos });
+        });
+
+        // יצירת מכונית השחקן + 3 מכוניות יריבות (AI)
+        Race.playerCar = createRaceCarMesh(0x22d3ee, 0xfacc15);
+        Race.scene.add(Race.playerCar.mesh);
+
+        const aiColors = [0xf43f5e, 0xa855f7, 0x34d399];
+        for (let i = 0; i < 3; i++) {
+            const aiMesh = createRaceCarMesh(aiColors[i], 0xffffff);
+            Race.scene.add(aiMesh.mesh);
+            Race.aiCars.push({
+                mesh: aiMesh.mesh,
+                t: 0,
+                lap: 1,
+                laneOffset: (i - 1) * 4.2,
+                baseSpeed: 0.068 + i * 0.0045
+            });
+        }
+
+        Race.initialized = true;
+    }
+
+    function createRaceCarMesh(bodyColor, accentColor) {
+        const g = new THREE.Group();
+
+        const chassis = new THREE.Mesh(
+            new THREE.BoxGeometry(2.1, 0.65, 4.2),
+            new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.25, metalness: 0.75 })
+        );
+        chassis.position.y = 0.55;
+        g.add(chassis);
+
+        const cabin = new THREE.Mesh(
+            new THREE.BoxGeometry(1.55, 0.55, 2.1),
+            new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.1, metalness: 0.9 })
+        );
+        cabin.position.set(0, 1.05, -0.2);
+        g.add(cabin);
+
+        const spoiler = new THREE.Mesh(
+            new THREE.BoxGeometry(2.15, 0.14, 0.45),
+            new THREE.MeshBasicMaterial({ color: accentColor })
+        );
+        spoiler.position.set(0, 1.15, -1.9);
+        g.add(spoiler);
+
+        const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.35, 14);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+        [[-1.1, 1.3], [1.1, 1.3], [-1.1, -1.3], [1.1, -1.3]].forEach(([wx, wz]) => {
+            const w = new THREE.Mesh(wheelGeo, wheelMat);
+            w.rotation.z = Math.PI / 2;
+            w.position.set(wx, 0.42, wz);
+            g.add(w);
+        });
+
+        // להבת ניטרו אחורית
+        const flame = new THREE.Mesh(
+            new THREE.ConeGeometry(0.32, 1.2, 10),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+        );
+        flame.rotation.x = -Math.PI / 2;
+        flame.position.set(0, 0.55, -2.6);
+        flame.visible = false;
+        g.add(flame);
+
+        return {
+            mesh: g,
+            flame,
+            pos: new THREE.Vector3(),
+            heading: 0,
+            speed: 0,
+            nitro: 100,
+            lap: 1,
+            progressT: 0,
+            lastT: 0
+        };
+    }
+
+    function openArcadeRacingGame() {
+        initRaceEngine();
+        Game.state = 'RACING';
+        audio.playComputerBoot();
+        audio.startEngineSound();
+
+        const overlay = document.getElementById('arcade-computer-overlay');
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        document.getElementById('race-finish-overlay').classList.add('hidden');
+        document.getElementById('race-finish-overlay').classList.remove('flex');
+
+        resizeRaceRenderer();
+        resetRaceState();
+    }
+
+    function resetRaceState() {
+        Race.countdownTimer = 3.2;
+        Race.raceTime = 0;
+        Race.finished = false;
+
+        const startPt = Race.curve.getPointAt(0);
+        const startTan = Race.curve.getTangentAt(0).normalize();
+        const startHeading = Math.atan2(startTan.x, startTan.z);
+
+        const pCar = Race.playerCar;
+        pCar.pos.copy(startPt);
+        pCar.heading = startHeading;
+        pCar.speed = 0;
+        pCar.nitro = 100;
+        pCar.lap = 1;
+        pCar.progressT = 0;
+        pCar.lastT = 0;
+        pCar.mesh.position.copy(pCar.pos);
+        pCar.mesh.rotation.y = pCar.heading;
+
+        Race.aiCars.forEach((ai, i) => {
+            ai.t = 0.004 * (i + 1);
+            ai.lap = 1;
+        });
+
+        document.getElementById('race-finish-overlay').classList.add('hidden');
+        document.getElementById('race-finish-overlay').classList.remove('flex');
+    }
+
+    function closeArcadeRacingGame() {
+        if (Game.state !== 'RACING') return;
+        audio.stopEngineSound();
+        document.getElementById('arcade-computer-overlay').classList.add('hidden');
+        document.getElementById('arcade-computer-overlay').classList.remove('flex');
+        Game.state = 'PLAYING';
+        updateHUD();
+    }
+
+    function resizeRaceRenderer() {
+        if (!Race.renderer) return;
+        const rCanvas = document.getElementById('race-canvas');
+        const rect = rCanvas.parentElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+            Race.renderer.setSize(rect.width, rect.height, false);
+            Race.camera.aspect = rect.width / rect.height;
+            Race.camera.updateProjectionMatrix();
+        }
+    }
+
+    function getClosestTrackT(pos) {
+        let bestIdx = 0;
+        let bestDistSq = Infinity;
+        for (let i = 0; i < Race.trackPoints.length; i++) {
+            const dSq = pos.distanceToSquared(Race.trackPoints[i]);
+            if (dSq < bestDistSq) {
+                bestDistSq = dSq;
+                bestIdx = i;
+            }
+        }
+        return { t: bestIdx / (Race.trackPoints.length - 1), dist: Math.sqrt(bestDistSq), pt: Race.trackPoints[bestIdx] };
+    }
+
+    function updateRaceSimulation(dt) {
+        if (!Race.initialized) return;
+
+        const cdEl = document.getElementById('race-countdown');
+        if (Race.countdownTimer > 0) {
+            const prevSec = Math.ceil(Race.countdownTimer);
+            Race.countdownTimer -= dt;
+            const curSec = Math.ceil(Race.countdownTimer);
+            if (curSec !== prevSec && curSec >= 1) {
+                audio.playCountdown(false);
+            }
+            if (Race.countdownTimer <= 0) {
+                audio.playCountdown(true);
+                cdEl.textContent = 'צא לדרך! 🚀';
+                setTimeout(() => { cdEl.style.opacity = '0'; }, 650);
+            } else {
+                cdEl.style.opacity = '1';
+                cdEl.textContent = curSec;
+            }
+            Race.renderer.render(Race.scene, Race.camera);
+            return;
+        }
+
+        if (!Race.finished) {
+            Race.raceTime += dt;
+        }
+
+        const pCar = Race.playerCar;
+
+        // קלט נהיגה
+        const gas = Input.keys['KeyW'] || Input.keys['ArrowUp'] || Race.mobileInput.gas;
+        const brake = Input.keys['KeyS'] || Input.keys['ArrowDown'] || Race.mobileInput.brake;
+        const left = Input.keys['KeyA'] || Input.keys['ArrowLeft'] || Race.mobileInput.left;
+        const right = Input.keys['KeyD'] || Input.keys['ArrowRight'] || Race.mobileInput.right;
+        const wantsNitro = Input.keys['ShiftLeft'] || Input.keys['ShiftRight'] || Input.keys['Space'] || Race.mobileInput.nitro;
+
+        let isNitro = false;
+        if (!Race.finished && wantsNitro && pCar.nitro > 2 && gas) {
+            isNitro = true;
+            pCar.nitro = Math.max(0, pCar.nitro - 36 * dt);
+        } else {
+            pCar.nitro = Math.min(100, pCar.nitro + 16 * dt);
+        }
+        pCar.flame.visible = isNitro;
+
+        const maxSpeed = isNitro ? 74 : 52;
+        if (!Race.finished) {
+            if (gas) {
+                pCar.speed += (isNitro ? 55 : 34) * dt;
+            } else if (brake) {
+                pCar.speed -= 42 * dt;
+            } else {
+                pCar.speed *= Math.pow(0.28, dt);
+            }
+        } else {
+            pCar.speed *= Math.pow(0.2, dt);
+        }
+        pCar.speed = Math.max(-18, Math.min(maxSpeed, pCar.speed));
+
+        // היגוי
+        const steerFactor = Math.min(1, Math.abs(pCar.speed) / 14);
+        const dirSign = pCar.speed >= 0 ? 1 : -1;
+        if (left) pCar.heading += 2.15 * steerFactor * dirSign * dt;
+        if (right) pCar.heading -= 2.15 * steerFactor * dirSign * dt;
+
+        pCar.pos.x += Math.sin(pCar.heading) * pCar.speed * dt;
+        pCar.pos.z += Math.cos(pCar.heading) * pCar.speed * dt;
+
+        // שמירה בתוך גבולות המסלול + בדיקת הקפות
+        const closest = getClosestTrackT(pCar.pos);
+        if (closest.dist > Race.trackHalfWidth - 1.1) {
+            const pullDir = closest.pt.clone().sub(pCar.pos).normalize();
+            pCar.pos.addScaledVector(pullDir, closest.dist - (Race.trackHalfWidth - 1.1));
+            pCar.speed *= 0.92;
+        }
+
+        // זיהוי חציית קו הסיום להקפה חדשה
+        if (pCar.lastT > 0.85 && closest.t < 0.15) {
+            pCar.lap++;
+            if (pCar.lap > Race.totalLaps && !Race.finished) {
+                finishRace();
+            } else if (!Race.finished) {
+                audio.playPickup();
+            }
+        }
+        pCar.lastT = closest.t;
+        pCar.progressT = (pCar.lap - 1) + closest.t;
+
+        // פסי האצה (Turbo Pads)
+        Race.turboPads.forEach(pad => {
+            if (pCar.pos.distanceTo(pad.pos) < 3.6) {
+                pCar.speed = Math.max(pCar.speed, 76);
+                pCar.nitro = Math.min(100, pCar.nitro + 25);
+                audio.playTurboPad();
+            }
+        });
+
+        // התנגשות במכשולים
+        Race.obstacles.forEach(obs => {
+            if (pCar.pos.distanceTo(obs.pos) < 2.1) {
+                pCar.speed *= 0.45;
+                obs.pos.y = -20; // העלמת הקונוס לאחר פגיעה
+                obs.mesh.visible = false;
+            }
+        });
+
+        pCar.mesh.position.copy(pCar.pos);
+        pCar.mesh.rotation.y = pCar.heading;
+
+        // עדכון מכוניות יריבות (AI)
+        const up = new THREE.Vector3(0, 1, 0);
+        Race.aiCars.forEach(ai => {
+            ai.t += ai.baseSpeed * dt;
+            if (ai.t >= 1) {
+                ai.t -= 1;
+                ai.lap++;
+            }
+            const pt = Race.curve.getPointAt(ai.t);
+            const tan = Race.curve.getTangentAt(ai.t).normalize();
+            const norm = new THREE.Vector3().crossVectors(tan, up).normalize();
+            const aiPos = pt.clone().addScaledVector(norm, ai.laneOffset);
+            ai.mesh.position.copy(aiPos);
+            ai.mesh.rotation.y = Math.atan2(tan.x, tan.z);
+        });
+
+        // חישוב דירוג במירוץ (1 עד 4)
+        const playerScoreProg = pCar.progressT;
+        let rank = 1;
+        Race.aiCars.forEach(ai => {
+            const aiProg = (ai.lap - 1) + ai.t;
+            if (aiProg > playerScoreProg) rank++;
+        });
+        pCar.currentRank = rank;
+
+        // מצלמת מירוץ דינמית מאחורי המכונית
+        const camDist = isNitro ? 10.5 : 8.8;
+        const desiredCam = new THREE.Vector3(
+            pCar.pos.x - Math.sin(pCar.heading) * camDist,
+            pCar.pos.y + 4.1,
+            pCar.pos.z - Math.cos(pCar.heading) * camDist
+        );
+        Race.camera.position.lerp(desiredCam, 1 - Math.pow(0.0005, dt));
+        Race.camera.lookAt(
+            pCar.pos.x + Math.sin(pCar.heading) * 6,
+            pCar.pos.y + 1.2,
+            pCar.pos.z + Math.cos(pCar.heading) * 6
+        );
+
+        // עדכון HUD של המירוץ + צליל מנוע
+        const kmh = Math.round(Math.abs(pCar.speed) * 3.4);
+        document.getElementById('race-hud-speed').textContent = kmh;
+        document.getElementById('race-hud-pos').textContent = `${rank} / 4`;
+        document.getElementById('race-hud-lap').textContent = `${Math.min(pCar.lap, Race.totalLaps)} / ${Race.totalLaps}`;
+        document.getElementById('race-hud-time').textContent = Race.raceTime.toFixed(1) + 's';
+        document.getElementById('race-hud-nitro-pct').textContent = `${Math.round(pCar.nitro)}%`;
+        document.getElementById('race-hud-nitro-bar').style.width = `${Math.round(pCar.nitro)}%`;
+
+        audio.updateEnginePitch(Math.min(1, Math.abs(pCar.speed) / 60), isNitro);
+        Race.renderer.render(Race.scene, Race.camera);
+    }
+
+    function finishRace() {
+        Race.finished = true;
+        audio.stopEngineSound();
+        audio.playVictory();
+
+        const rank = Race.playerCar.currentRank || 1;
+        const bonus = rank === 1 ? 400 : (rank === 2 ? 250 : 150);
+        Game.score += bonus;
+
+        document.getElementById('race-finish-emoji').textContent = rank === 1 ? '🏆' : '🏁';
+        document.getElementById('race-finish-title').textContent = rank === 1 ? 'מקום ראשון במירוץ!' : `סיימת במקום ${rank}!`;
+        document.getElementById('race-finish-sub').textContent = `זמן כולל: ${Race.raceTime.toFixed(1)} שניות • זכית ב-+${bonus} נקודות אושר לעיר!`;
+
+        const finOverlay = document.getElementById('race-finish-overlay');
+        finOverlay.classList.remove('hidden');
+        finOverlay.classList.add('flex');
+    }
+
+    // ----------------------------------------------------------------------------
+    // 13. ממשק המשתמש הראשי (HUD, תפריטים, הודעות ומסכי ניצחון)
+    // ----------------------------------------------------------------------------
+    function showToast(msg, theme = 'cyan') {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        const styles = {
+            cyan: 'border-cyan-400/70 text-cyan-200',
+            amber: 'border-amber-300/70 text-amber-200',
+            emerald: 'border-emerald-400/70 text-emerald-200'
+        };
+        el.className = `neo-glass px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold text-center shadow-xl border transition-all duration-300 ${styles[theme] || styles.cyan}`;
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px)';
+            setTimeout(() => el.remove(), 300);
+        }, 2800);
+    }
+
+    function updateHUD() {
+        const cfg = STAGES[Game.stageIdx];
+        document.getElementById('hud-stage-num').textContent = `${cfg.badge} מתוך ${STAGES.length}`;
+        document.getElementById('hud-stage-name').textContent = cfg.name;
+        document.getElementById('hud-deeds-count').textContent = `${Game.completedDeeds.length} / ${Game.totalDeeds}`;
+        document.getElementById('hud-hearts-count').textContent = Game.sparks;
+        document.getElementById('hud-score').textContent = Game.score.toLocaleString();
+
+        const pct = Math.round((Game.completedDeeds.length / Game.totalDeeds) * 100);
+        document.getElementById('hud-happiness-pct').textContent = `${pct}%`;
+        document.getElementById('hud-happiness-bar').style.width = `${pct}%`;
+
+        const list = document.getElementById('hud-mission-list');
+        list.innerHTML = '';
+        cfg.deeds.forEach(d => {
+            const isDone = Game.completedDeeds.some(cd => cd.id === d.id);
+            const li = document.createElement('li');
+            li.className = `flex items-center gap-2 ${isDone ? 'line-through text-emerald-300 opacity-80' : 'text-slate-100'}`;
+            li.innerHTML = `<span>${isDone ? '✅' : '⬜'}</span><span>${d.shortLabel}</span>`;
+            list.appendChild(li);
+        });
+    }
+
+    function triggerStageVictory() {
+        Game.state = 'VICTORY';
+        audio.playVictory();
+
+        const cfg = STAGES[Game.stageIdx];
+        const isFinal = Game.stageIdx >= STAGES.length - 1;
+
+        document.getElementById('victory-emoji').textContent = isFinal ? '👑' : '🎉';
+        document.getElementById('victory-title').textContent = isFinal ? 'הפכת לאלוף החסד של עיר העתיד!' : 'הרובע זוהר מאושר!';
+        document.getElementById('victory-subtitle').textContent = isFinal
+            ? 'השלמת את כל המעשים הטובים בכל הרבעים העתידניים!'
+            : `השלמת את כל מעשי החסד ב${cfg.name}`;
+
+        const list = document.getElementById('victory-deeds-list');
+        list.innerHTML = '';
+        Game.completedDeeds.forEach(d => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between gap-2';
+            li.innerHTML = `<span>✅ ${d.title}</span><span class="text-amber-300 font-bold">+${d.points}</span>`;
+            list.appendChild(li);
+        });
+
+        document.getElementById('victory-hearts').textContent = Game.sparks;
+        document.getElementById('victory-score').textContent = Game.score.toLocaleString();
+
+        document.getElementById('btn-next-stage').textContent = isFinal ? 'שחק שוב מהתחלה 🔄' : 'לרובע הבא ⬅️';
+
+        document.getElementById('hud').classList.add('hidden');
+        const modal = document.getElementById('victory-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function renderStageCards() {
+        const container = document.getElementById('stage-cards-container');
+        container.innerHTML = '';
+        STAGES.forEach((st, idx) => {
+            const selected = idx === Game.stageIdx;
+            const btn = document.createElement('button');
+            btn.className = `p-4 rounded-2xl text-right transition-all border cursor-pointer flex flex-col justify-between ${
+                selected
+                    ? 'bg-cyan-400/20 border-cyan-300 shadow-lg scale-[1.02]'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+            }`;
+            btn.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200">${st.badge}</span>
+                        <span class="text-xs text-amber-300 font-bold">🤝 ${st.deeds.length} משימות + 🖥️ ארקייד</span>
+                    </div>
+                    <div class="font-black text-white text-base mb-1">${st.name}</div>
+                    <div class="text-xs text-slate-300 leading-snug">${st.subtitle}</div>
+                </div>
+            `;
+            btn.addEventListener('click', () => {
+                Game.stageIdx = idx;
+                renderStageCards();
+                loadStage(idx);
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    function startGame(idx = Game.stageIdx) {
+        audio.init();
+        audio.startAmbientMusic();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('pause-modal').classList.add('hidden');
+        document.getElementById('victory-modal').classList.add('hidden');
+        document.getElementById('victory-modal').classList.remove('flex');
+
+        const hud = document.getElementById('hud');
+        hud.classList.remove('hidden');
+        hud.classList.add('flex');
+
+        Game.cameraYaw = 0;
+        Game.state = 'PLAYING';
+        loadStage(idx);
+    }
+
+    // ----------------------------------------------------------------------------
+    // 14. מאזיני קלט, מגע וכפתורים
+    // ----------------------------------------------------------------------------
+    window.addEventListener('keydown', (e) => {
+        Input.keys[e.code] = true;
+        if (e.code === 'Space') {
+            if (Game.state === 'PLAYING') {
+                e.preventDefault();
+                triggerJump();
+            }
+        }
+        if (e.code === 'KeyE' || e.code === 'Enter') {
+            if (Game.state === 'PLAYING' && Game.nearestAction) {
+                handleInteractKey();
+            }
+        }
+        if (e.code === 'Escape') {
+            if (Game.state === 'RACING') {
+                closeArcadeRacingGame();
+            } else if (Game.state === 'PLAYING') {
+                Game.state = 'PAUSED';
+                document.getElementById('pause-modal').classList.remove('hidden');
+                document.getElementById('pause-modal').classList.add('flex');
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        Input.keys[e.code] = false;
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        Input.draggingCam = true;
+        Input.lastMouseX = e.clientX;
+        Input.lastMouseY = e.clientY;
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!Input.draggingCam) return;
+        const dx = e.clientX - Input.lastMouseX;
+        const dy = e.clientY - Input.lastMouseY;
+        Input.lastMouseX = e.clientX;
+        Input.lastMouseY = e.clientY;
+        Game.cameraYaw -= dx * 0.0065;
+        Game.cameraPitch = Math.max(0.15, Math.min(0.95, Game.cameraPitch + dy * 0.005));
+    });
+    window.addEventListener('mouseup', () => {
+        Input.draggingCam = false;
+    });
+
+    // ג'ויסטיק למובייל
+    const joyZone = document.getElementById('joystick-zone');
+    const joyKnob = document.getElementById('joystick-knob');
+    let joyId = null;
+
+    joyZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        joyId = e.changedTouches[0].identifier;
+        moveJoy(e.changedTouches[0]);
+    }, { passive: false });
+
+    joyZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === joyId) moveJoy(e.changedTouches[i]);
+        }
+    }, { passive: false });
+
+    const endJoy = () => {
+        joyId = null;
+        Input.joyX = 0;
+        Input.joyY = 0;
+        joyKnob.style.transform = 'translate(0px, 0px)';
+    };
+    joyZone.addEventListener('touchend', endJoy);
+    joyZone.addEventListener('touchcancel', endJoy);
+
+    function moveJoy(t) {
+        const r = joyZone.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const max = r.width / 2 - 20;
+        let dx = t.clientX - cx;
+        let dy = t.clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > max) {
+            dx = (dx / dist) * max;
+            dy = (dy / dist) * max;
+        }
+        joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        Input.joyX = dx / max;
+        Input.joyY = dy / max;
+    }
+
+    // כפתורי מובייל לעיר ולמירוץ
+    document.getElementById('btn-interact-prompt').addEventListener('click', handleInteractKey);
+    document.getElementById('btn-mobile-act').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteractKey(); });
+    document.getElementById('btn-mobile-jump').addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
+    document.getElementById('btn-mobile-sprint').addEventListener('touchstart', (e) => { e.preventDefault(); Input.mobileSprint = true; });
+    document.getElementById('btn-mobile-sprint').addEventListener('touchend', () => { Input.mobileSprint = false; });
+
+    const bindHoldBtn = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); Race.mobileInput[key] = true; });
+        el.addEventListener('touchend', () => { Race.mobileInput[key] = false; });
+    };
+    bindHoldBtn('race-btn-gas', 'gas');
+    bindHoldBtn('race-btn-brake', 'brake');
+    bindHoldBtn('race-btn-left', 'left');
+    bindHoldBtn('race-btn-right', 'right');
+    bindHoldBtn('race-btn-nitro', 'nitro');
+
+    // כפתורי ממשק
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+        Game.score = 0;
+        Game.sparks = 0;
+        startGame(Game.stageIdx);
+    });
+
+    document.getElementById('btn-sound').addEventListener('click', (e) => {
+        const muted = audio.toggleMute();
+        e.currentTarget.textContent = muted ? '🔇' : '🔊';
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+        if (Game.state === 'PLAYING') {
+            Game.state = 'PAUSED';
+            document.getElementById('pause-modal').classList.remove('hidden');
+            document.getElementById('pause-modal').classList.add('flex');
+        }
+    });
+
+    document.getElementById('btn-resume').addEventListener('click', () => {
+        Game.state = 'PLAYING';
+        document.getElementById('pause-modal').classList.add('hidden');
+        document.getElementById('pause-modal').classList.remove('flex');
+    });
+
+    document.getElementById('btn-restart-stage').addEventListener('click', () => startGame(Game.stageIdx));
+
+    const goMainMenu = () => {
+        closeArcadeRacingGame();
+        Game.state = 'MENU';
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('pause-modal').classList.add('hidden');
+        document.getElementById('victory-modal').classList.add('hidden');
+        document.getElementById('victory-modal').classList.remove('flex');
+        document.getElementById('start-screen').classList.remove('hidden');
+        renderStageCards();
+    };
+
+    document.getElementById('btn-menu').addEventListener('click', goMainMenu);
+    document.getElementById('btn-pause-menu').addEventListener('click', goMainMenu);
+    document.getElementById('btn-victory-menu').addEventListener('click', goMainMenu);
+
+    document.getElementById('btn-exit-race').addEventListener('click', closeArcadeRacingGame);
+    document.getElementById('btn-race-return-street').addEventListener('click', () => {
+        closeArcadeRacingGame();
+        showToast('🏆 חזרת לרחוב עם בונוס נקודות מהמירוץ!', 'amber');
+    });
+    document.getElementById('btn-race-again').addEventListener('click', () => {
+        audio.startEngineSound();
+        resetRaceState();
+    });
+
+    document.getElementById('btn-next-stage').addEventListener('click', () => {
+        const isFinal = Game.stageIdx >= STAGES.length - 1;
+        if (isFinal) {
+            Game.score = 0;
+            Game.sparks = 0;
+            startGame(0);
+        } else {
+            startGame(Game.stageIdx + 1);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        resizeRaceRenderer();
+    });
+
+    // ----------------------------------------------------------------------------
+    // 15. לולאת המשחק הראשית
+    // ----------------------------------------------------------------------------
+    let lastTime = performance.now();
+    let totalTime = 0;
+    let billboardTimer = 0;
+
+    function animate(now) {
+        requestAnimationFrame(animate);
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+        totalTime += dt;
+
+        if (Game.state === 'RACING') {
+            updateRaceSimulation(dt);
+            return;
+        }
+
+        billboardTimer += dt;
+        if (billboardTimer >= 0.15) {
+            billboardTimer = 0;
+            updateLiveBillboards(totalTime);
+        }
+
+        if (Game.state === 'PLAYING') {
+            updateCitySimulation(dt, totalTime);
+        } else if (Game.state === 'MENU') {
+            const angle = totalTime * 0.22;
+            camera.position.set(Math.sin(angle) * 20, 11, Math.cos(angle) * 20 - 20);
+            camera.lookAt(0, 3, -30);
+        }
+
+        updateParticles(dt);
+        renderer.render(scene, camera);
+    }
+
+    window.onload = function () {
+        renderStageCards();
+        loadStage(0);
+        lastTime = performance.now();
+        animate(lastTime);
+    };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>חור שחור וכלבים - משחק תלת ממד</title>
+    <!-- טעינת גופן Rubik בעברית למראה משחקי וכיפי -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- טעינת Tailwind CSS לעיצוב ממשק המשתמש -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- טעינת Three.js למנוע התלת ממד -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Rubik', sans-serif;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #38bdf8;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* עיצוב כפתורי משחק תלת-ממדיים */
+        .game-btn {
+            background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+            border: 4px solid #ffffff;
+            box-shadow: 0 6px 0 #b45309, 0 12px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+        .game-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 0 #b45309, 0 15px 25px rgba(0, 0, 0, 0.35);
+        }
+        .game-btn:active {
+            transform: translateY(4px) scale(0.98);
+            box-shadow: 0 2px 0 #b45309, 0 5px 10px rgba(0, 0, 0, 0.25);
+        }
+        .game-btn-secondary {
+            background: linear-gradient(180deg, #a855f7 0%, #7e22ce 100%);
+            border: 3px solid #ffffff;
+            box-shadow: 0 5px 0 #581c87, 0 10px 15px rgba(0, 0, 0, 0.25);
+        }
+        .game-btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #581c87, 0 12px 20px rgba(0, 0, 0, 0.3);
+        }
+        .game-btn-secondary:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #581c87;
+        }
+
+        /* אנימציית טקסט צף בעת בליעה */
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.6);
+            }
+            20% {
+                transform: translate(-50%, -80%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -180%) scale(0.9);
+            }
+        }
+        .floating-popup {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            text-shadow: 0 3px 0 rgba(0,0,0,0.6), 0 0 10px rgba(255,255,255,0.8);
+            animation: floatUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            z-index: 25;
+            white-space: nowrap;
+        }
+
+        /* ג'ויסטיק וירטואלי למגע/עכבר */
+        #joystick-zone {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px dashed rgba(255, 255, 255, 0.6);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 15;
+        }
+        #joystick-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #cbd5e1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* אנימציית ריחוף לכותרת */
+        @keyframes titleBounce {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .title-anim {
+            animation: titleBounce 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- קנבס תלת ממדי -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- שכבת פופ-אפים צפים (ניקוד ונביחות) -->
+    <div id="popups-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+    <!-- ג'ויסטיק ויזואלי בזמן גרירה -->
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <!-- ממשק משתמש בזמן משחק (HUD) -->
+    <div id="hud" class="hidden absolute top-0 left-0 right-0 p-3 sm:p-5 flex justify-between items-start pointer-events-none z-20">
+        <!-- צד ימין: ניקוד וגודל החור -->
+        <div class="flex flex-col gap-2">
+            <div class="bg-white/90 backdrop-blur-md border-4 border-amber-400 rounded-2xl px-4 py-2 shadow-lg flex items-center gap-3">
+                <span class="text-2xl sm:text-3xl">🦴</span>
+                <div>
+                    <div class="text-xs font-bold text-slate-500">ניקוד</div>
+                    <div id="score-display" class="text-xl sm:text-3xl font-black text-amber-600 leading-none">0</div>
+                </div>
+            </div>
+
+            <div class="bg-white/90 backdrop-blur-md border-4 border-purple-500 rounded-2xl px-4 py-2 shadow-lg flex items-center gap-3">
+                <span class="text-2xl sm:text-3xl">🌀</span>
+                <div class="w-full">
+                    <div class="flex justify-between items-center gap-4">
+                        <span class="text-xs font-bold text-slate-500">רמת חור</span>
+                        <span id="level-display" class="text-sm font-black text-purple-700">רמה 1</span>
+                    </div>
+                    <!-- מד התקדמות לרמה הבאה -->
+                    <div class="w-28 sm:w-36 h-3 bg-slate-200 rounded-full overflow-hidden mt-1 border border-slate-300">
+                        <div id="size-progress" class="h-full bg-gradient-to-l from-purple-600 to-fuchsia-500 transition-all duration-200" style="width: 10%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- מרכז: טיימר -->
+        <div id="timer-box" class="bg-slate-900/90 backdrop-blur-md border-4 border-sky-400 rounded-2xl px-5 py-2 shadow-xl text-center">
+            <div class="text-xs font-bold text-sky-300">זמן נותר</div>
+            <div id="timer-display" class="text-2xl sm:text-4xl font-black text-white tracking-wider">01:00</div>
+        </div>
+
+        <!-- צד שמאל: כפתורי שליטה מהירים (השתקה / יציאה) -->
+        <div class="flex gap-2 pointer-events-auto">
+            <button id="mute-btn" class="bg-white/90 hover:bg-white border-4 border-slate-300 rounded-2xl p-3 shadow-lg text-xl sm:text-2xl transition active:scale-95" title="השתק / הפעל צליל">
+                🔊
+            </button>
+            <button id="menu-btn" class="bg-rose-500 hover:bg-rose-600 text-white border-4 border-white rounded-2xl px-3 py-2 shadow-lg font-bold text-sm sm:text-base transition active:scale-95">
+                תפריט
+            </button>
+        </div>
+    </div>
+
+    <!-- אינדיקטור כלב זהב מיוחד -->
+    <div id="golden-alert" class="hidden absolute top-24 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-900 font-black px-5 py-2 rounded-full border-4 border-white shadow-xl z-20 animate-bounce text-sm sm:text-base">
+        ✨ כלב הזהב המלכותי הופיע בפארק! ✨
+    </div>
+
+    <!-- מסך פתיחה -->
+    <div id="start-screen" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+        <div class="bg-white/95 border-8 border-amber-400 rounded-3xl max-w-lg w-full p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+            <!-- עיטור רקע -->
+            <div class="absolute -top-12 -right-12 w-36 h-36 bg-purple-500/10 rounded-full pointer-events-none"></div>
+            <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-amber-500/10 rounded-full pointer-events-none"></div>
+
+            <div class="inline-block bg-purple-100 text-purple-800 font-extrabold px-4 py-1 rounded-full text-sm mb-3 border-2 border-purple-300">
+                משחק ארקייד תלת-ממדי 🐕🌀
+            </div>
+
+            <h1 class="title-anim text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-purple-700 via-indigo-800 to-slate-900 drop-shadow-sm mb-3 leading-tight">
+                חור שחור וכלבים
+            </h1>
+
+            <p class="text-slate-600 font-semibold text-base sm:text-lg mb-6 leading-relaxed">
+                הזז את החור השחור ברחבי הפארק, בלע עצמות, מלונות וכלבלבים חמודים כדי לגדול ולהפוך לחור השחור הענק ביותר!
+            </p>
+
+            <!-- בחירת מצב משחק -->
+            <div class="bg-slate-100 p-3 rounded-2xl mb-6 border-2 border-slate-200">
+                <div class="text-xs font-bold text-slate-500 mb-2">בחר מצב משחק:</div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="mode-timed" class="mode-select-btn bg-purple-600 text-white font-bold py-2.5 px-3 rounded-xl shadow border-2 border-purple-800 transition">
+                        ⏱️ אתגר 60 שניות
+                    </button>
+                    <button id="mode-endless" class="mode-select-btn bg-white text-slate-700 font-bold py-2.5 px-3 rounded-xl border-2 border-slate-300 hover:bg-slate-50 transition">
+                        ♾️ מצב חופשי (ללא זמן)
+                    </button>
+                </div>
+            </div>
+
+            <button id="start-btn" class="game-btn w-full py-4 rounded-2xl text-2xl sm:text-3xl font-black text-slate-900 tracking-wide mb-4">
+                התחל משחק 🚀
+            </button>
+
+            <div class="flex justify-center gap-4 text-xs sm:text-sm font-bold text-slate-500">
+                <span>🖱️ גרירת עכבר / מגע</span>
+                <span>•</span>
+                <span>⌨️ חצים / WASD</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך סיום סיבוב -->
+    <div id="gameover-screen" class="hidden absolute inset-0 bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4 z-30">
+        <div class="bg-white border-8 border-purple-500 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl">
+            <div class="text-5xl mb-2">🏆</div>
+            <h2 id="gameover-title" class="text-3xl sm:text-4xl font-black text-slate-800 mb-2">נגמר הזמן!</h2>
+            <p class="text-slate-500 font-bold mb-6">איזו שאיבה מדהימה בפארק!</p>
+
+            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+                <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3">
+                    <div class="text-xs font-bold text-amber-700">ניקוד סופי</div>
+                    <div id="final-score" class="text-xl sm:text-2xl font-black text-amber-600 mt-1">0</div>
+                </div>
+                <div class="bg-purple-50 border-2 border-purple-300 rounded-2xl p-3">
+                    <div class="text-xs font-bold text-purple-700">כלבים שנבלעו</div>
+                    <div id="final-dogs" class="text-xl sm:text-2xl font-black text-purple-600 mt-1">0</div>
+                </div>
+                <div class="bg-sky-50 border-2 border-sky-300 rounded-2xl p-3">
+                    <div class="text-xs font-bold text-sky-700">גודל שיא</div>
+                    <div id="final-level" class="text-xl sm:text-2xl font-black text-sky-600 mt-1">1</div>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="game-btn w-full py-4 rounded-2xl text-2xl font-black text-slate-900 mb-3">
+                שחק שוב 🔄
+            </button>
+            <button id="back-home-btn" class="game-btn-secondary w-full py-3 rounded-2xl text-lg font-bold text-white">
+                חזרה למסך הראשי
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * משחק תלת ממדי: חור שחור וכלבים
+ * נבנה באמצעות Three.js ו-Web Audio API בקובץ יחיד.
+ */
+
+// ==========================================
+// 1. מערכת סאונד פרוצדורלית (Web Audio API)
+// ==========================================
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioCtx();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        return this.muted;
+    }
+
+    // צליל בליעה ("פופ" / שאיבה נעימה)
+    playSwallow(pitchMultiplier = 1) {
+        if (this.muted || !this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sine';
+            const baseFreq = Math.min(600, 220 * pitchMultiplier);
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 2.2, now + 0.14);
+
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.16);
+        } catch (e) {}
+    }
+
+    // צליל נביחת כלב חמודה
+    playBark(isBigDog = false) {
+        if (this.muted || !this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = isBigDog ? 'sawtooth' : 'triangle';
+            const startFreq = isBigDog ? 190 : 480;
+            const peakFreq = isBigDog ? 260 : 680;
+
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(peakFreq, now + 0.04);
+            osc.frequency.exponentialRampToValueAtTime(startFreq * 0.65, now + 0.14);
+
+            gain.gain.setValueAtTime(0.01, now);
+            gain.gain.linearRampToValueAtTime(isBigDog ? 0.22 : 0.16, now + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.16);
+        } catch (e) {}
+    }
+
+    // צליל עליית רמה / גדילה
+    playLevelUp() {
+        if (this.muted || !this.ctx) return;
+        try {
+            const notes = [392.00, 493.88, 587.33, 783.99]; // G4, B4, D5, G5
+            notes.forEach((freq, idx) => {
+                const now = this.ctx.currentTime + idx * 0.07;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.26);
+            });
+        } catch (e) {}
+    }
+
+    // צליל תפיסת כלב זהב
+    playGoldenBonus() {
+        if (this.muted || !this.ctx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+            notes.forEach((freq, idx) => {
+                const now = this.ctx.currentTime + idx * 0.05;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.32);
+            });
+        } catch (e) {}
+    }
+}
+
+const sound = new SoundEngine();
+
+// ==========================================
+// 2. משתני מצב המשחק והגדרות
+// ==========================================
+const ARENA_SIZE = 95; // חצי רוחב/אורך של הפארק
+const ROUND_DURATION = 60; // שניות
+
+let gameState = {
+    isPlaying: false,
+    isEndless: false,
+    score: 0,
+    dogsSwallowed: 0,
+    timeLeft: ROUND_DURATION,
+    holeRadius: 1.4,
+    targetRadius: 1.4,
+    level: 1,
+    nextLevelThreshold: 2.1,
+    prevLevelThreshold: 1.4,
+    goldenSpawnTimer: 12,
+    shakeIntensity: 0
+};
+
+// ==========================================
+// 3. אתחול סצנת התלת ממד (Three.js)
+// ==========================================
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x7dd3fc);
+scene.fog = new THREE.FogExp2(0x7dd3fc, 0.0045);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 450);
+camera.position.set(0, 22, 22);
+camera.lookAt(0, 0, 0);
+
+// תאורה עשירה ונעימה לפארק
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x4ade80, 0.75);
+hemiLight.position.set(0, 50, 0);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xfffbeb, 0.95);
+dirLight.position.set(35, 65, 35);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 10;
+dirLight.shadow.camera.far = 180;
+const d = 85;
+dirLight.shadow.camera.left = -d;
+dirLight.shadow.camera.right = d;
+dirLight.shadow.camera.top = d;
+dirLight.shadow.camera.bottom = -d;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+// ==========================================
+// 4. בניית סביבת הפארק והעיר
+// ==========================================
+function createParkEnvironment() {
+    const envGroup = new THREE.Group();
+
+    // יצירת טקסטורת דשא משובצת נעימה לעין
+    const grassCanvas = document.createElement('canvas');
+    grassCanvas.width = 512;
+    grassCanvas.height = 512;
+    const gCtx = grassCanvas.getContext('2d');
+    gCtx.fillStyle = '#4ade80';
+    gCtx.fillRect(0, 0, 512, 512);
+    gCtx.fillStyle = '#22c55e';
+    gCtx.fillRect(0, 0, 256, 256);
+    gCtx.fillRect(256, 256, 256, 256);
+    // נקודות פרחים קטנות בדשא
+    for (let i = 0; i < 60; i++) {
+        gCtx.fillStyle = i % 2 === 0 ? '#fef08a' : '#ffffff';
+        gCtx.beginPath();
+        gCtx.arc(Math.random() * 512, Math.random() * 512, 3, 0, Math.PI * 2);
+        gCtx.fill();
+    }
+
+    const grassTex = new THREE.CanvasTexture(grassCanvas);
+    grassTex.wrapS = THREE.RepeatWrapping;
+    grassTex.wrapT = THREE.RepeatWrapping;
+    grassTex.repeat.set(16, 16);
+
+    const groundGeo = new THREE.PlaneGeometry(ARENA_SIZE * 2.2, ARENA_SIZE * 2.2);
+    const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.85 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    envGroup.add(ground);
+
+    // שבילי הליכה בפארק (צלב וכיכר מרכזית)
+    const pathMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.9 });
+    const path1 = new THREE.Mesh(new THREE.PlaneGeometry(14, ARENA_SIZE * 2), pathMat);
+    path1.rotation.x = -Math.PI / 2;
+    path1.position.y = 0.02;
+    path1.receiveShadow = true;
+    envGroup.add(path1);
+
+    const path2 = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_SIZE * 2, 14), pathMat);
+    path2.rotation.x = -Math.PI / 2;
+    path2.position.y = 0.02;
+    path2.receiveShadow = true;
+    envGroup.add(path2);
+
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(18, 32), new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.85 }));
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.y = 0.03;
+    plaza.receiveShadow = true;
+    envGroup.add(plaza);
+
+    // גדר צבעונית מסביב לגבולות הפארק
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 });
+    const wallOffset = ARENA_SIZE + 1.5;
+
+    for (let i = -ARENA_SIZE; i <= ARENA_SIZE; i += 8) {
+        // צפון ודרום
+        [wallOffset, -wallOffset].forEach(z => {
+            const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.8, 0.8), postMat);
+            post.position.set(i, 1.4, z);
+            post.castShadow = true;
+            envGroup.add(post);
+        });
+        // מזרח ומערב
+        [wallOffset, -wallOffset].forEach(x => {
+            const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.8, 0.8), postMat);
+            post.position.set(x, 1.4, i);
+            post.castShadow = true;
+            envGroup.add(post);
+        });
+    }
+
+    // קורות רוחב לגדר
+    const railLength = ARENA_SIZE * 2 + 3;
+    [
+        { x: 0, z: wallOffset, w: railLength, d: 0.4 },
+        { x: 0, z: -wallOffset, w: railLength, d: 0.4 },
+        { x: wallOffset, z: 0, w: 0.4, d: railLength },
+        { x: -wallOffset, z: 0, w: 0.4, d: railLength }
+    ].forEach(cfg => {
+        [1.0, 2.1].forEach(y => {
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(cfg.w, 0.35, cfg.d), fenceMat);
+            rail.position.set(cfg.x, y, cfg.z);
+            rail.castShadow = true;
+            envGroup.add(rail);
+        });
+    });
+
+    scene.add(envGroup);
+}
+
+createParkEnvironment();
+
+// ==========================================
+// 5. בניית החור השחור (השחקן)
+// ==========================================
+const blackHole = {
+    group: new THREE.Group(),
+    core: null,
+    accretionRing: null,
+    outerGlow: null,
+    velocity: new THREE.Vector3(),
+    baseSpeed: 17
+};
+
+function createBlackHole() {
+    // ליבת החור השחורה המוחלטת
+    const coreGeo = new THREE.CircleGeometry(1, 48);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x050508 });
+    blackHole.core = new THREE.Mesh(coreGeo, coreMat);
+    blackHole.core.rotation.x = -Math.PI / 2;
+    blackHole.core.position.y = 0.08;
+    blackHole.group.add(blackHole.core);
+
+    // טבעת ספיחה זוהרת ומסתובבת (Accretion Disk)
+    const ringCanvas = document.createElement('canvas');
+    ringCanvas.width = 256;
+    ringCanvas.height = 256;
+    const rCtx = ringCanvas.getContext('2d');
+    const grad = rCtx.createRadialGradient(128, 128, 75, 128, 128, 126);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    grad.addColorStop(0.25, 'rgba(168, 85, 247, 0.95)');
+    grad.addColorStop(0.55, 'rgba(236, 72, 153, 0.7)');
+    grad.addColorStop(0.8, 'rgba(56, 189, 248, 0.35)');
+    grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+    rCtx.fillStyle = grad;
+    rCtx.fillRect(0, 0, 256, 256);
+
+    // פסי מערבולת על הטבעת
+    rCtx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    rCtx.lineWidth = 4;
+    for (let i = 0; i < 6; i++) {
+        rCtx.beginPath();
+        rCtx.arc(128, 128, 92 + i * 3, i * 1.1, i * 1.1 + 1.4);
+        rCtx.stroke();
+    }
+
+    const ringTex = new THREE.CanvasTexture(ringCanvas);
+    const ringGeo = new THREE.PlaneGeometry(2.7, 2.7);
+    const ringMat = new THREE.MeshBasicMaterial({
+        map: ringTex,
+        transparent: true,
+        depthWrite: false
+    });
+
+    blackHole.accretionRing = new THREE.Mesh(ringGeo, ringMat);
+    blackHole.accretionRing.rotation.x = -Math.PI / 2;
+    blackHole.accretionRing.position.y = 0.06;
+    blackHole.group.add(blackHole.accretionRing);
+
+    scene.add(blackHole.group);
+}
+
+createBlackHole();
+
+// ==========================================
+// 6. יצירת מודלים תלת-ממדיים פרוצדורליים (כלבים וחפצים)
+// ==========================================
+const worldEntities = []; // כל הישויות הפעילות בפארק
+const swallowingEntities = []; // ישויות שנמצאות כרגע בתוך מערבולת השאיבה
+const particles = []; // חלקיקים וניצוצות
+
+// פלטת צבעים וגזעים לכלבים
+const DOG_BREEDS = [
+    { name: 'גולדן', body: 0xfbbf24, ear: 0xd97706, belly: 0xfef3c7, earType: 'floppy', tailType: 'up' },
+    { name: 'האסקי', body: 0x64748b, ear: 0x1e293b, belly: 0xf8fafc, earType: 'pointy', tailType: 'curled' },
+    { name: 'ביגל', body: 0xb45309, ear: 0x451a03, belly: 0xffffff, earType: 'floppy', tailType: 'up' },
+    { name: 'פודל ורוד', body: 0xf472b6, ear: 0xdb2777, belly: 0xfce7f3, earType: 'floppy', tailType: 'pom' },
+    { name: 'דלמטי', body: 0xf8fafc, ear: 0x0f172a, belly: 0xffffff, earType: 'floppy', tailType: 'up' },
+    { name: 'קורגי', body: 0xf97316, ear: 0xc2410c, belly: 0xfff7ed, earType: 'pointy', tailType: 'pom' },
+    { name: 'לברדור שוקולד', body: 0x5c3a21, ear: 0x3b2313, belly: 0x784b2a, earType: 'floppy', tailType: 'up' }
+];
+
+// בניית מודל כלב חמוד Low-Poly
+function buildDogMesh(breed, isGolden = false) {
+    const dogGroup = new THREE.Group();
+
+    const bodyColor = isGolden ? 0xffd700 : breed.body;
+    const earColor = isGolden ? 0xf59e0b : breed.ear;
+    const bellyColor = isGolden ? 0xffffff : breed.belly;
+
+    const matOpts = isGolden
+        ? { color: bodyColor, emissive: 0xd97706, emissiveIntensity: 0.45, roughness: 0.2, metalness: 0.7 }
+        : { color: bodyColor, roughness: 0.65 };
+
+    const bodyMat = new THREE.MeshStandardMaterial(matOpts);
+    const earMat = new THREE.MeshStandardMaterial({ color: earColor, roughness: 0.7 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: bellyColor, roughness: 0.7 });
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3 });
+    const collarMat = new THREE.MeshStandardMaterial({ color: isGolden ? 0xef4444 : 0x3b82f6, roughness: 0.4 });
+
+    // גוף
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.75, 1.45), bodyMat);
+    body.position.set(0, 0.72, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    dogGroup.add(body);
+
+    // חזה לבן/בהיר
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.6, 0.3), bellyMat);
+    chest.position.set(0, 0.7, 0.65);
+    dogGroup.add(chest);
+
+    // קולר
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.78, 0.2), collarMat);
+    collar.position.set(0, 0.95, 0.58);
+    dogGroup.add(collar);
+
+    // ראש
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.25, 0.72);
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.78, 0.82), bodyMat);
+    head.castShadow = true;
+    headGroup.add(head);
+
+    // חוטם (Snout)
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.38, 0.45), bellyMat);
+    snout.position.set(0, -0.12, 0.52);
+    headGroup.add(snout);
+
+    // אף
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.15), noseMat);
+    nose.position.set(0, 0.02, 0.74);
+    headGroup.add(nose);
+
+    // עיניים
+    const eyeGeo = new THREE.BoxGeometry(0.12, 0.14, 0.08);
+    const leftEye = new THREE.Mesh(eyeGeo, noseMat);
+    leftEye.position.set(-0.24, 0.12, 0.42);
+    const rightEye = new THREE.Mesh(eyeGeo, noseMat);
+    rightEye.position.set(0.24, 0.12, 0.42);
+    headGroup.add(leftEye, rightEye);
+
+    // אוזניים (שמוטות או מחודדות)
+    if (breed.earType === 'pointy') {
+        const earGeo = new THREE.ConeGeometry(0.18, 0.45, 4);
+        const leftEar = new THREE.Mesh(earGeo, earMat);
+        leftEar.position.set(-0.26, 0.56, -0.05);
+        leftEar.rotation.z = 0.15;
+        const rightEar = new THREE.Mesh(earGeo, earMat);
+        rightEar.position.set(0.26, 0.56, -0.05);
+        rightEar.rotation.z = -0.15;
+        headGroup.add(leftEar, rightEar);
+    } else {
+        const earGeo = new THREE.BoxGeometry(0.18, 0.52, 0.32);
+        const leftEar = new THREE.Mesh(earGeo, earMat);
+        leftEar.position.set(-0.46, 0.05, -0.05);
+        leftEar.rotation.z = 0.2;
+        const rightEar = new THREE.Mesh(earGeo, earMat);
+        rightEar.position.set(0.46, 0.05, -0.05);
+        rightEar.rotation.z = -0.2;
+        headGroup.add(leftEar, rightEar);
+    }
+
+    // כתר לכלב הזהב
+    if (isGolden) {
+        const crownMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.5 });
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.25, 6), crownMat);
+        crown.position.set(0, 0.5, 0);
+        headGroup.add(crown);
+    }
+
+    dogGroup.add(headGroup);
+
+    // רגליים (4 רגליים נפרדות לאנימציית ריצה)
+    const legGeo = new THREE.BoxGeometry(0.24, 0.45, 0.24);
+    const legPositions = [
+        [-0.28, 0.22, 0.48],  // קדמית שמאל
+        [0.28, 0.22, 0.48],   // קדמית ימין
+        [-0.28, 0.22, -0.48], // אחורית שמאל
+        [0.28, 0.22, -0.48]   // אחורית ימין
+    ];
+    const legs = legPositions.map(pos => {
+        const leg = new THREE.Mesh(legGeo, bodyMat);
+        leg.position.set(...pos);
+        leg.castShadow = true;
+        dogGroup.add(leg);
+        return leg;
+    });
+
+    // זנב מכשכש
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.95, -0.72);
+    const tailMesh = new THREE.Mesh(
+        breed.tailType === 'pom' ? new THREE.SphereGeometry(0.2, 8, 8) : new THREE.BoxGeometry(0.18, 0.55, 0.18),
+        earMat
+    );
+    tailMesh.position.set(0, 0.22, -0.1);
+    tailMesh.rotation.x = -0.45;
+    tailPivot.add(tailMesh);
+    dogGroup.add(tailPivot);
+
+    return { mesh: dogGroup, head: headGroup, legs, tail: tailPivot };
+}
+
+// בניית אביזרי פארק חמודים (עצם, ברז כיבוי, מלונה, ספסל, עץ)
+function buildPropMesh(type) {
+    const group = new THREE.Group();
+
+    if (type === 'bone') {
+        const boneMat = new THREE.MeshStandardMaterial({ color: 0xfffbeb, roughness: 0.4 });
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.9, 8), boneMat);
+        shaft.rotation.z = Math.PI / 2;
+        shaft.position.y = 0.25;
+        shaft.castShadow = true;
+        group.add(shaft);
+
+        [-0.45, 0.45].forEach(x => {
+            [-0.12, 0.12].forEach(z => {
+                const knob = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), boneMat);
+                knob.position.set(x, 0.25, z);
+                knob.castShadow = true;
+                group.add(knob);
+            });
+        });
+    } else if (type === 'hydrant') {
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 });
+        const silverMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.6, roughness: 0.3 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 1.1, 10), redMat);
+        body.position.y = 0.55;
+        body.castShadow = true;
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), redMat);
+        cap.position.y = 1.1;
+        const nutTop = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.18, 6), silverMat);
+        nutTop.position.y = 1.42;
+        const sideNozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.85, 8), silverMat);
+        sideNozzle.rotation.z = Math.PI / 2;
+        sideNozzle.position.y = 0.78;
+        group.add(body, cap, nutTop, sideNozzle);
+    } else if (type === 'doghouse') {
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.7 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6 });
+        const holeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
+
+        const base = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 1.9), wallMat);
+        base.position.y = 0.65;
+        base.castShadow = true;
+
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.45, 1.05, 4), roofMat);
+        roof.position.y = 1.8;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+
+        const door = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 12), holeMat);
+        door.rotation.x = Math.PI / 2;
+        door.position.set(0, 0.45, 0.92);
+
+        group.add(base, roof, door);
+    } else if (type === 'bench') {
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.75 });
+        const ironMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.16, 0.85), woodMat);
+        seat.position.y = 0.65;
+        seat.castShadow = true;
+
+        const back = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.65, 0.14), woodMat);
+        back.position.set(0, 1.05, -0.36);
+        back.rotation.x = -0.15;
+        back.castShadow = true;
+
+        [-1.05, 1.05].forEach(x => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.65, 0.8), ironMat);
+            leg.position.set(x, 0.32, 0);
+            leg.castShadow = true;
+            group.add(leg);
+        });
+        group.add(seat, back);
+    } else if (type === 'tree') {
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
+        const leafMat1 = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.7 });
+        const leafMat2 = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 });
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.2, 8), trunkMat);
+        trunk.position.y = 1.1;
+        trunk.castShadow = true;
+
+        const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.75, 1), leafMat1);
+        crown1.position.y = 2.9;
+        crown1.castShadow = true;
+
+        const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.3, 1), leafMat2);
+        crown2.position.set(0.5, 3.8, 0.3);
+        crown2.castShadow = true;
+
+        group.add(trunk, crown1, crown2);
+    }
+
+    return group;
+}
+
+// ==========================================
+// 7. ניהול יצירת ישויות בפארק (Spawning)
+// ==========================================
+function getRandomSpawnPos(minDistFromHole = 12) {
+    let x, z, dist;
+    let attempts = 0;
+    do {
+        x = (Math.random() * 2 - 1) * (ARENA_SIZE - 5);
+        z = (Math.random() * 2 - 1) * (ARENA_SIZE - 5);
+        dist = Math.hypot(x - blackHole.group.position.x, z - blackHole.group.position.z);
+        attempts++;
+    } while (dist < minDistFromHole && attempts < 20);
+    return { x, z };
+}
+
+function spawnDog(tier = null, isGolden = false) {
+    // בחירת דרגת גודל הכלב (1: גור קטן, 2: בינוני, 3: גדול, 4: ענק)
+    if (tier === null) {
+        const r = Math.random();
+        if (r < 0.45) tier = 1;
+        else if (r < 0.75) tier = 2;
+        else if (r < 0.93) tier = 3;
+        else tier = 4;
+    }
+
+    const tierConfigs = {
+        1: { scale: 0.75, reqRadius: 1.1, points: 15, growth: 0.045, speed: 3.8 },
+        2: { scale: 1.25, reqRadius: 1.85, points: 35, growth: 0.085, speed: 4.5 },
+        3: { scale: 1.95, reqRadius: 2.85, points: 80, growth: 0.15, speed: 5.2 },
+        4: { scale: 2.9,  reqRadius: 4.2,  points: 200, growth: 0.28, speed: 5.8 }
+    };
+
+    const cfg = isGolden
+        ? { scale: 1.15, reqRadius: Math.max(1.2, gameState.holeRadius * 0.85), points: 250, growth: 0.22, speed: 8.5 }
+        : tierConfigs[tier];
+
+    const breed = DOG_BREEDS[Math.floor(Math.random() * DOG_BREEDS.length)];
+    const dogParts = buildDogMesh(breed, isGolden);
+    dogParts.mesh.scale.setScalar(cfg.scale);
+
+    const pos = getRandomSpawnPos(isGolden ? 22 : 10);
+    dogParts.mesh.position.set(pos.x, 0, pos.z);
+    dogParts.mesh.rotation.y = Math.random() * Math.PI * 2;
+
+    scene.add(dogParts.mesh);
+
+    worldEntities.push({
+        kind: 'dog',
+        isGolden,
+        tier,
+        mesh: dogParts.mesh,
+        parts: dogParts,
+        reqRadius: cfg.reqRadius,
+        points: cfg.points,
+        growth: cfg.growth,
+        speed: cfg.speed,
+        moveAngle: Math.random() * Math.PI * 2,
+        changeDirTimer: 1 + Math.random() * 3,
+        animPhase: Math.random() * 10,
+        barkCooldown: 0
+    });
+}
+
+function spawnProp(type = null) {
+    if (!type) {
+        const types = ['bone', 'bone', 'hydrant', 'doghouse', 'bench', 'tree'];
+        type = types[Math.floor(Math.random() * types.length)];
+    }
+
+    const propConfigs = {
+        bone:     { scale: 1.1, reqRadius: 0.85, points: 10, growth: 0.032 },
+        hydrant:  { scale: 1.1, reqRadius: 1.35, points: 20, growth: 0.055 },
+        doghouse: { scale: 1.15, reqRadius: 2.1, points: 45, growth: 0.10 },
+        bench:    { scale: 1.1, reqRadius: 2.5,  points: 60, growth: 0.12 },
+        tree:     { scale: 1.2, reqRadius: 3.4,  points: 110, growth: 0.19 }
+    };
+
+    const cfg = propConfigs[type];
+    const mesh = buildPropMesh(type);
+    mesh.scale.setScalar(cfg.scale);
+
+    const pos = getRandomSpawnPos(8);
+    mesh.position.set(pos.x, 0, pos.z);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+
+    scene.add(mesh);
+
+    worldEntities.push({
+        kind: 'prop',
+        propType: type,
+        mesh,
+        reqRadius: cfg.reqRadius,
+        points: cfg.points,
+        growth: cfg.growth,
+        animPhase: Math.random() * Math.PI * 2
+    });
+}
+
+function populateInitialWorld() {
+    // ניקוי ישויות קודמות
+    worldEntities.forEach(e => scene.remove(e.mesh));
+    swallowingEntities.forEach(e => scene.remove(e.mesh));
+    particles.forEach(p => scene.remove(p.mesh));
+    worldEntities.length = 0;
+    swallowingEntities.length = 0;
+    particles.length = 0;
+
+    // יצירת 45 חפצי פארק
+    for (let i = 0; i < 18; i++) spawnProp('bone');
+    for (let i = 0; i < 10; i++) spawnProp('hydrant');
+    for (let i = 0; i < 7; i++) spawnProp('doghouse');
+    for (let i = 0; i < 6; i++) spawnProp('bench');
+    for (let i = 0; i < 8; i++) spawnProp('tree');
+
+    // יצירת 38 כלבים בגדלים מגוונים
+    for (let i = 0; i < 18; i++) spawnDog(1);
+    for (let i = 0; i < 11; i++) spawnDog(2);
+    for (let i = 0; i < 6; i++) spawnDog(3);
+    for (let i = 0; i < 3; i++) spawnDog(4);
+}
+
+// ==========================================
+// 8. אפקטים ויזואליים (חלקיקים ופופ-אפים)
+// ==========================================
+const popupsLayer = document.getElementById('popups-layer');
+
+function spawnFloatingPopup(worldPos, text, color = '#fbbf24', sizeClass = 'text-xl sm:text-2xl') {
+    const vector = worldPos.clone();
+    vector.y += 1.5;
+    vector.project(camera);
+
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+    // בדיקה שהנקודה בתוך המסך
+    if (x < 0 || x > window.innerWidth || y < 0 || y > window.innerHeight) return;
+
+    const el = document.createElement('div');
+    el.className = `floating-popup ${sizeClass}`;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.color = color;
+    el.textContent = text;
+
+    popupsLayer.appendChild(el);
+    setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    }, 900);
+}
+
+function spawnSwallowParticles(pos, colorHex = 0xa855f7, count = 10) {
+    const geo = new THREE.BoxGeometry(0.28, 0.28, 0.28);
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+
+    for (let i = 0; i < count; i++) {
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(pos);
+        mesh.position.y += 0.5;
+        scene.add(mesh);
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 6;
+        particles.push({
+            mesh,
+            vel: new THREE.Vector3(Math.cos(angle) * speed, 4 + Math.random() * 5, Math.sin(angle) * speed),
+            life: 0.55 + Math.random() * 0.25
+        });
+    }
+}
+
+// ==========================================
+// 9. בקרות תנועה (עכבר, מגע ומקלדת)
+// ==========================================
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.code] = true; });
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+const joystickZone = document.getElementById('joystick-zone');
+const joystickKnob = document.getElementById('joystick-knob');
+
+let pointerInput = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    dx: 0,
+    dy: 0
+};
+
+function handlePointerStart(clientX, clientY) {
+    if (!gameState.isPlaying) return;
+    pointerInput.active = true;
+    pointerInput.startX = clientX;
+    pointerInput.startY = clientY;
+    pointerInput.dx = 0;
+    pointerInput.dy = 0;
+
+    joystickZone.style.display = 'block';
+    joystickZone.style.left = `${clientX}px`;
+    joystickZone.style.top = `${clientY}px`;
+    joystickKnob.style.transform = `translate(-50%, -50%)`;
+}
+
+function handlePointerMove(clientX, clientY) {
+    if (!pointerInput.active) return;
+    const maxRadius = 48;
+    let rawDx = clientX - pointerInput.startX;
+    let rawDy = clientY - pointerInput.startY;
+    const dist = Math.hypot(rawDx, rawDy);
+
+    if (dist > maxRadius) {
+        rawDx = (rawDx / dist) * maxRadius;
+        rawDy = (rawDy / dist) * maxRadius;
+    }
+
+    joystickKnob.style.transform = `translate(calc(-50% + ${rawDx}px), calc(-50% + ${rawDy}px))`;
+    pointerInput.dx = rawDx / maxRadius;
+    pointerInput.dy = rawDy / maxRadius;
+}
+
+function handlePointerEnd() {
+    pointerInput.active = false;
+    pointerInput.dx = 0;
+    pointerInput.dy = 0;
+    joystickZone.style.display = 'none';
+}
+
+canvas.addEventListener('mousedown', e => {
+    if (e.button === 0) handlePointerStart(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', e => handlePointerMove(e.clientX, e.clientY));
+window.addEventListener('mouseup', handlePointerEnd);
+
+canvas.addEventListener('touchstart', e => {
+    if (e.touches.length > 0) {
+        handlePointerStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+    if (e.touches.length > 0) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+}, { passive: true });
+window.addEventListener('touchend', handlePointerEnd);
+
+// ==========================================
+// 10. לוגיקת המשחק, פיזיקת שאיבה ועדכון ממשק
+// ==========================================
+const scoreDisplay = document.getElementById('score-display');
+const levelDisplay = document.getElementById('level-display');
+const sizeProgress = document.getElementById('size-progress');
+const timerDisplay = document.getElementById('timer-display');
+const goldenAlert = document.getElementById('golden-alert');
+
+function updateHUD() {
+    scoreDisplay.textContent = gameState.score.toLocaleString();
+    levelDisplay.textContent = `רמה ${gameState.level}`;
+
+    const progress = Math.min(100, Math.max(5,
+        ((gameState.targetRadius - gameState.prevLevelThreshold) /
+        (gameState.nextLevelThreshold - gameState.prevLevelThreshold)) * 100
+    ));
+    sizeProgress.style.width = `${progress}%`;
+
+    if (!gameState.isEndless) {
+        const secs = Math.max(0, Math.ceil(gameState.timeLeft));
+        const mins = Math.floor(secs / 60);
+        const remSecs = secs % 60;
+        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(remSecs).padStart(2, '0')}`;
+        if (secs <= 10) {
+            timerDisplay.classList.add('text-rose-400');
+        } else {
+            timerDisplay.classList.remove('text-rose-400');
+        }
+    } else {
+        timerDisplay.textContent = '♾️ חופשי';
+    }
+}
+
+function checkLevelUp() {
+    if (gameState.targetRadius >= gameState.nextLevelThreshold) {
+        gameState.level++;
+        gameState.prevLevelThreshold = gameState.nextLevelThreshold;
+        gameState.nextLevelThreshold = gameState.nextLevelThreshold * 1.42;
+        gameState.shakeIntensity = 0.45;
+
+        sound.playLevelUp();
+        spawnFloatingPopup(blackHole.group.position, `גדלת לרמה ${gameState.level}! 🌟`, '#c084fc', 'text-2xl sm:text-3xl');
+        spawnSwallowParticles(blackHole.group.position, 0x38bdf8, 18);
+    }
+}
+
+function startGame() {
+    sound.init();
+    gameState.isPlaying = true;
+    gameState.score = 0;
+    gameState.dogsSwallowed = 0;
+    gameState.timeLeft = ROUND_DURATION;
+    gameState.holeRadius = 1.4;
+    gameState.targetRadius = 1.4;
+    gameState.level = 1;
+    gameState.prevLevelThreshold = 1.4;
+    gameState.nextLevelThreshold = 2.05;
+    gameState.goldenSpawnTimer = 10;
+
+    blackHole.group.position.set(0, 0, 0);
+    blackHole.group.scale.setScalar(1.4);
+
+    populateInitialWorld();
+    updateHUD();
+
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+}
+
+function endGame(titleText = 'נגמר הזמן!') {
+    gameState.isPlaying = false;
+    handlePointerEnd();
+
+    document.getElementById('hud').classList.add('hidden');
+    goldenAlert.classList.add('hidden');
+    document.getElementById('gameover-title').textContent = titleText;
+    document.getElementById('final-score').textContent = gameState.score.toLocaleString();
+    document.getElementById('final-dogs').textContent = gameState.dogsSwallowed;
+    document.getElementById('final-level').textContent = `רמה ${gameState.level}`;
+    document.getElementById('gameover-screen').classList.remove('hidden');
+}
+
+// ==========================================
+// 11. לולאת האנימציה והפיזיקה הראשית
+// ==========================================
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.05);
+
+    // סיבוב טבעת הספיחה של החור השחור תמיד
+    blackHole.accretionRing.rotation.z -= dt * 2.4;
+
+    if (gameState.isPlaying) {
+        // עדכון טיימר
+        if (!gameState.isEndless) {
+            gameState.timeLeft -= dt;
+            if (gameState.timeLeft <= 0) {
+                gameState.timeLeft = 0;
+                updateHUD();
+                endGame('נגמר הזמן! ⏰');
+                return;
+            }
+        }
+
+        // הופעת כלב זהב מיוחד מדי פעם
+        gameState.goldenSpawnTimer -= dt;
+        if (gameState.goldenSpawnTimer <= 0) {
+            gameState.goldenSpawnTimer = 22;
+            const hasGolden = worldEntities.some(e => e.isGolden);
+            if (!hasGolden) {
+                spawnDog(2, true);
+                sound.playBark(false);
+                goldenAlert.classList.remove('hidden');
+                setTimeout(() => goldenAlert.classList.add('hidden'), 4000);
+            }
+        }
+
+        // חישוב וקטור תנועה מהקלט (מקלדת או גרירה)
+        let moveX = pointerInput.dx;
+        let moveZ = pointerInput.dy;
+
+        if (keys['ArrowUp'] || keys['KeyW']) moveZ -= 1;
+        if (keys['ArrowDown'] || keys['KeyS']) moveZ += 1;
+        if (keys['ArrowLeft'] || keys['KeyA']) moveX -= 1;
+        if (keys['ArrowRight'] || keys['KeyD']) moveX += 1;
+
+        const inputLen = Math.hypot(moveX, moveZ);
+        if (inputLen > 1) {
+            moveX /= inputLen;
+            moveZ /= inputLen;
+        }
+
+        // מהירות החור גדלה מעט ככל שהוא גדל כדי לשמור על תחושת קצב מעולה
+        const currentSpeed = blackHole.baseSpeed + (gameState.holeRadius - 1.4) * 1.6;
+        blackHole.velocity.x = THREE.MathUtils.lerp(blackHole.velocity.x, moveX * currentSpeed, dt * 10);
+        blackHole.velocity.z = THREE.MathUtils.lerp(blackHole.velocity.z, moveZ * currentSpeed, dt * 10);
+
+        blackHole.group.position.x += blackHole.velocity.x * dt;
+        blackHole.group.position.z += blackHole.velocity.z * dt;
+
+        // הגבלת תנועה לגבולות הפארק
+        const limit = ARENA_SIZE - gameState.holeRadius * 0.5;
+        blackHole.group.position.x = THREE.MathUtils.clamp(blackHole.group.position.x, -limit, limit);
+        blackHole.group.position.z = THREE.MathUtils.clamp(blackHole.group.position.z, -limit, limit);
+
+        // גדילה חלקה של החור השחור
+        gameState.holeRadius = THREE.MathUtils.lerp(gameState.holeRadius, gameState.targetRadius, dt * 6);
+        blackHole.group.scale.setScalar(gameState.holeRadius);
+
+        // עדכון התנהגות ואינטראקציה של כל הישויות בעולם
+        const holePos = blackHole.group.position;
+
+        for (let i = worldEntities.length - 1; i >= 0; i--) {
+            const ent = worldEntities[i];
+            const dx = holePos.x - ent.mesh.position.x;
+            const dz = holePos.z - ent.mesh.position.z;
+            const dist = Math.hypot(dx, dz);
+
+            // אנימציה ובינה מלאכותית לכלבים
+            if (ent.kind === 'dog') {
+                ent.animPhase += dt * ent.speed * 2.5;
+                if (ent.barkCooldown > 0) ent.barkCooldown -= dt;
+
+                // כשכוש זנב ותנועת רגליים
+                ent.parts.tail.rotation.z = Math.sin(ent.animPhase * 1.8) * 0.55;
+                ent.parts.legs[0].rotation.x = Math.sin(ent.animPhase) * 0.6;
+                ent.parts.legs[1].rotation.x = -Math.sin(ent.animPhase) * 0.6;
+                ent.parts.legs[2].rotation.x = -Math.sin(ent.animPhase) * 0.6;
+                ent.parts.legs[3].rotation.x = Math.sin(ent.animPhase) * 0.6;
+                ent.parts.head.rotation.z = Math.sin(ent.animPhase * 0.5) * 0.08;
+
+                // אם החור קרוב: כלבים קטנים בורחים בבהלה, כלבים גדולים נובחים ומפחידים
+                const dangerZone = gameState.holeRadius * 4.5 + 4;
+                if (dist < dangerZone) {
+                    if (gameState.holeRadius >= ent.reqRadius) {
+                        // בריחה מהחור השחור
+                        ent.moveAngle = Math.atan2(-dx, -dz);
+                        if (ent.barkCooldown <= 0 && Math.random() < 0.04) {
+                            ent.barkCooldown = 3.5;
+                            sound.playBark(false);
+                            spawnFloatingPopup(ent.mesh.position, 'האו! 🐾', '#ffffff', 'text-sm sm:text-base');
+                        }
+                    } else {
+                        // כלב גדול מדי לבליעה - מסתובב לעבר החור ונובח!
+                        ent.moveAngle = Math.atan2(dx, dz);
+                        if (ent.barkCooldown <= 0 && dist < gameState.holeRadius + 4.5) {
+                            ent.barkCooldown = 2.5;
+                            sound.playBark(true);
+                            spawnFloatingPopup(ent.mesh.position, 'האו האו! (גדול מדי!)', '#f87171', 'text-base sm:text-lg');
+                        }
+                    }
+                } else {
+                    // שיטוט חופשי בפארק
+                    ent.changeDirTimer -= dt;
+                    if (ent.changeDirTimer <= 0) {
+                        ent.changeDirTimer = 1.5 + Math.random() * 3;
+                        ent.moveAngle += (Math.random() - 0.5) * 2.5;
+                    }
+                }
+
+                // תנועת הכלב (כלבים גדולים מאוד עוצרים ונובחים כשהם קרובים לחור קטן)
+                const isBlockingBigDog = (gameState.holeRadius < ent.reqRadius) && (dist < gameState.holeRadius + 3.2);
+                const moveMult = isBlockingBigDog ? 0.1 : (dist < dangerZone ? 1.35 : 0.75);
+
+                ent.mesh.position.x += Math.sin(ent.moveAngle) * ent.speed * moveMult * dt;
+                ent.mesh.position.z += Math.cos(ent.moveAngle) * ent.speed * moveMult * dt;
+                ent.mesh.rotation.y = ent.moveAngle;
+
+                // שמירה על הכלב בתוך גבולות הפארק
+                const dogLimit = ARENA_SIZE - 3;
+                if (Math.abs(ent.mesh.position.x) > dogLimit) {
+                    ent.mesh.position.x = Math.sign(ent.mesh.position.x) * dogLimit;
+                    ent.moveAngle = -ent.moveAngle;
+                }
+                if (Math.abs(ent.mesh.position.z) > dogLimit) {
+                    ent.mesh.position.z = Math.sign(ent.mesh.position.z) * dogLimit;
+                    ent.moveAngle = Math.PI - ent.moveAngle;
+                }
+            } else if (ent.propType === 'bone') {
+                // עצמות מסתובבות בעדינות באוויר
+                ent.animPhase += dt * 3;
+                ent.mesh.rotation.y += dt * 1.8;
+                ent.mesh.position.y = 0.15 + Math.sin(ent.animPhase) * 0.12;
+            }
+
+            // בדיקת שאיבה לתוך החור השחור!
+            if (gameState.holeRadius >= ent.reqRadius) {
+                // רדיוס משיכה מגנטי סביב שפת החור
+                const pullRadius = gameState.holeRadius * 1.18;
+                if (dist < pullRadius) {
+                    worldEntities.splice(i, 1);
+                    swallowingEntities.push({
+                        ...ent,
+                        swallowProgress: 0,
+                        startPos: ent.mesh.position.clone(),
+                        startScale: ent.mesh.scale.x,
+                        spiralAngle: Math.atan2(ent.mesh.position.z - holePos.z, ent.mesh.position.x - holePos.x)
+                    });
+                }
+            } else {
+                // אם האובייקט גדול מדי - דחיפה פיזיקלית עדינה החוצה מהחור
+                const minPushDist = gameState.holeRadius + ent.reqRadius * 0.45;
+                if (dist < minPushDist && dist > 0.001) {
+                    const pushBack = (minPushDist - dist);
+                    blackHole.group.position.x += (dx / dist) * pushBack * 0.6;
+                    blackHole.group.position.z += (dz / dist) * pushBack * 0.6;
+                }
+            }
+        }
+
+        // אנימציית מערבולת השאיבה פנימה
+        for (let i = swallowingEntities.length - 1; i >= 0; i--) {
+            const s = swallowingEntities[i];
+            s.swallowProgress += dt * 4.2;
+            const t = Math.min(1, s.swallowProgress);
+
+            // סיבוב ספירלי לתוך מרכז החור + שקיעה למטה + הקטנה
+            s.spiralAngle += dt * 14;
+            const currentDist = (1 - t) * Math.hypot(s.startPos.x - holePos.x, s.startPos.z - holePos.z);
+
+            s.mesh.position.x = holePos.x + Math.cos(s.spiralAngle) * currentDist;
+            s.mesh.position.z = holePos.z + Math.sin(s.spiralAngle) * currentDist;
+            s.mesh.position.y = -t * 1.8;
+            s.mesh.rotation.x += dt * 10;
+            s.mesh.rotation.z += dt * 8;
+            s.mesh.scale.setScalar(Math.max(0.01, s.startScale * (1 - t * 0.75)));
+
+            if (t >= 1) {
+                // הישות נבלעה לחלוטין!
+                scene.remove(s.mesh);
+                swallowingEntities.splice(i, 1);
+
+                gameState.score += s.points;
+                gameState.targetRadius += s.growth;
+
+                if (s.kind === 'dog') {
+                    gameState.dogsSwallowed++;
+                    if (s.isGolden) {
+                        sound.playGoldenBonus();
+                        gameState.shakeIntensity = 0.55;
+                        spawnFloatingPopup(holePos, `+${s.points} כלב זהב! 👑`, '#fde047', 'text-2xl sm:text-4xl');
+                        spawnSwallowParticles(holePos, 0xfacc15, 22);
+                    } else {
+                        sound.playSwallow(1.1);
+                        spawnFloatingPopup(holePos, `+${s.points} 🐶`, '#4ade80', 'text-xl sm:text-2xl');
+                        spawnSwallowParticles(holePos, 0xa855f7, 10);
+                    }
+                    // יצירת כלב חדש בפארק כדי שהעולם תמיד יהיה חי ותוסס
+                    spawnDog();
+                } else {
+                    sound.playSwallow(0.95);
+                    spawnFloatingPopup(holePos, `+${s.points}`, '#fbbf24', 'text-lg sm:text-xl');
+                    spawnSwallowParticles(holePos, 0x38bdf8, 7);
+                    spawnProp(s.propType);
+                }
+
+                checkLevelUp();
+                updateHUD();
+            }
+        }
+    } else {
+        // מצב המתנה במסך הפתיחה - סיבוב מצלמה נעים סביב הפארק
+        const idleTime = performance.now() * 0.0003;
+        camera.position.x = Math.sin(idleTime) * 26;
+        camera.position.z = Math.cos(idleTime) * 26;
+        camera.position.y = 22;
+        camera.lookAt(0, 0, 0);
+    }
+
+    // עדכון חלקיקים
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt;
+        p.vel.y -= 18 * dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.mesh.rotation.x += dt * 8;
+        p.mesh.rotation.y += dt * 8;
+        p.mesh.scale.setScalar(Math.max(0.01, p.life * 1.5));
+
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            particles.splice(i, 1);
+        }
+    }
+
+    // מצלמה דינמית שעוקבת אחרי החור השחור ומתרחקת ככל שהוא גדל
+    if (gameState.isPlaying) {
+        const zoomFactor = 1 + (gameState.holeRadius - 1.4) * 0.58;
+        const targetCamY = 20 * zoomFactor;
+        const targetCamZ = blackHole.group.position.z + 18 * zoomFactor;
+        const targetCamX = blackHole.group.position.x;
+
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, dt * 6);
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, dt * 4);
+        camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, dt * 6);
+
+        // אפקט רעידת מצלמה קלה בעליית רמה
+        if (gameState.shakeIntensity > 0) {
+            camera.position.x += (Math.random() - 0.5) * gameState.shakeIntensity;
+            camera.position.y += (Math.random() - 0.5) * gameState.shakeIntensity;
+            gameState.shakeIntensity = Math.max(0, gameState.shakeIntensity - dt * 1.8);
+        }
+
+        camera.lookAt(blackHole.group.position.x, 0, blackHole.group.position.z - 1.5);
+    }
+
+    renderer.render(scene, camera);
+}
+
+// ==========================================
+// 12. חיבור אירועי כפתורים והתאמת גודל מסך
+// ==========================================
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// כפתורי בחירת מצב משחק
+const btnTimed = document.getElementById('mode-timed');
+const btnEndless = document.getElementById('mode-endless');
+
+btnTimed.addEventListener('click', () => {
+    gameState.isEndless = false;
+    btnTimed.className = 'mode-select-btn bg-purple-600 text-white font-bold py-2.5 px-3 rounded-xl shadow border-2 border-purple-800 transition';
+    btnEndless.className = 'mode-select-btn bg-white text-slate-700 font-bold py-2.5 px-3 rounded-xl border-2 border-slate-300 hover:bg-slate-50 transition';
+});
+
+btnEndless.addEventListener('click', () => {
+    gameState.isEndless = true;
+    btnEndless.className = 'mode-select-btn bg-purple-600 text-white font-bold py-2.5 px-3 rounded-xl shadow border-2 border-purple-800 transition';
+    btnTimed.className = 'mode-select-btn bg-white text-slate-700 font-bold py-2.5 px-3 rounded-xl border-2 border-slate-300 hover:bg-slate-50 transition';
+});
+
+// כפתור התחלה ומשחק חוזר
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+// כפתור חזרה לתפריט הראשי
+function returnToMenu() {
+    gameState.isPlaying = false;
+    handlePointerEnd();
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    goldenAlert.classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+}
+
+document.getElementById('menu-btn').addEventListener('click', () => {
+    if (gameState.isEndless && gameState.score > 0) {
+        endGame('סיכום משחק חופשי 🌟');
+    } else {
+        returnToMenu();
+    }
+});
+document.getElementById('back-home-btn').addEventListener('click', returnToMenu);
+
+// כפתור השתקת צלילים
+const muteBtn = document.getElementById('mute-btn');
+muteBtn.addEventListener('click', () => {
+    sound.init();
+    const isMuted = sound.toggleMute();
+    muteBtn.textContent = isMuted ? '🔇' : '🔊';
+});
+
+// אתחול ראשוני של העולם ברקע והתחלת הלולאה עם טעינת החלון
+window.onload = function () {
+    populateInitialWorld();
+    animate();
+};
+</script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

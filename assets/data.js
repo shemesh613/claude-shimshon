@@ -4,11 +4,18 @@
 window.SITE = {
   lessons: [
     {
+      title: "שיעור: יוצרות משחק תלת־ממד בקוד",
+      text: "מבקשים מגמיני משחק, ומקבלים משחק אמיתי עם שלבים, נקודות ודמויות.",
+      href: "lessons/games.html",
+      icon: "star", color: "coral",
+      tags: ["חדש"]
+    },
+    {
       title: "שיעור: בונים עולם תלת־ממד בקוד",
       text: "מבקשים מגמיני קוד, ומקבלים חדר, ארמון או טירה שאפשר להסתובב בהם.",
       href: "lessons/sim3d.html",
       icon: "star", color: "leaf",
-      tags: ["חדש"]
+      tags: []
     },
     {
       title: "שיעור: משנים תמונה אמיתית בגמיני",
@@ -54,6 +61,16 @@ window.SITE = {
     }
   ],
 
+  games: [
+      { "title": "חור שחור וכלבים", "cover": "lessons/img/game-blackhole.jpg", "href": "games/blackhole.html" },
+      { "title": "כלבים עם כנפיים", "cover": "lessons/img/game-flying-dogs.jpg", "href": "games/flying-dogs.html" },
+      { "title": "מרוץ האלופים 3D", "cover": "lessons/img/game-champions.jpg", "href": "games/champions.html" },
+      { "title": "שליח של טוב 3D", "cover": "lessons/img/game-good-deeds.jpg", "href": "games/good-deeds.html" },
+      { "title": "מסע בכדור הארץ", "cover": "lessons/img/game-earth.jpg", "href": "games/earth.html" },
+      { "title": "האיים המרחפים", "cover": "lessons/img/game-islands.jpg", "href": "games/islands.html" },
+      { "title": "מרוץ הלילה המהיר", "cover": "lessons/img/game-night-race.jpg", "href": "games/night-race.html" },
+      { "title": "שומר הניאון", "cover": "lessons/img/game-neon.jpg", "href": "games/neon.html" }
+  ],
   worlds: [
       { "title": "בית המקדש השני", "cover": "lessons/img/ex3d-mikdash.jpg", "href": "worlds/mikdash.html" },
       { "title": "משרדו של דמבלדור", "cover": "lessons/img/ex3d-dumbledore.jpg", "href": "worlds/dumbledore.html" },

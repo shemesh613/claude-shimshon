@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>הרפתקה עולמית תלת-ממדית - כדור הארץ</title>
+    <!-- טעינת גופן עברי מודרני ונקי -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- טעינת Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- טעינת Three.js ו-OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        /* הגדרות בסיס ועיצוב מותאם למשחק חלל תלת-ממדי */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030712;
+            font-family: 'Rubik', sans-serif;
+            color: #f8fafc;
+        }
+
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            cursor: grab;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        /* אפקט זכוכית כהה (Glassmorphism) */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.65);
+        }
+
+        .glass-btn {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .glass-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(51, 65, 85, 0.92);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 6px 18px rgba(14, 165, 233, 0.28);
+        }
+
+        .glass-btn:active {
+            transform: translateY(1px) scale(0.97);
+        }
+
+        .mode-btn-active {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+            border-color: #7dd3fc !important;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.5) !important;
+        }
+
+        /* תוויות צפות מעל סיכות תלת-ממדיות */
+        #labels-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        .pin-label {
+            position: absolute;
+            transform: translate(-50%, -140%);
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.55);
+            color: #f0f9ff;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pin-label:hover {
+            background: #0284c7;
+            transform: translate(-50%, -150%) scale(1.08);
+            z-index: 20;
+        }
+
+        .pin-label.highlighted {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            border-color: #fef08a;
+            animation: pulseBadge 1.5s infinite;
+            z-index: 15;
+        }
+
+        @keyframes pulseBadge {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* התאמת פס גלילה פנימי לכרטיס מידע */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- קנבס תלת-ממדי -->
+    <div id="canvas-container"></div>
+
+    <!-- שכבת תוויות מיקומים צפות -->
+    <div id="labels-container"></div>
+
+    <!-- ממשק משתמש ראשי (HUD) -->
+    <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-5">
+        
+        <!-- סרגל עליון: כותרת, ניקוד, רצף וכפתורי שליטה -->
+        <header class="flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
+            <!-- לוגו ושם המשחק -->
+            <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-2xl shadow-lg shadow-sky-500/30">
+                    🌍
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white leading-tight">
+                        מסע בכדור הארץ
+                    </h1>
+                    <p class="text-[11px] sm:text-xs text-sky-300 font-medium">
+                        חקרו את פלאי העולם בתלת-ממד
+                    </p>
+                </div>
+            </div>
+
+            <!-- מד ניקוד, רצף הצלחות וכפתורי עזר -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- ניקוד -->
+                <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-2">
+                    <span class="text-lg">⭐</span>
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-medium leading-none">ניקוד</div>
+                        <div id="score-display" class="text-base sm:text-lg font-extrabold text-amber-400 leading-tight">0</div>
+                    </div>
+                </div>
+
+                <!-- רצף (Streak) -->
+                <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-2">
+                    <span class="text-lg">🔥</span>
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-medium leading-none">רצף</div>
+                        <div id="streak-display" class="text-base sm:text-lg font-extrabold text-orange-400 leading-tight">0</div>
+                    </div>
+                </div>
+
+                <!-- כפתור סיבוב אוטומטי -->
+                <button id="toggle-rotate-btn" title="הפעל/עצור סיבוב" class="glass-btn rounded-2xl p-2.5 sm:p-3 text-sky-300 hover:text-white flex items-center justify-center">
+                    <svg id="rotate-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+
+                <!-- כפתור השתקה/הפעלת צלילים -->
+                <button id="toggle-sound-btn" title="צלילים" class="glass-btn rounded-2xl p-2.5 sm:p-3 text-sky-300 hover:text-white flex items-center justify-center">
+                    <svg id="sound-on-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <svg id="sound-off-icon" class="w-5 h-5 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- אזור מרכזי-צדי עבור כרטיסי משחק ומידע -->
+        <main class="relative flex-1 flex items-end sm:items-center justify-between my-2 pointer-events-none">
+            
+            <!-- כרטיס אתגר / חידון (מוצג במצבי "אתגר מיקום" ו-"טריוויה") -->
+            <div id="challenge-panel" class="hidden pointer-events-auto w-full sm:w-96 glass-panel rounded-3xl p-4 sm:p-5 border-sky-500/40 animate-slide-up">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="challenge-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-sky-500/25 text-sky-300 border border-sky-400/30">
+                        אתגר מיקום
+                    </span>
+                    <button id="hint-btn" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-400/30 transition">
+                        💡 רמז
+                    </button>
+                </div>
+
+                <h2 id="challenge-question" class="text-lg sm:text-xl font-bold text-white mb-2 leading-snug">
+                    מצאו את פירמידות גיזה!
+                </h2>
+
+                <p id="challenge-subtext" class="text-xs sm:text-sm text-slate-300 mb-3">
+                    סובבו את כדור הארץ ולחצו על הסיכה המתאימה.
+                </p>
+
+                <!-- אפשרויות בחירה (למצב טריוויה) -->
+                <div id="trivia-options" class="hidden flex-col gap-2 mt-3"></div>
+
+                <!-- תיבת משוב והודעות -->
+                <div id="feedback-box" class="hidden mt-3 p-3 rounded-2xl text-sm font-medium transition-all"></div>
+            </div>
+
+            <!-- כרטיס מידע מפורט על יעד (מוצג במצב "גלה את העולם") -->
+            <div id="info-card" class="hidden pointer-events-auto w-full sm:w-96 glass-panel rounded-3xl p-5 border-sky-400/40 animate-slide-up max-h-[55vh] sm:max-h-[72vh] flex flex-col">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-3">
+                        <span id="info-emoji" class="text-4xl bg-slate-800/80 p-2.5 rounded-2xl border border-slate-700">🏛️</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span id="info-continent" class="text-xs font-bold text-sky-400 bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-500/30">אסיה</span>
+                                <span id="info-country" class="text-xs text-slate-300 font-medium">ישראל</span>
+                            </div>
+                            <h2 id="info-title" class="text-xl font-extrabold text-white mt-1">ירושלים</h2>
+                        </div>
+                    </div>
+                    <button id="close-info-btn" class="glass-btn rounded-xl p-2 text-slate-300 hover:text-white" title="סגור">
+                        ✕
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto custom-scroll pr-1 space-y-3 text-sm text-slate-200 leading-relaxed">
+                    <p id="info-description"></p>
+                    
+                    <div class="bg-sky-950/50 border border-sky-500/25 rounded-2xl p-3.5">
+                        <div class="text-xs font-bold text-sky-300 mb-1 flex items-center gap-1.5">
+                            <span>✨</span> עובדה מרתקת:
+                        </div>
+                        <p id="info-funfact" class="text-xs sm:text-sm text-sky-100"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                        <div class="bg-slate-800/60 rounded-xl p-2.5 border border-slate-700/60">
+                            <span class="text-slate-400 block">קואורדינטות</span>
+                            <span id="info-coords" class="font-mono font-semibold text-slate-200" dir="ltr">31.76° N, 35.21° E</span>
+                        </div>
+                        <div class="bg-slate-800/60 rounded-xl p-2.5 border border-slate-700/60">
+                            <span class="text-slate-400 block">סוג אתר</span>
+                            <span id="info-category" class="font-semibold text-emerald-300">אתר היסטורי</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-700/60 flex justify-between items-center">
+                    <button id="prev-landmark-btn" class="glass-btn px-3.5 py-2 rounded-xl text-xs font-bold text-slate-200">
+                        → הקודם
+                    </button>
+                    <span id="landmark-counter" class="text-xs text-slate-400 font-medium">1 / 12</span>
+                    <button id="next-landmark-btn" class="glass-btn px-3.5 py-2 rounded-xl text-xs font-bold text-sky-300">
+                        הבא ←
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- סרגל תחתון: בחירת מצבי משחק -->
+        <footer class="flex flex-col items-center gap-2 pointer-events-auto">
+            <div class="glass-panel rounded-3xl p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 shadow-2xl">
+                <button data-mode="explore" class="mode-btn mode-btn-active px-3.5 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 transition-all">
+                    <span>🧭</span>
+                    <span>גלה את העולם</span>
+                </button>
+                <button data-mode="find" class="mode-btn glass-btn px-3.5 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 transition-all">
+                    <span>🎯</span>
+                    <span>אתגר מיקום</span>
+                </button>
+                <button data-mode="trivia" class="mode-btn glass-btn px-3.5 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 transition-all">
+                    <span>🧠</span>
+                    <span>חידון טריוויה</span>
+                </button>
+            </div>
+            <div id="bottom-hint-bar" class="text-[11px] sm:text-xs text-slate-300/90 bg-slate-950/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                גררו כדי לסובב את כדור הארץ • גללו או צבטו לזום • לחצו על סיכה למידע
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        /**
+         * מאגר הנתונים הגיאוגרפי והחינוכי של אתרי העולם
+         * כולל קואורדינטות מדויקות, תיאורים, עובדות מעניינות ושאלות טריוויה בעברית
+         */
+        const LANDMARKS = [
+            {
+                id: 'jerusalem',
+                name: 'ירושלים',
+                country: 'ישראל',
+                continent: 'אסיה',
+                category: 'עיר היסטורית',
+                emoji: '🕌',
+                lat: 31.7683,
+                lon: 35.2137,
+                description: 'ירושלים היא בירת ישראל ואחת הערים העתיקות והמרתקות בעולם. העיר העתיקה שלה מוקפת חומות ומכילה אתרים מקודשים לשלוש הדתות המונותאיסטיות.',
+                funFact: 'בירושלים נמצא הכותל המערבי, והיא נחשבת לאחת הערים היחידות בעולם שיש להן מעל 70 שמות שונים במסורת!',
+                hint: 'נמצאת במזרח התיכון, לחופו המזרחי של הים התיכון.',
+                trivia: {
+                    question: 'איזה אתר היסטורי מפורסם נמצא בלב העיר העתיקה של ירושלים?',
+                    options: ['הכותל המערבי', 'הקולוסיאום', 'מגדל אייפל', 'החומה הגדולה'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'pyramids',
+                name: 'פירמידות גיזה',
+                country: 'מצרים',
+                continent: 'אפריקה',
+                category: 'פלא עולם עתיק',
+                emoji: '🛕',
+                lat: 29.9792,
+                lon: 31.1342,
+                description: 'מתחם הפירמידות בגיזה שליד קהיר נבנה לפני יותר מ-4,500 שנה כקברים מלכותיים עבור פרעוני מצרים העתיקה, לצד פסל הספינקס הענק.',
+                funFact: 'הפירמידה הגדולה של חופו הייתה המבנה הגבוה ביותר מעשה ידי אדם בעולם במשך כמעט 3,800 שנה!',
+                hint: 'נמצאות בצפון-מזרח אפריקה, סמוך לנהר הנילוס.',
+                trivia: {
+                    question: 'מהו שמו של הפסל הענק בעל גוף אריה וראש אדם השומר על פירמידות גיזה?',
+                    options: ['הספינקס הגדול', 'המינוטאורוס', 'הקולוסוס', 'אנוביס'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'eiffel',
+                name: 'מגדל אייפל',
+                country: 'צרפת',
+                continent: 'אירופה',
+                category: 'פלא הנדסי',
+                emoji: '🗼',
+                lat: 48.8584,
+                lon: 2.2945,
+                description: 'מגדל הברזל המפורסם בפריז נבנה בשנת 1889 לכבוד התערוכה העולמית, והפך לסמל המוכר ביותר של צרפת.',
+                funFact: 'בקיץ, כשהטמפרטורה עולה, הברזל של מגדל אייפל מתרחב והמגדל גובה בעד 15 סנטימטרים!',
+                hint: 'נמצא במערב אירופה, בעיר הבירה של צרפת.',
+                trivia: {
+                    question: 'מאיזה חומר עיקרי בנוי מגדל אייפל שבפריז?',
+                    options: ['ברזל חשיל', 'שיש לבן', 'אבן גיר', 'בטון מזוין'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'great_wall',
+                name: 'החומה הגדולה של סין',
+                country: 'סין',
+                continent: 'אסיה',
+                category: 'פלא עולם חדש',
+                emoji: '🧱',
+                lat: 40.4319,
+                lon: 116.5704,
+                description: 'מערכת ביצורים אדירה שנבנתה לאורך מאות שנים כדי להגן על גבולה הצפוני של סין העתיקה, ונמתחת לאורך אלפי קילומטרים.',
+                funFact: 'אורכה הכולל של החומה על כל שלוחותיה עולה על 21,000 קילומטרים – יותר ממחצית היקף כדור הארץ!',
+                hint: 'נמצאת במזרח אסיה, במדינה המאוכלסת ביותר באזור.',
+                trivia: {
+                    question: 'מה הייתה המטרה העיקרית של בניית החומה הגדולה של סין?',
+                    options: ['הגנה מפני פולשים מצפון', 'הובלת מים לערים', 'כביש מהיר למרכבות', 'סימון גבול בין מחוזות'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'everest',
+                name: 'הר האוורסט',
+                country: 'נפאל / טיבט',
+                continent: 'אסיה',
+                category: 'שיא גיאוגרפי',
+                emoji: '🏔️',
+                lat: 27.9881,
+                lon: 86.9250,
+                description: 'ההר הגבוה ביותר בעולם מעל פני הים, השוכן ברכס הרי ההימלאיה בגובה של 8,848 מטרים.',
+                funFact: 'הר האוורסט עדיין ממשיך לגבוה בכ-4 מילימטרים בכל שנה בגלל תזוזת הלוחות הטקטוניים!',
+                hint: 'נמצא ברכס ההימלאיה בדרום-מרכז אסיה, צפונית להודו.',
+                trivia: {
+                    question: 'מהו גובהו של הר האוורסט מעל פני הים?',
+                    options: ['כ-8,848 מטרים', 'כ-5,200 מטרים', 'כ-12,000 מטרים', 'כ-6,500 מטרים'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'amazon',
+                name: 'יער האמזונס',
+                country: 'ברזיל ושכנותיה',
+                continent: 'דרום אמריקה',
+                category: 'פלא טבע',
+                emoji: '🌴',
+                lat: -3.4653,
+                lon: -62.2159,
+                description: 'יער הגשם הטרופי הגדול בעולם, המכונה "הריאות הירוקות של כדור הארץ" וביתם של מיליוני מינים של בעלי חיים וצמחים.',
+                funFact: 'נהר האמזונס הזורם ביער הוא הנהר בעל ספיקת המים הגדולה בעולם – יותר מ-7 הנהרות הבאים אחריו ביחד!',
+                hint: 'נמצא בחלק הצפוני של יבשת דרום אמריקה.',
+                trivia: {
+                    question: 'כיצד מכונה יער האמזונס בזכות תרומתו העצומה לאקלים כדור הארץ?',
+                    options: ['הריאות הירוקות של העולם', 'המדבר הירוק', 'גג העולם', 'יער האשוחים'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'grand_canyon',
+                name: 'הגרנד קניון',
+                country: 'ארצות הברית',
+                continent: 'צפון אמריקה',
+                category: 'פלא טבע',
+                emoji: '🏜️',
+                lat: 36.1069,
+                lon: -112.1129,
+                description: 'קניון עצום ומרהיב במדינת אריזונה שנחצב במשך מיליוני שנים על ידי נהר הקולורדו וחושף שכבות סלע צבעוניות עתיקות.',
+                funFact: 'עומקו של הגרנד קניון מגיע ליותר מ-1,800 מטרים, ורוחבו מגיע במקומות מסוימים ל-29 קילומטרים!',
+                hint: 'נמצא בדרום-מערב ארצות הברית ביבשת צפון אמריקה.',
+                trivia: {
+                    question: 'איזה נהר חצב את הגרנד קניון במשך מיליוני שנים?',
+                    options: ['נהר הקולורדו', 'נהר המיסיסיפי', 'נהר ההדסון', 'נהר האמזונס'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'sydney_opera',
+                name: 'בית האופרה של סידני',
+                country: 'אוסטרליה',
+                continent: 'אוקיאניה',
+                category: 'אדריכלות מודרנית',
+                emoji: '⛵',
+                lat: -33.8568,
+                lon: 151.2153,
+                description: 'מבנה אמנויות הבמה המפורסם בנמל סידני, הידוע בגגותיו הלבנים המעוצבים בצורת מפרשים לבנים.',
+                funFact: 'גגות בית האופרה מכוסים ביותר ממיליון אריחי קרמיקה מיוחדים המנקים את עצמם בעזרת הגשם!',
+                hint: 'נמצא בחוף הדרום-מזרחי של יבשת אוסטרליה.',
+                trivia: {
+                    question: 'למה דומים הגגות הלבנים המפורסמים של בית האופרה בסידני?',
+                    options: ['מפרשים של ספינה', 'פסגות הרים מושלגות', 'כנפי פרפר', 'גלי ים כחולים'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'mount_fuji',
+                name: 'הר פוג׳י',
+                country: 'יפן',
+                continent: 'אסיה',
+                category: 'הר געש ופלא טבע',
+                emoji: '🗻',
+                lat: 35.3606,
+                lon: 138.7274,
+                description: 'ההר הגבוה ביפן והר געש פעיל בעל חרוט סימטרי מושלם ופסגה מושלגת, הנחשב לסמל התרבותי והרוחני של יפן.',
+                funFact: 'הר פוג׳י הוא למעשה שלושה הרי געש נפרדים שנערמו זה על גבי זה לאורך אלפי שנים!',
+                hint: 'נמצא באי המרכזי של יפן במזרח אסיה.',
+                trivia: {
+                    question: 'מה מייחד את צורתו של הר פוג׳י ביפן?',
+                    options: ['חרוט סימטרי כמעט מושלם', 'הוא שטוח לגמרי בפסגה', 'הוא נמצא מתחת לפני הים', 'יש לו שתי פסגות זהות'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'statue_liberty',
+                name: 'פסל החירות',
+                country: 'ארצות הברית',
+                continent: 'צפון אמריקה',
+                category: 'סמל היסטורי',
+                emoji: '🗽',
+                lat: 40.6892,
+                lon: -74.0445,
+                description: 'פסל נחושת עצום הניצב בנמל ניו יורק, שניתן כמתנה מצרפת לארצות הברית בשנת 1886 כסמל לחירות ודמוקרטיה.',
+                funFact: 'צבעו המקורי של הפסל היה חום-אדמדם כמו מטבע נחושת, והוא הפך לירוק בגלל התחמצנות הנחושת באוויר הים!',
+                hint: 'נמצא בחוף המזרחי של ארצות הברית, בעיר ניו יורק.',
+                trivia: {
+                    question: 'איזו מדינה העניקה את פסל החירות במתנה לארצות הברית?',
+                    options: ['צרפת', 'בריטניה', 'איטליה', 'ספרד'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'colosseum',
+                name: 'הקולוסיאום',
+                country: 'איטליה',
+                continent: 'אירופה',
+                category: 'פלא עולם חדש',
+                emoji: '🏛️',
+                lat: 41.8902,
+                lon: 12.4922,
+                description: 'האמפיתיאטרון העתיק הגדול בעולם שנבנה בלב רומא לפני כ-2,000 שנה ויכל להכיל כ-50,000 צופים.',
+                funFact: 'בעת העתיקה הציפו הרומאים לעיתים את זירת הקולוסיאום במים כדי לקיים קרבות ספינות מדומים!',
+                hint: 'נמצא בדרום אירופה, במדינה שצורתה מזכירה מגף.',
+                trivia: {
+                    question: 'באיזו עיר אירופאית שוכן הקולוסיאום העתיק?',
+                    options: ['רומא', 'אתונה', 'מדריד', 'לונדון'],
+                    answerIndex: 0
+                }
+            },
+            {
+                id: 'machu_picchu',
+                name: 'מאצ׳ו פיצ׳ו',
+                country: 'פרו',
+                continent: 'דרום אמריקה',
+                category: 'פלא עולם חדש',
+                emoji: '🦙',
+                lat: -13.1631,
+                lon: -72.5450,
+                description: 'עיר עתיקה ומסתורית של אימפריית האינקה הבנויה על רכס גבוה בהרי האנדים בגובה 2,430 מטרים מעל פני הים.',
+                funFact: 'אבני הבנייה במאצ׳ו פיצ׳ו סותתו בדיוק כה רב עד שאין ביניהן מלט – ואי אפשר להכניס ביניהן אפילו להב של סכין!',
+                hint: 'נמצא בהרי האנדים במערב יבשת דרום אמריקה.',
+                trivia: {
+                    question: 'איזו תרבות עתיקה בנתה את העיר מאצ׳ו פיצ׳ו בהרי האנדים?',
+                    options: ['אימפריית האינקה', 'תרבות המאיה', 'האצטקים', 'המצרים הקדמונים'],
+                    answerIndex: 0
+                }
+            }
+        ];
+
+        /**
+         * מנוע סאונד פרוצדורלי מבוסס Web Audio API (ללא קבצים חיצוניים)
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, type = 'sine', duration = 0.2, volume = 0.15, delay = 0) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime + delay;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + duration + 0.02);
+            }
+
+            playClick() {
+                this.playTone(520, 'sine', 0.12, 0.12);
+                this.playTone(780, 'triangle', 0.14, 0.08, 0.04);
+            }
+
+            playSuccess() {
+                this.playTone(523.25, 'triangle', 0.22, 0.18, 0);      // C5
+                this.playTone(659.25, 'triangle', 0.22, 0.18, 0.09);   // E5
+                this.playTone(783.99, 'triangle', 0.25, 0.2, 0.18);    // G5
+                this.playTone(1046.5, 'sine', 0.45, 0.22, 0.28);       // C6
+            }
+
+            playError() {
+                this.playTone(260, 'sawtooth', 0.22, 0.12, 0);
+                this.playTone(195, 'sawtooth', 0.3, 0.12, 0.12);
+            }
+
+            playWhoosh() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(420, now + 0.25);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.32);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /**
+         * מחולל טקסטורות פרוצדורליות ברזולוציה גבוהה עבור כדור הארץ והעננים
+         * מבטיח מראה עשיר ומפורט לחלוטין ללא תלות בתמונות חיצוניות
+         */
+        function generateEarthTextures() {
+            const width = 2048;
+            const height = 1024;
+
+            // 1. קנבס צבעי כדור הארץ (אוקיינוסים, יבשות, הרים, מדבריות וקטבים)
+            const mapCanvas = document.createElement('canvas');
+            mapCanvas.width = width;
+            mapCanvas.height = height;
+            const ctx = mapCanvas.getContext('2d');
+
+            // רקע אוקיינוס עמוק עם גרדיאנט עדין לקו המשווה
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, height);
+            oceanGrad.addColorStop(0, '#0a2540');
+            oceanGrad.addColorStop(0.25, '#0c4a6e');
+            oceanGrad.addColorStop(0.5, '#0284c7');
+            oceanGrad.addColorStop(0.75, '#0c4a6e');
+            oceanGrad.addColorStop(1, '#0a2540');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            // הוספת טקסטורת גלים/עומק עדינה לאוקיינוסים
+            for (let i = 0; i < 4500; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const r = 10 + Math.random() * 45;
+                ctx.fillStyle = i % 2 === 0 ? 'rgba(56, 189, 248, 0.025)' : 'rgba(3, 7, 18, 0.03)';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 2. קנבס מפת גבהים / ברק (Bump & Specular)
+            const bumpCanvas = document.createElement('canvas');
+            bumpCanvas.width = width;
+            bumpCanvas.height = height;
+            const bCtx = bumpCanvas.getContext('2d');
+            bCtx.fillStyle = '#111111';
+            bCtx.fillRect(0, 0, width, height);
+
+            // פונקציית עזר להמרת קואורדינטות גיאוגרפיות לפיקסלים
+            const lonToX = (lon) => ((lon + 180) / 360) * width;
+            const latToY = (lat) => ((90 - lat) / 180) * height;
+
+            // מצולעים מפורטים של יבשות ואיים מרכזיים (Lon, Lat)
+            const continents = [
+                // צפון אמריקה
+                {
+                    color: '#2d6a4f', desert: '#c2b280',
+                    points: [
+                        [-168, 66], [-140, 70], [-110, 74], [-82, 72], [-64, 60], [-55, 48],
+                        [-67, 44], [-75, 35], [-81, 25], [-84, 30], [-90, 29], [-97, 26],
+                        [-96, 19], [-88, 16], [-83, 9], [-78, 8], [-85, 12], [-93, 15],
+                        [-105, 20], [-112, 28], [-117, 33], [-124, 42], [-125, 49], [-136, 58],
+                        [-152, 60], [-162, 55], [-166, 61]
+                    ]
+                },
+                // גרינלנד
+                {
+                    color: '#cbd5e1', desert: '#e2e8f0',
+                    points: [
+                        [-52, 60], [-43, 60], [-22, 70], [-18, 81], [-45, 83], [-68, 77], [-56, 68]
+                    ]
+                },
+                // דרום אמריקה
+                {
+                    color: '#1b4332', desert: '#a39365',
+                    points: [
+                        [-78, 10], [-71, 12], [-60, 7], [-50, 1], [-35, -6], [-38, -15],
+                        [-41, -22], [-53, -33], [-63, -41], [-68, -54], [-74, -53], [-74, -40],
+                        [-71, -25], [-81, -5], [-79, 2]
+                    ]
+                },
+                // אירופה
+                {
+                    color: '#3a7d44', desert: '#8c9a68',
+                    points: [
+                        [-9, 37], [-9, 43], [-2, 48], [4, 52], [9, 55], [10, 58], [5, 61],
+                        [15, 68], [28, 71], [42, 67], [58, 68], [60, 52], [45, 45], [38, 45],
+                        [29, 41], [24, 38], [16, 38], [12, 44], [6, 43], [0, 38]
+                    ]
+                },
+                // בריטניה ואירלנד
+                {
+                    color: '#3a7d44', desert: '#6b8e23',
+                    points: [[-5, 50], [1, 51], [-2, 58], [-6, 58], [-5, 53]]
+                },
+                // אפריקה
+                {
+                    color: '#407942', desert: '#d4a359',
+                    points: [
+                        [-17, 15], [-16, 28], [-6, 35], [10, 37], [12, 33], [25, 32], [33, 31],
+                        [43, 12], [51, 11], [41, -2], [40, -15], [35, -24], [28, -33], [18, -34],
+                        [15, -24], [12, -6], [9, 4], [2, 6], [-8, 5], [-15, 11]
+                    ]
+                },
+                // מדגסקר
+                {
+                    color: '#2d6a4f', desert: '#b5945b',
+                    points: [[44, -25], [47, -25], [50, -13], [47, -15], [44, -20]]
+                },
+                // אסיה
+                {
+                    color: '#2e6f40', desert: '#c9a96e',
+                    points: [
+                        [28, 41], [36, 36], [48, 30], [56, 26], [59, 22], [44, 13], [35, 29],
+                        [60, 25], [68, 24], [77, 8], [87, 22], [98, 16], [103, 2], [109, 12],
+                        [108, 21], [121, 24], [122, 31], [118, 39], [129, 42], [135, 44],
+                        [142, 53], [160, 56], [178, 66], [140, 72], [105, 76], [72, 72], [60, 68],
+                        [60, 52], [45, 45], [38, 45]
+                    ]
+                },
+                // יפן
+                {
+                    color: '#3a7d44', desert: '#6b8e23',
+                    points: [[130, 31], [136, 34], [141, 38], [145, 44], [140, 43], [137, 37], [131, 33]]
+                },
+                // אינדונזיה ופיליפינים
+                {
+                    color: '#1b4332', desert: '#2d6a4f',
+                    points: [[96, 5], [105, -6], [118, -8], [128, -6], [125, 2], [115, 4], [102, 0]]
+                },
+                // אוסטרליה
+                {
+                    color: '#527948', desert: '#c87d4b',
+                    points: [
+                        [114, -22], [122, -17], [131, -12], [136, -13], [142, -11], [149, -20],
+                        [153, -28], [150, -37], [140, -38], [131, -32], [115, -34], [113, -26]
+                    ]
+                },
+                // ניו זילנד
+                {
+                    color: '#2d6a4f', desert: '#407942',
+                    points: [[167, -46], [174, -41], [178, -37], [173, -35], [170, -43]]
+                }
+            ];
+
+            // ציור היבשות עם חופים רכים, מדבריות ורכסי הרים
+            continents.forEach(cont => {
+                // קו חוף בהיר (מים רדודים)
+                ctx.save();
+                ctx.beginPath();
+                cont.points.forEach((pt, idx) => {
+                    const x = lonToX(pt[0]);
+                    const y = latToY(pt[1]);
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.closePath();
+                ctx.lineWidth = 14;
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                // מילוי היבשה
+                ctx.fillStyle = cont.color;
+                ctx.fill();
+
+                // קליפ לאזור היבשה כדי להוסיף טקסטורות אקלים והרים פנימיות
+                ctx.clip();
+
+                // כתמי מדבר/אדמה חמה
+                for (let i = 0; i < 65; i++) {
+                    const rx = Math.random() * width;
+                    const ry = height * 0.25 + Math.random() * (height * 0.5);
+                    const rad = 25 + Math.random() * 85;
+                    ctx.fillStyle = cont.desert;
+                    ctx.globalAlpha = 0.22;
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // טקסטורת יערות וגבעות
+                for (let i = 0; i < 160; i++) {
+                    const rx = Math.random() * width;
+                    const ry = Math.random() * height;
+                    const rad = 8 + Math.random() * 35;
+                    ctx.fillStyle = i % 2 === 0 ? '#14532d' : '#4d7c0f';
+                    ctx.globalAlpha = 0.18;
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // עדכון מפת הגבהים (Bump Map)
+                bCtx.save();
+                bCtx.beginPath();
+                cont.points.forEach((pt, idx) => {
+                    const x = lonToX(pt[0]);
+                    const y = latToY(pt[1]);
+                    if (idx === 0) bCtx.moveTo(x, y);
+                    else bCtx.lineTo(x, y);
+                });
+                bCtx.closePath();
+                bCtx.fillStyle = '#777777';
+                bCtx.fill();
+                bCtx.clip();
+                for (let i = 0; i < 180; i++) {
+                    const rx = Math.random() * width;
+                    const ry = Math.random() * height;
+                    const rad = 5 + Math.random() * 25;
+                    bCtx.fillStyle = i % 2 === 0 ? '#bbbbbb' : '#555555';
+                    bCtx.globalAlpha = 0.3;
+                    bCtx.beginPath();
+                    bCtx.arc(rx, ry, rad, 0, Math.PI * 2);
+                    bCtx.fill();
+                }
+                bCtx.restore();
+            });
+
+            // הוספת כיפות קרח בקוטב הצפוני ובאנטארקטיקה
+            const drawIceCap = (yStart, yEnd) => {
+                const grad = ctx.createLinearGradient(0, yStart, 0, yEnd);
+                grad.addColorStop(0, '#f8fafc');
+                grad.addColorStop(0.7, '#e2e8f0');
+                grad.addColorStop(1, 'rgba(226, 232, 240, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, Math.min(yStart, yEnd), width, Math.abs(yEnd - yStart));
+            };
+            drawIceCap(0, height * 0.085);
+            drawIceCap(height, height * 0.89);
+
+            // 3. קנבס שכבת עננים חצי-שקופה
+            const cloudCanvas = document.createElement('canvas');
+            cloudCanvas.width = width;
+            cloudCanvas.height = height;
+            const cCtx = cloudCanvas.getContext('2d');
+            cCtx.clearRect(0, 0, width, height);
+
+            for (let i = 0; i < 420; i++) {
+                const cx = Math.random() * width;
+                const cy = height * 0.08 + Math.random() * (height * 0.84);
+                const rx = 25 + Math.random() * 95;
+                const ry = 8 + Math.random() * 24;
+                const rot = (Math.random() - 0.5) * 0.4;
+
+                cCtx.save();
+                cCtx.translate(cx, cy);
+                cCtx.rotate(rot);
+                const cGrad = cCtx.createRadialGradient(0, 0, 2, 0, 0, rx);
+                cGrad.addColorStop(0, 'rgba(255, 255, 255, 0.42)');
+                cGrad.addColorStop(0.5, 'rgba(241, 245, 249, 0.2)');
+                cGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                cCtx.fillStyle = cGrad;
+                cCtx.beginPath();
+                cCtx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+                cCtx.fill();
+                cCtx.restore();
+            }
+
+            const earthMap = new THREE.CanvasTexture(mapCanvas);
+            const bumpMap = new THREE.CanvasTexture(bumpCanvas);
+            const cloudMap = new THREE.CanvasTexture(cloudCanvas);
+
+            return { earthMap, bumpMap, cloudMap };
+        }
+
+        /**
+         * המרת קו רוחב וקו אורך (Lat, Lon) לווקטור מיקום תלת-ממדי על פני הספירה
+         */
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            const y = radius * Math.cos(phi);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        /**
+         * המחלקה הראשית של המשחק התלת-ממדי
+         */
+        class EarthGame {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.labelsContainer = document.getElementById('labels-container');
+
+                // מצב המשחק
+                this.mode = 'explore'; // 'explore' | 'find' | 'trivia'
+                this.score = 0;
+                this.streak = 0;
+                this.autoRotate = true;
+                this.selectedIndex = 0;
+                this.currentTarget = null;
+                this.isTransitioning = false;
+
+                // מערכי אובייקטים תלת-ממדיים
+                this.pinObjects = [];
+                this.pinElements = [];
+                this.particles = [];
+
+                // משתני אנימציית מצלמה
+                this.cameraTargetPos = null;
+                this.cameraAnimProgress = 0;
+                this.cameraStartPos = new THREE.Vector3();
+
+                this.initThree();
+                this.createEarth();
+                this.createStarfield();
+                this.createPins();
+                this.bindEvents();
+
+                // הצגת אתר ברירת מחדל במצב חקירה
+                this.selectLandmarkExplore(0, false);
+            }
+
+            initThree() {
+                this.scene = new THREE.Scene();
+
+                const width = this.container.clientWidth;
+                const height = this.container.clientHeight;
+
+                this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+                this.camera.position.set(0, 3.2, 13.5);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(width, height);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.1;
+                this.container.appendChild(this.renderer.domElement);
+
+                // בקרת מצלמה חלקה (עכבר ומגע)
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.06;
+                this.controls.enablePan = false;
+                this.controls.minDistance = 6.8;
+                this.controls.maxDistance = 22;
+                this.controls.rotateSpeed = 0.65;
+                this.controls.zoomSpeed = 0.85;
+
+                // עצירת סיבוב אוטומטי ברגע שהמשתמש נוגע בגלובוס
+                this.controls.addEventListener('start', () => {
+                    this.cameraTargetPos = null;
+                });
+
+                // תאורה ריאליסטית (שמש + תאורת סביבה רכה)
+                const ambientLight = new THREE.AmbientLight(0x93c5fd, 0.65);
+                this.scene.add(ambientLight);
+
+                const sunLight = new THREE.DirectionalLight(0xffffff, 1.45);
+                sunLight.position.set(14, 8, 12);
+                this.scene.add(sunLight);
+
+                const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+                rimLight.position.set(-12, -6, -10);
+                this.scene.add(rimLight);
+
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+            }
+
+            createEarth() {
+                this.earthRadius = 4.5;
+                this.earthGroup = new THREE.Group();
+                this.scene.add(this.earthGroup);
+
+                const { earthMap, bumpMap, cloudMap } = generateEarthTextures();
+
+                // ספירת כדור הארץ המרכזית
+                const earthGeo = new THREE.SphereGeometry(this.earthRadius, 64, 64);
+                const earthMat = new THREE.MeshPhongMaterial({
+                    map: earthMap,
+                    bumpMap: bumpMap,
+                    bumpScale: 0.06,
+                    specular: new THREE.Color(0x225577),
+                    shininess: 18
+                });
+                this.earthMesh = new THREE.Mesh(earthGeo, earthMat);
+                this.earthGroup.add(this.earthMesh);
+
+                // שכבת עננים מסתובבת מעל פני השטח
+                const cloudGeo = new THREE.SphereGeometry(this.earthRadius * 1.016, 64, 64);
+                const cloudMat = new THREE.MeshLambertMaterial({
+                    map: cloudMap,
+                    transparent: true,
+                    opacity: 0.85,
+                    depthWrite: false
+                });
+                this.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+                this.earthGroup.add(this.cloudMesh);
+
+                // הילת אטמוספירה זוהרת (Custom Fresnel Shader)
+                const atmosGeo = new THREE.SphereGeometry(this.earthRadius * 1.13, 64, 64);
+                const atmosMat = new THREE.ShaderMaterial({
+                    vertexShader: `
+                        varying vec3 vNormal;
+                        void main() {
+                            vNormal = normalize(normalMatrix * normal);
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        varying vec3 vNormal;
+                        void main() {
+                            float intensity = pow(0.62 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.2);
+                            gl_FragColor = vec4(0.22, 0.68, 1.0, 1.0) * intensity * 1.35;
+                        }
+                    `,
+                    side: THREE.BackSide,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false
+                });
+                const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+                this.scene.add(atmosMesh);
+            }
+
+            createStarfield() {
+                const starCount = 2400;
+                const positions = new Float32Array(starCount * 3);
+                const colors = new Float32Array(starCount * 3);
+
+                const palette = [
+                    new THREE.Color(0xffffff),
+                    new THREE.Color(0xbae6fd),
+                    new THREE.Color(0xfef08a),
+                    new THREE.Color(0x93c5fd)
+                ];
+
+                for (let i = 0; i < starCount; i++) {
+                    const r = 45 + Math.random() * 85;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+
+                    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                    positions[i * 3 + 2] = r * Math.cos(phi);
+
+                    const col = palette[Math.floor(Math.random() * palette.length)];
+                    colors[i * 3] = col.r;
+                    colors[i * 3 + 1] = col.g;
+                    colors[i * 3 + 2] = col.b;
+                }
+
+                const starGeo = new THREE.BufferGeometry();
+                starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const starMat = new THREE.PointsMaterial({
+                    size: 0.28,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.88
+                });
+
+                this.starField = new THREE.Points(starGeo, starMat);
+                this.scene.add(this.starField);
+            }
+
+            createPins() {
+                LANDMARKS.forEach((lm, index) => {
+                    const pos = latLonToVector3(lm.lat, lm.lon, this.earthRadius);
+                    const normal = pos.clone().normalize();
+
+                    const pinGroup = new THREE.Group();
+                    pinGroup.position.copy(pos);
+                    pinGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+
+                    // בסיס הסיכה על הקרקע (טבעת זוהרת)
+                    const ringGeo = new THREE.RingGeometry(0.06, 0.13, 24);
+                    ringGeo.rotateX(-Math.PI / 2);
+                    const ringMat = new THREE.MeshBasicMaterial({
+                        color: 0x38bdf8,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.85
+                    });
+                    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.position.y = 0.02;
+                    pinGroup.add(ringMesh);
+
+                    // גבעול הסיכה
+                    const stemGeo = new THREE.CylinderGeometry(0.018, 0.012, 0.34, 12);
+                    const stemMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+                    const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+                    stemMesh.position.y = 0.17;
+                    pinGroup.add(stemMesh);
+
+                    // ראש הסיכה הכדורי (לחיץ)
+                    const headGeo = new THREE.SphereGeometry(0.11, 20, 20);
+                    const headMat = new THREE.MeshPhongMaterial({
+                        color: 0x0ea5e9,
+                        emissive: 0x0369a1,
+                        emissiveIntensity: 0.5,
+                        shininess: 80
+                    });
+                    const headMesh = new THREE.Mesh(headGeo, headMat);
+                    headMesh.position.y = 0.38;
+                    headMesh.userData = { landmarkIndex: index };
+                    pinGroup.add(headMesh);
+
+                    // אזור לחיצה שקוף וגדול יותר לנוחות במובייל
+                    const hitGeo = new THREE.SphereGeometry(0.28, 12, 12);
+                    const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+                    const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+                    hitMesh.position.y = 0.32;
+                    hitMesh.userData = { landmarkIndex: index };
+                    pinGroup.add(hitMesh);
+
+                    this.earthGroup.add(pinGroup);
+                    this.pinObjects.push({
+                        group: pinGroup,
+                        head: headMesh,
+                        ring: ringMesh,
+                        hit: hitMesh,
+                        landmark: lm,
+                        index: index
+                    });
+
+                    // יצירת תווית HTML צפה מעל הסיכה
+                    const labelEl = document.createElement('button');
+                    labelEl.className = 'pin-label';
+                    labelEl.innerHTML = `<span>${lm.emoji}</span><span class="label-text">${lm.name}</span>`;
+                    labelEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handlePinSelection(index);
+                    });
+                    this.labelsContainer.appendChild(labelEl);
+                    this.pinElements.push(labelEl);
+                });
+            }
+
+            /**
+             * אפקט זיקוקים/חלקיקים תלת-ממדיים בעת תשובה נכונה
+             */
+            spawnCelebrationParticles(worldPos) {
+                const count = 45;
+                const colors = [0xfbbf24, 0x38bdf8, 0x34d399, 0xf472b6, 0xa78bfa];
+
+                for (let i = 0; i < count; i++) {
+                    const geo = new THREE.SphereGeometry(0.06, 8, 8);
+                    const mat = new THREE.MeshBasicMaterial({
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        transparent: true,
+                        opacity: 1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.copy(worldPos);
+
+                    // כיוון התפוצצות כלפי חוץ מהגלובוס
+                    const normal = worldPos.clone().normalize();
+                    const vel = new THREE.Vector3(
+                        (Math.random() - 0.5) * 2.5,
+                        (Math.random() - 0.5) * 2.5,
+                        (Math.random() - 0.5) * 2.5
+                    ).add(normal.multiplyScalar(1.8)).multiplyScalar(0.06);
+
+                    this.scene.add(mesh);
+                    this.particles.push({ mesh, vel, life: 1.0 });
+                }
+            }
+
+            /**
+             * הטסת המצלמה בצורה חלקה אל מול אתר מסוים על הגלובוס
+             */
+            flyToLandmark(index, distance = 10.5) {
+                const pin = this.pinObjects[index];
+                if (!pin) return;
+
+                // חישוב מיקום הסיכה במרחב העולמי (כולל סיבוב כדור הארץ הנוכחי)
+                const worldPos = new THREE.Vector3();
+                pin.head.getWorldPosition(worldPos);
+
+                const targetDir = worldPos.clone().normalize();
+                this.cameraTargetPos = targetDir.multiplyScalar(distance);
+                this.cameraStartPos.copy(this.camera.position);
+                this.cameraAnimProgress = 0;
+                sound.playWhoosh();
+            }
+
+            /**
+             * טיפול בלחיצה על סיכה במצב המשחק הפעיל
+             */
+            handlePinSelection(index) {
+                sound.playClick();
+
+                if (this.mode === 'explore') {
+                    this.selectLandmarkExplore(index, true);
+                } else if (this.mode === 'find') {
+                    this.checkFindChallengeAnswer(index);
+                } else if (this.mode === 'trivia') {
+                    // במצב טריוויה לחיצה על הסיכה ממקדת אליה
+                    this.flyToLandmark(index, 10.8);
+                }
+            }
+
+            /**
+             * מצב 1: גלה את העולם (Explore Mode)
+             */
+            selectLandmarkExplore(index, shouldFly = true) {
+                this.selectedIndex = index;
+                const lm = LANDMARKS[index];
+
+                // הדגשת הסיכה הנבחרת
+                this.pinObjects.forEach((p, idx) => {
+                    const isSelected = idx === index;
+                    p.head.material.color.setHex(isSelected ? 0xf59e0b : 0x0ea5e9);
+                    p.head.material.emissive.setHex(isSelected ? 0xd97706 : 0x0369a1);
+                    p.ring.material.color.setHex(isSelected ? 0xfbbf24 : 0x38bdf8);
+                    p.group.scale.setScalar(isSelected ? 1.35 : 1.0);
+                });
+
+                // עדכון כרטיס המידע בעברית
+                document.getElementById('info-emoji').textContent = lm.emoji;
+                document.getElementById('info-continent').textContent = lm.continent;
+                document.getElementById('info-country').textContent = lm.country;
+                document.getElementById('info-title').textContent = lm.name;
+                document.getElementById('info-description').textContent = lm.description;
+                document.getElementById('info-funfact').textContent = lm.funFact;
+                document.getElementById('info-category').textContent = lm.category;
+                document.getElementById('landmark-counter').textContent = `${index + 1} / ${LANDMARKS.length}`;
+
+                const latDir = lm.lat >= 0 ? 'N' : 'S';
+                const lonDir = lm.lon >= 0 ? 'E' : 'W';
+                document.getElementById('info-coords').textContent =
+                    `${Math.abs(lm.lat).toFixed(2)}° ${latDir}, ${Math.abs(lm.lon).toFixed(2)}° ${lonDir}`;
+
+                document.getElementById('info-card').classList.remove('hidden');
+
+                if (shouldFly) {
+                    this.flyToLandmark(index, 10.2);
+                }
+            }
+
+            /**
+             * מצב 2: אתגר מיקום (Find on the Globe)
+             */
+            startNewFindQuestion() {
+                this.isTransitioning = false;
+                // בחירת יעד אקראי שונה מהקודם
+                let nextIdx;
+                do {
+                    nextIdx = Math.floor(Math.random() * LANDMARKS.length);
+                } while (this.currentTarget && LANDMARKS[nextIdx].id === this.currentTarget.id);
+
+                this.currentTarget = LANDMARKS[nextIdx];
+                this.currentTargetIndex = nextIdx;
+
+                // איפוס עיצוב הסיכות
+                this.pinObjects.forEach(p => {
+                    p.head.material.color.setHex(0x0ea5e9);
+                    p.head.material.emissive.setHex(0x0369a1);
+                    p.ring.material.color.setHex(0x38bdf8);
+                    p.group.scale.setScalar(1.0);
+                });
+
+                document.getElementById('challenge-badge').textContent = '🎯 אתגר מיקום';
+                document.getElementById('challenge-question').textContent =
+                    `איפה נמצא/ת ${this.currentTarget.name} (${this.currentTarget.emoji})?`;
+                document.getElementById('challenge-subtext').textContent =
+                    `סובבו את הגלובוס ולחצו על הסיכה הנכונה!`;
+                document.getElementById('trivia-options').classList.add('hidden');
+                document.getElementById('hint-btn').classList.remove('hidden');
+
+                const fb = document.getElementById('feedback-box');
+                fb.classList.add('hidden');
+            }
+
+            checkFindChallengeAnswer(clickedIndex) {
+                if (this.isTransitioning) return;
+
+                const guessed = LANDMARKS[clickedIndex];
+                const fb = document.getElementById('feedback-box');
+                fb.classList.remove('hidden', 'bg-emerald-500/25', 'text-emerald-200', 'border-emerald-400/40', 'bg-rose-500/25', 'text-rose-200', 'border-rose-400/40');
+
+                if (clickedIndex === this.currentTargetIndex) {
+                    // תשובה נכונה!
+                    this.isTransitioning = true;
+                    this.streak += 1;
+                    const bonus = Math.min(this.streak * 10, 50);
+                    this.score += 100 + bonus;
+                    this.updateScoreUI();
+                    sound.playSuccess();
+
+                    // הדגשת הסיכה הנכונה וזיקוקים
+                    const pin = this.pinObjects[clickedIndex];
+                    pin.head.material.color.setHex(0x10b981);
+                    pin.head.material.emissive.setHex(0x059669);
+                    pin.group.scale.setScalar(1.5);
+
+                    const worldPos = new THREE.Vector3();
+                    pin.head.getWorldPosition(worldPos);
+                    this.spawnCelebrationParticles(worldPos);
+                    this.flyToLandmark(clickedIndex, 10.2);
+
+                    fb.classList.add('bg-emerald-500/25', 'text-emerald-200', 'border', 'border-emerald-400/40');
+                    fb.innerHTML = `🎉 <strong>כל הכבוד!</strong> מצאתם את ${this.currentTarget.name} (${this.currentTarget.country})! (+${100 + bonus} נק׳)`;
+
+                    setTimeout(() => {
+                        if (this.mode === 'find') this.startNewFindQuestion();
+                    }, 2500);
+                } else {
+                    // תשובה שגויה - מתן רמז כיווני/יבשתי
+                    this.streak = 0;
+                    this.updateScoreUI();
+                    sound.playError();
+
+                    const sameContinent = guessed.continent === this.currentTarget.continent;
+                    let directionHint = '';
+                    if (sameContinent) {
+                        const ns = this.currentTarget.lat > guessed.lat ? 'צפונה' : 'דרומה';
+                        const ew = this.currentTarget.lon > guessed.lon ? 'מזרחה' : 'מערבה';
+                        directionHint = `אתם ביבשת הנכונה (${this.currentTarget.continent})! נסו לחפש מעט ${ns} ו${ew}.`;
+                    } else {
+                        directionHint = `זהו ${guessed.name} ביבשת ${guessed.continent}. היעד המבוקש נמצא ביבשת ${this.currentTarget.continent}!`;
+                    }
+
+                    fb.classList.add('bg-rose-500/25', 'text-rose-200', 'border', 'border-rose-400/40');
+                    fb.innerHTML = `❌ לא בדיוק... ${directionHint}`;
+                }
+            }
+
+            /**
+             * מצב 3: חידון טריוויה עולמי (World Trivia Mode)
+             */
+            startNewTriviaQuestion() {
+                this.isTransitioning = false;
+                let nextIdx;
+                do {
+                    nextIdx = Math.floor(Math.random() * LANDMARKS.length);
+                } while (this.currentTarget && LANDMARKS[nextIdx].id === this.currentTarget.id);
+
+                this.currentTarget = LANDMARKS[nextIdx];
+                this.currentTargetIndex = nextIdx;
+
+                // סיבוב הגלובוס אל האתר של השאלה והדגשתו
+                this.pinObjects.forEach((p, idx) => {
+                    const isTarget = idx === nextIdx;
+                    p.head.material.color.setHex(isTarget ? 0xf59e0b : 0x0ea5e9);
+                    p.head.material.emissive.setHex(isTarget ? 0xd97706 : 0x0369a1);
+                    p.ring.material.color.setHex(isTarget ? 0xfbbf24 : 0x38bdf8);
+                    p.group.scale.setScalar(isTarget ? 1.45 : 0.9);
+                });
+                this.flyToLandmark(nextIdx, 10.6);
+
+                document.getElementById('challenge-badge').textContent = `🧠 טריוויה: ${this.currentTarget.name}`;
+                document.getElementById('challenge-question').textContent = this.currentTarget.trivia.question;
+                document.getElementById('challenge-subtext').textContent = `מיקום: ${this.currentTarget.country}, ${this.currentTarget.continent}`;
+                document.getElementById('hint-btn').classList.add('hidden');
+
+                const fb = document.getElementById('feedback-box');
+                fb.classList.add('hidden');
+
+                // יצירת כפתורי תשובות מעורבבים
+                const optionsContainer = document.getElementById('trivia-options');
+                optionsContainer.innerHTML = '';
+                optionsContainer.classList.remove('hidden');
+                optionsContainer.classList.add('flex');
+
+                const optionsWithIdx = this.currentTarget.trivia.options.map((text, idx) => ({
+                    text,
+                    isCorrect: idx === this.currentTarget.trivia.answerIndex
+                }));
+
+                // ערבוב התשובות
+                for (let i = optionsWithIdx.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [optionsWithIdx[i], optionsWithIdx[j]] = [optionsWithIdx[j], optionsWithIdx[i]];
+                }
+
+                optionsWithIdx.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'glass-btn w-full text-right px-4 py-2.5 rounded-2xl text-sm font-semibold text-white flex items-center justify-between';
+                    btn.innerHTML = `<span>${opt.text}</span><span class="opacity-60 text-xs">◀</span>`;
+                    btn.addEventListener('click', () => this.handleTriviaAnswer(btn, opt.isCorrect, optionsContainer));
+                    optionsContainer.appendChild(btn);
+                });
+            }
+
+            handleTriviaAnswer(selectedBtn, isCorrect, container) {
+                if (this.isTransitioning) return;
+                this.isTransitioning = true;
+
+                const fb = document.getElementById('feedback-box');
+                fb.classList.remove('hidden', 'bg-emerald-500/25', 'text-emerald-200', 'border-emerald-400/40', 'bg-rose-500/25', 'text-rose-200', 'border-rose-400/40');
+
+                // נטרול כל הכפתורים
+                const allBtns = container.querySelectorAll('button');
+                allBtns.forEach(b => b.disabled = true);
+
+                if (isCorrect) {
+                    selectedBtn.classList.add('!bg-emerald-600/80', '!border-emerald-300');
+                    this.streak += 1;
+                    const bonus = Math.min(this.streak * 10, 50);
+                    this.score += 100 + bonus;
+                    this.updateScoreUI();
+                    sound.playSuccess();
+
+                    const pin = this.pinObjects[this.currentTargetIndex];
+                    const worldPos = new THREE.Vector3();
+                    pin.head.getWorldPosition(worldPos);
+                    this.spawnCelebrationParticles(worldPos);
+
+                    fb.classList.add('bg-emerald-500/25', 'text-emerald-200', 'border', 'border-emerald-400/40');
+                    fb.innerHTML = `🌟 <strong>תשובה נכונה!</strong> ${this.currentTarget.funFact}`;
+                } else {
+                    selectedBtn.classList.add('!bg-rose-600/80', '!border-rose-300');
+                    this.streak = 0;
+                    this.updateScoreUI();
+                    sound.playError();
+
+                    const correctText = this.currentTarget.trivia.options[this.currentTarget.trivia.answerIndex];
+                    fb.classList.add('bg-rose-500/25', 'text-rose-200', 'border', 'border-rose-400/40');
+                    fb.innerHTML = `💡 התשובה הנכונה היא: <strong>${correctText}</strong>.`;
+                }
+
+                setTimeout(() => {
+                    if (this.mode === 'trivia') this.startNewTriviaQuestion();
+                }, 2800);
+            }
+
+            /**
+             * מעבר בין מצבי המשחק
+             */
+            setMode(newMode) {
+                this.mode = newMode;
+                sound.playClick();
+
+                // עדכון כפתורי ניווט תחתונים
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    if (btn.dataset.mode === newMode) {
+                        btn.classList.add('mode-btn-active');
+                        btn.classList.remove('glass-btn');
+                    } else {
+                        btn.classList.remove('mode-btn-active');
+                        btn.classList.add('glass-btn');
+                    }
+                });
+
+                const infoCard = document.getElementById('info-card');
+                const challengePanel = document.getElementById('challenge-panel');
+                const hintBar = document.getElementById('bottom-hint-bar');
+
+                if (newMode === 'explore') {
+                    challengePanel.classList.add('hidden');
+                    infoCard.classList.remove('hidden');
+                    hintBar.textContent = 'גררו כדי לסובב את כדור הארץ • גללו לזום • לחצו על סיכה למידע';
+                    this.selectLandmarkExplore(this.selectedIndex, true);
+                } else if (newMode === 'find') {
+                    infoCard.classList.add('hidden');
+                    challengePanel.classList.remove('hidden');
+                    hintBar.textContent = 'מצאו את היעד המבוקש על הגלובוס ולחצו על הסיכה שלו!';
+                    this.startNewFindQuestion();
+                } else if (newMode === 'trivia') {
+                    infoCard.classList.add('hidden');
+                    challengePanel.classList.remove('hidden');
+                    hintBar.textContent = 'בחרו את התשובה הנכונה מתוך האפשרויות שבכרטיס!';
+                    this.startNewTriviaQuestion();
+                }
+            }
+
+            updateScoreUI() {
+                document.getElementById('score-display').textContent = this.score;
+                document.getElementById('streak-display').textContent = this.streak;
+            }
+
+            bindEvents() {
+                // שינוי גודל חלון רספונסיבי
+                window.addEventListener('resize', () => {
+                    const width = this.container.clientWidth;
+                    const height = this.container.clientHeight;
+                    this.camera.aspect = width / height;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(width, height);
+                });
+
+                // זיהוי לחיצות על אובייקטים תלת-ממדיים (Raycasting)
+                let pointerDownPos = { x: 0, y: 0 };
+                this.renderer.domElement.addEventListener('pointerdown', (e) => {
+                    pointerDownPos = { x: e.clientX, y: e.clientY };
+                });
+
+                this.renderer.domElement.addEventListener('pointerup', (e) => {
+                    // הבחנה בין גרירה לבין לחיצה קצרה
+                    const dx = e.clientX - pointerDownPos.x;
+                    const dy = e.clientY - pointerDownPos.y;
+                    if (Math.hypot(dx, dy) > 8) return;
+
+                    const rect = this.renderer.domElement.getBoundingClientRect();
+                    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const hitTargets = this.pinObjects.flatMap(p => [p.head, p.hit]);
+                    const intersects = this.raycaster.intersectObjects(hitTargets);
+
+                    if (intersects.length > 0) {
+                        const idx = intersects[0].object.userData.landmarkIndex;
+                        if (typeof idx === 'number') {
+                            this.handlePinSelection(idx);
+                        }
+                    }
+                });
+
+                // כפתורי מצבי משחק
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this.setMode(btn.dataset.mode));
+                });
+
+                // כפתורי דפדוף בכרטיס מידע
+                document.getElementById('close-info-btn').addEventListener('click', () => {
+                    sound.playClick();
+                    document.getElementById('info-card').classList.add('hidden');
+                });
+
+                document.getElementById('prev-landmark-btn').addEventListener('click', () => {
+                    sound.playClick();
+                    const prev = (this.selectedIndex - 1 + LANDMARKS.length) % LANDMARKS.length;
+                    this.selectLandmarkExplore(prev, true);
+                });
+
+                document.getElementById('next-landmark-btn').addEventListener('click', () => {
+                    sound.playClick();
+                    const next = (this.selectedIndex + 1) % LANDMARKS.length;
+                    this.selectLandmarkExplore(next, true);
+                });
+
+                // כפתור רמז במצב אתגר מיקום
+                document.getElementById('hint-btn').addEventListener('click', () => {
+                    if (!this.currentTarget) return;
+                    sound.playClick();
+                    const fb = document.getElementById('feedback-box');
+                    fb.classList.remove('hidden', 'bg-emerald-500/25', 'text-emerald-200', 'bg-rose-500/25', 'text-rose-200');
+                    fb.classList.add('bg-amber-500/25', 'text-amber-200', 'border', 'border-amber-400/40');
+                    fb.innerHTML = `💡 <strong>רמז:</strong> ${this.currentTarget.hint}`;
+                });
+
+                // כפתור סיבוב אוטומטי
+                document.getElementById('toggle-rotate-btn').addEventListener('click', (e) => {
+                    this.autoRotate = !this.autoRotate;
+                    sound.playClick();
+                    e.currentTarget.classList.toggle('text-sky-300', this.autoRotate);
+                    e.currentTarget.classList.toggle('text-slate-500', !this.autoRotate);
+                });
+
+                // כפתור צלילים
+                document.getElementById('toggle-sound-btn').addEventListener('click', () => {
+                    sound.muted = !sound.muted;
+                    document.getElementById('sound-on-icon').classList.toggle('hidden', sound.muted);
+                    document.getElementById('sound-off-icon').classList.toggle('hidden', !sound.muted);
+                    if (!sound.muted) sound.playClick();
+                });
+            }
+
+            /**
+             * עדכון מיקומי תוויות ה-HTML הצפות מעל הסיכות התלת-ממדיות
+             * והסתרת תוויות שנמצאות בצד המוסתר של כדור הארץ
+             */
+            updateFloatingLabels(time) {
+                const width = this.container.clientWidth;
+                const height = this.container.clientHeight;
+                const cameraPos = this.camera.position;
+
+                this.pinObjects.forEach((pin, idx) => {
+                    const label = this.pinElements[idx];
+                    const worldPos = new THREE.Vector3();
+                    pin.head.getWorldPosition(worldPos);
+
+                    // בדיקה האם הסיכה פונה אל המצלמה או נמצאת מאחורי הגלובוס
+                    const surfaceNormal = worldPos.clone().normalize();
+                    const toCamera = cameraPos.clone().sub(worldPos).normalize();
+                    const dot = surfaceNormal.dot(toCamera);
+
+                    if (dot < 0.12) {
+                        label.style.opacity = '0';
+                        label.style.pointerEvents = 'none';
+                        return;
+                    }
+
+                    // הקרנת המיקום התלת-ממדי למסך דו-ממדי
+                    const projected = worldPos.clone().project(this.camera);
+                    const x = (projected.x * 0.5 + 0.5) * width;
+                    const y = (-projected.y * 0.5 + 0.5) * height;
+
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
+                    label.style.opacity = dot < 0.25 ? ((dot - 0.12) / 0.13).toFixed(2) : '1';
+                    label.style.pointerEvents = 'auto';
+
+                    // במצב "אתגר מיקום" מסתירים את שמות האתרים כדי לא לגלות את התשובה, ומציגים רק אייקון
+                    const textSpan = label.querySelector('.label-text');
+                    if (this.mode === 'find') {
+                        textSpan.style.display = 'none';
+                        label.classList.remove('highlighted');
+                    } else {
+                        textSpan.style.display = 'inline';
+                        const isHighlighted =
+                            (this.mode === 'explore' && idx === this.selectedIndex) ||
+                            (this.mode === 'trivia' && idx === this.currentTargetIndex);
+                        label.classList.toggle('highlighted', isHighlighted);
+                    }
+
+                    // אנימציית פעימה לטבעת הבסיס של הסיכה
+                    const pulse = 1 + Math.sin(time * 3.5 + idx) * 0.25;
+                    pin.ring.scale.set(pulse, pulse, 1);
+                });
+            }
+
+            /**
+             * לולאת האנימציה הראשית (60 FPS)
+             */
+            animate(time = 0) {
+                requestAnimationFrame((t) => this.animate(t));
+                const sec = time * 0.001;
+
+                // סיבוב איטי של כדור הארץ והעננים
+                if (this.autoRotate && !this.cameraTargetPos && this.mode === 'explore') {
+                    this.earthGroup.rotation.y += 0.0012;
+                }
+                if (this.cloudMesh) {
+                    this.cloudMesh.rotation.y += 0.00045;
+                }
+                if (this.starField) {
+                    this.starField.rotation.y -= 0.00015;
+                }
+
+                // אנימציית טיסת מצלמה חלקה ליעד
+                if (this.cameraTargetPos) {
+                    this.cameraAnimProgress += 0.035;
+                    const t = Math.min(this.cameraAnimProgress, 1);
+                    // עקומת האצה והאטה חלקה (Ease In-Out Cubic)
+                    const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                    this.camera.position.lerpVectors(this.cameraStartPos, this.cameraTargetPos, ease);
+                    // שמירה על מרחק קבוע מהמרכז כדי לא לחתוך דרך כדור הארץ
+                    const currentDist = THREE.MathUtils.lerp(
+                        this.cameraStartPos.length(),
+                        this.cameraTargetPos.length(),
+                        ease
+                    );
+                    this.camera.position.normalize().multiplyScalar(currentDist);
+
+                    if (t >= 1) {
+                        this.cameraTargetPos = null;
+                    }
+                }
+
+                // עדכון חלקיקי חגיגה
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.mesh.position.add(p.vel);
+                    p.life -= 0.022;
+                    p.mesh.material.opacity = Math.max(0, p.life);
+                    p.mesh.scale.setScalar(Math.max(0.01, p.life));
+                    if (p.life <= 0) {
+                        this.scene.remove(p.mesh);
+                        p.mesh.geometry.dispose();
+                        p.mesh.material.dispose();
+                        this.particles.splice(i, 1);
+                    }
+                }
+
+                this.controls.update();
+                this.updateFloatingLabels(sec);
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // הפעלת המשחק לאחר טעינת החלון
+        window.onload = function () {
+            const game = new EarthGame();
+            game.animate();
+        };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

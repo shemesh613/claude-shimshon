@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>שומר הניאון - NEON GUARDIAN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* הגדרות בסיס ופונטים */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05050a;
+            font-family: 'Rubik', sans-serif;
+            color: #ffffff;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* אפקטי זוהר וניאון לממשק */
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.5), 0 0 40px rgba(0, 243, 255, 0.3);
+        }
+        .neon-text-pink {
+            text-shadow: 0 0 10px rgba(255, 0, 128, 0.8), 0 0 20px rgba(255, 0, 128, 0.5);
+        }
+        .neon-text-gold {
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .glass-panel {
+            background: rgba(12, 14, 28, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15), inset 0 0 20px rgba(0, 243, 255, 0.05);
+        }
+
+        .neon-btn {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.15) 0%, rgba(188, 19, 254, 0.15) 100%);
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.2);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .neon-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.35) 0%, rgba(188, 19, 254, 0.35) 100%);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.8), inset 0 0 15px rgba(0, 243, 255, 0.4);
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        .neon-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .upgrade-card {
+            background: linear-gradient(180deg, rgba(20, 24, 48, 0.9) 0%, rgba(10, 12, 24, 0.95) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.25s ease;
+        }
+
+        .upgrade-card:hover {
+            border-color: #00f3ff;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+            transform: translateY(-6px);
+        }
+
+        /* אנימציית פעימה עדינה */
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 2.5s infinite ease-in-out;
+        }
+
+        /* הסתרת אלמנטים */
+        .hidden-screen {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- קנבס המשחק הראשי -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- שכבת ממשק משתמש בזמן משחק (HUD) -->
+    <div id="hudLayer" class="hidden-screen pointer-events-none fixed inset-0 p-4 sm:p-6 flex flex-col justify-between z-10">
+        <!-- חלק עליון: ניקוד, גל, בריאות ואנרגיה -->
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <!-- צד ימין: בריאות ומגן + אנרגיית על -->
+            <div class="flex flex-col gap-2 w-56 sm:w-72">
+                <!-- מד חיים -->
+                <div class="glass-panel rounded-xl p-2.5">
+                    <div class="flex justify-between text-xs sm:text-sm font-bold mb-1">
+                        <span class="text-cyan-300">שלמות שריון</span>
+                        <span id="hpText" class="text-white">100 / 100</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-900 rounded-full overflow-hidden border border-cyan-500/30">
+                        <div id="hpBar" class="h-full bg-gradient-to-l from-cyan-400 to-blue-600 transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- מד פיצוץ על (Nova) -->
+                <div class="glass-panel rounded-xl p-2.5">
+                    <div class="flex justify-between text-xs sm:text-sm font-bold mb-1">
+                        <span class="text-fuchsia-400">פעימת נובה [רווח / לחיצה כפולה]</span>
+                        <span id="novaText" class="text-fuchsia-300">0%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-gray-900 rounded-full overflow-hidden border border-fuchsia-500/30">
+                        <div id="novaBar" class="h-full bg-gradient-to-l from-fuchsia-500 via-purple-500 to-pink-500 transition-all duration-150" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- מרכז: מד בוס (מופיע רק בקרב בוס) -->
+            <div id="bossHud" class="hidden-screen flex-1 max-w-md mx-auto glass-panel rounded-xl p-3 border-pink-500/50">
+                <div class="flex justify-between items-center mb-1">
+                    <span id="bossName" class="text-sm sm:text-base font-black text-pink-400 neon-text-pink">אדון הריק - THE VOID</span>
+                    <span class="text-xs font-bold bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded border border-pink-500/40">בוס</span>
+                </div>
+                <div class="w-full h-3.5 bg-gray-950 rounded-full overflow-hidden border border-pink-500/50">
+                    <div id="bossHpBar" class="h-full bg-gradient-to-l from-red-500 via-pink-500 to-purple-600 transition-all duration-100" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- צד שמאל: ניקוד, קומבו וגל -->
+            <div class="flex flex-col items-end gap-2">
+                <div class="glass-panel rounded-xl px-4 py-2.5 text-left min-w-[150px]">
+                    <div class="text-xs text-gray-400 font-semibold">ניקוד</div>
+                    <div id="scoreText" class="text-2xl sm:text-3xl font-black text-white neon-text-cyan tracking-wider">0</div>
+                    <div class="flex items-center justify-end gap-3 mt-1 text-xs font-bold">
+                        <span id="comboText" class="text-amber-400 hidden-screen">קומבו x1</span>
+                        <span class="text-purple-300">גל <span id="waveText" class="text-white text-sm">1</span></span>
+                    </div>
+                </div>
+
+                <!-- כפתורי שליטה מהירים (השתקה / השהייה) -->
+                <div class="pointer-events-auto flex gap-2">
+                    <button id="muteBtn" class="glass-panel p-2.5 rounded-xl hover:border-cyan-400 transition text-cyan-300" title="השתק / הפעל סאונד">
+                        <svg id="soundOnIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                        <svg id="soundOffIcon" class="w-5 h-5 hidden-screen text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                    </button>
+                    <button id="pauseBtn" class="glass-panel p-2.5 rounded-xl hover:border-cyan-400 transition text-cyan-300" title="השהה משחק (ESC)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- הודעות מרכזיות צפות (כמו "גל חדש!" או "בוס מתקרב!") -->
+        <div id="bannerContainer" class="flex flex-col items-center justify-center pointer-events-none my-auto">
+            <h2 id="centerBanner" class="text-3xl sm:text-5xl font-black text-center opacity-0 transition-all duration-300 transform scale-75"></h2>
+        </div>
+
+        <!-- כפתור נובה למובייל / מסכי מגע -->
+        <div class="flex justify-center sm:hidden pointer-events-auto pb-2">
+            <button id="mobileNovaBtn" class="hidden-screen px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white font-black text-sm shadow-lg shadow-fuchsia-500/50 border border-fuchsia-300 animate-bounce">
+                ⚡ הפעל פיצוץ נובה! ⚡
+            </button>
+        </div>
+    </div>
+
+    <!-- מסך פתיחה ראשי -->
+    <div id="startScreen" class="fixed inset-0 z-20 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 sm:p-10 text-center flex flex-col items-center">
+            <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-bold tracking-widest mb-3">
+                גרסת ארקייד אולטרה • 60 FPS
+            </div>
+            <h1 class="text-4xl sm:text-6xl font-black mb-2 tracking-tight text-transparent bg-clip-text bg-gradient-to-l from-cyan-300 via-white to-fuchsia-400 neon-text-cyan">
+                שומר הניאון
+            </h1>
+            <p class="text-gray-300 text-sm sm:text-base mb-6 max-w-md leading-relaxed">
+                הגן על ליבת הגלקסיה מפני נחילי סייבר וטיטאנים מכניים. אסוף אנרגיה, שדרג את החללית והפעל פיצוצי נובה!
+            </p>
+
+            <!-- שיא אישי -->
+            <div class="w-full bg-white/5 border border-white/10 rounded-2xl p-3 mb-6 flex justify-around items-center">
+                <div>
+                    <div class="text-xs text-gray-400">שיא נקודות</div>
+                    <div id="highScoreDisplay" class="text-xl font-black text-amber-400 neon-text-gold">0</div>
+                </div>
+                <div class="h-8 w-px bg-white/10"></div>
+                <div>
+                    <div class="text-xs text-gray-400">שיא גלים</div>
+                    <div id="highWaveDisplay" class="text-xl font-black text-cyan-400">1</div>
+                </div>
+            </div>
+
+            <!-- הוראות שליטה קצרות -->
+            <div class="grid grid-cols-2 gap-3 w-full text-xs text-right mb-8">
+                <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                    <span class="text-cyan-400 font-bold block mb-1">🖥️ מחשב:</span>
+                    תנועה עם <span class="text-white font-bold">WASD / חצים</span> או עכבר. ירי אוטומטי או קליק. <span class="text-fuchsia-400 font-bold">רווח</span> לפיצוץ נובה.
+                </div>
+                <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                    <span class="text-fuchsia-400 font-bold block mb-1">📱 נייד / מגע:</span>
+                    החלק את האצבע להזזת החללית (הירי אוטומטי). לחץ על כפתור הנובה כשהמד מלא.
+                </div>
+            </div>
+
+            <button id="startBtn" class="neon-btn w-full py-4 rounded-2xl text-xl font-black text-white tracking-wide cursor-pointer animate-pulse-glow">
+                התחל משימה 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- מסך בחירת שדרוג (מופיע בסיום גלים) -->
+    <div id="upgradeScreen" class="hidden-screen fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+        <div class="glass-panel max-w-3xl w-full rounded-3xl p-6 sm:p-8 text-center">
+            <div class="text-cyan-400 text-sm font-bold tracking-wider mb-1">הגל הושלם בהצלחה!</div>
+            <h2 class="text-2xl sm:text-4xl font-black text-white mb-2 neon-text-cyan">בחר שדרוג לחללית</h2>
+            <p class="text-gray-400 text-xs sm:text-sm mb-6">כל שדרוג מחזק את מערכות הנשק או ההגנה שלך להמשך הקרב</p>
+
+            <div id="upgradeCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-right">
+                <!-- כרטיסי השדרוג ייווצרו דינמית כאן -->
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך השהייה -->
+    <div id="pauseScreen" class="hidden-screen fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="glass-panel max-w-sm w-full rounded-3xl p-8 text-center">
+            <h2 class="text-3xl font-black text-white mb-6 neon-text-cyan">המשחק מושהה</h2>
+            <div class="flex flex-col gap-3">
+                <button id="resumeBtn" class="neon-btn w-full py-3.5 rounded-xl text-lg font-bold text-white cursor-pointer">
+                    המשך לשחק
+                </button>
+                <button id="restartFromPauseBtn" class="w-full py-3 rounded-xl text-sm font-bold text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition cursor-pointer">
+                    התחל מחדש
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך סיום משחק (Game Over) -->
+    <div id="gameOverScreen" class="hidden-screen fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 sm:p-8 text-center border-pink-500/40">
+            <div id="newRecordBadge" class="hidden-screen inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 text-xs font-black mb-2 animate-bounce">
+                🏆 שיא חדש! 🏆
+            </div>
+            <h2 class="text-3xl sm:text-5xl font-black text-pink-500 mb-2 neon-text-pink">החללית הושמדה</h2>
+            <p class="text-gray-300 text-sm mb-6">הגנת על הגלקסיה בגבורה, טייס!</p>
+
+            <div class="grid grid-cols-2 gap-3 bg-black/40 p-4 rounded-2xl border border-white/10 mb-6">
+                <div>
+                    <div class="text-xs text-gray-400">ניקוד סופי</div>
+                    <div id="finalScoreText" class="text-2xl font-black text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">הגעת לגל</div>
+                    <div id="finalWaveText" class="text-2xl font-black text-cyan-400">1</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">אויבים שהושמדו</div>
+                    <div id="finalKillsText" class="text-lg font-bold text-fuchsia-400">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400">שיא כל הזמנים</div>
+                    <div id="finalBestText" class="text-lg font-bold text-amber-400">0</div>
+                </div>
+            </div>
+
+            <button id="playAgainBtn" class="neon-btn w-full py-4 rounded-2xl text-xl font-black text-white cursor-pointer">
+                שחק שוב 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * מנוע סאונד סינתטי מובנה (Web Audio API)
+         * מייצר אפקטים קוליים בזמן אמת ללא צורך בקבצי אודיו חיצוניים
+         * ============================================================================
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn("Web Audio API לא נתמך בדפדפן זה.");
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            }
+
+            // יריית לייזר של השחקן
+            playShoot(pitchMultiplier = 1) {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+
+                const now = this.ctx.currentTime;
+                osc.frequency.setValueAtTime(650 * pitchMultiplier, now);
+                osc.frequency.exponentialRampToValueAtTime(140, now + 0.09);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+            }
+
+            // פיצוץ אויב
+            playExplosion(size = 1) {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const now = this.ctx.currentTime;
+                const duration = 0.15 + size * 0.12;
+
+                // יצירת רעש לבן מסונן לפיצוץ עשיר
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800 / size, now);
+                filter.frequency.exponentialRampToValueAtTime(60, now + duration);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(Math.min(0.25, 0.12 * size), now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start(now);
+                noise.stop(now + duration);
+            }
+
+            // איסוף קריסטל אנרגיה / בונוס
+            playPowerup() {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(587.33, now + 0.05);
+                osc.frequency.setValueAtTime(880, now + 0.1);
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            // פיצוץ על (Nova)
+            playNova() {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.8);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.8);
+
+                this.playExplosion(2.5);
+            }
+
+            // פגיעה בשחקן
+            playHit() {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * מחלקות ישויות במשחק (חלקיקים, קליעים, אויבים, בונוסים)
+         * ============================================================================
+         */
+        class Particle {
+            constructor(x, y, vx, vy, color, size, life, decay = 0.96) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.size = size;
+                this.life = life;
+                this.maxLife = life;
+                this.decay = decay;
+            }
+
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.vx *= Math.pow(this.decay, dt * 60);
+                this.vy *= Math.pow(this.decay, dt * 60);
+                this.life -= dt;
+            }
+
+            draw(ctx) {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // טקסט צף (ניקוד, נזק, בונוסים)
+        class FloatingText {
+            constructor(x, y, text, color, size = 16) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.size = size;
+                this.life = 0.9;
+                this.maxLife = 0.9;
+            }
+
+            update(dt) {
+                this.y -= 45 * dt;
+                this.life -= dt;
+            }
+
+            draw(ctx) {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.font = `800 ${this.size}px Rubik, sans-serif`;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // גל הלם מתרחב (Shockwave)
+        class Shockwave {
+            constructor(x, y, maxRadius, color, lineWidth = 4) {
+                this.x = x;
+                this.y = y;
+                this.radius = 5;
+                this.maxRadius = maxRadius;
+                this.color = color;
+                this.lineWidth = lineWidth;
+                this.life = 0.45;
+                this.maxLife = 0.45;
+            }
+
+            update(dt) {
+                const progress = 1 - (this.life / this.maxLife);
+                this.radius = 5 + (this.maxRadius - 5) * (1 - Math.pow(1 - progress, 3));
+                this.life -= dt;
+            }
+
+            draw(ctx) {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.lineWidth * alpha;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        /**
+         * ============================================================================
+         * מחלקת המשחק הראשית - NEON GUARDIAN
+         * ============================================================================
+         */
+        class NeonGuardianGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.sound = new SoundEngine();
+
+                // ניהול גודל מסך
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                // מצב משחק
+                this.state = 'MENU'; // MENU, PLAYING, UPGRADE, PAUSED, GAMEOVER
+                this.lastTime = 0;
+                this.shakeTime = 0;
+                this.shakeIntensity = 0;
+
+                // נתוני שיאים מ-localStorage
+                this.highScore = parseInt(localStorage.getItem('neon_guardian_highscore') || '0', 10);
+                this.highWave = parseInt(localStorage.getItem('neon_guardian_highwave') || '1', 10);
+
+                // כוכבי רקע
+                this.stars = [];
+                this.initStars();
+
+                // רשימות ישויות
+                this.bullets = [];
+                this.enemyBullets = [];
+                this.enemies = [];
+                this.particles = [];
+                this.pickups = [];
+                this.floatingTexts = [];
+                this.shockwaves = [];
+
+                // קלט
+                this.keys = {};
+                this.pointer = { x: this.width / 2, y: this.height * 0.8, active: false, isTouch: false };
+                this.lastTapTime = 0;
+
+                // הגדרת שדרוגים אפשריים
+                this.upgradePool = [
+                    {
+                        id: 'multishot',
+                        title: 'פיצול פלזמה',
+                        desc: 'מוסיף קנה ירי נוסף לחללית לירי רחב וקטלני יותר.',
+                        icon: '🔱',
+                        color: 'border-cyan-400',
+                        apply: (p) => { p.weaponCount = Math.min(5, p.weaponCount + 1); }
+                    },
+                    {
+                        id: 'firerate',
+                        title: 'קירור-על למנועים',
+                        desc: 'מגביר את קצב הירי ב-22% ומאיץ את מהירות הקליעים.',
+                        icon: '⚡',
+                        color: 'border-amber-400',
+                        apply: (p) => { p.fireRate *= 0.78; p.bulletSpeed *= 1.12; }
+                    },
+                    {
+                        id: 'damage',
+                        title: 'ליבת אנטי-חומר',
+                        desc: 'מגדיל את עוצמת הנזק של כל קליע ב-30%.',
+                        icon: '💥',
+                        color: 'border-pink-500',
+                        apply: (p) => { p.damage *= 1.3; }
+                    },
+                    {
+                        id: 'maxhp',
+                        title: 'שריון טיטניום מרובד',
+                        desc: 'מגדיל את השריון המקסימלי ב-35 ומתקן 50% מהנזק.',
+                        icon: '🛡️',
+                        color: 'border-emerald-400',
+                        apply: (p) => {
+                            p.maxHp += 35;
+                            p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.5);
+                        }
+                    },
+                    {
+                        id: 'magnet',
+                        title: 'שדה כבידה מגנטי',
+                        desc: 'מושך קריסטלי אנרגיה ממרחק כפול ומאיץ טעינת נובה.',
+                        icon: '🧲',
+                        color: 'border-purple-400',
+                        apply: (p) => { p.magnetRadius += 120; p.novaGainMult += 0.35; }
+                    },
+                    {
+                        id: 'drones',
+                        title: 'רחפן ליווי אוטונומי',
+                        desc: 'משגר רחפן שמקיף את החללית ויורה אוטומטית באויבים.',
+                        icon: '🛸',
+                        color: 'border-blue-400',
+                        apply: (p) => { p.drones = Math.min(4, p.drones + 1); }
+                    }
+                ];
+
+                this.bindEvents();
+                this.updateMenuStats();
+                requestAnimationFrame((t) => this.loop(t));
+            }
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+            }
+
+            initStars() {
+                this.stars = [];
+                const count = Math.floor((this.width * this.height) / 9000);
+                const colors = ['#ffffff', '#00f3ff', '#bc13fe', '#ff0080', '#ffd700'];
+                for (let i = 0; i < count; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.width,
+                        y: Math.random() * this.height,
+                        size: Math.random() * 2.2 + 0.5,
+                        speed: Math.random() * 90 + 20,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        alpha: Math.random() * 0.7 + 0.3
+                    });
+                }
+            }
+
+            bindEvents() {
+                // כפתורי ממשק
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    this.sound.init();
+                    this.startNewGame();
+                });
+
+                document.getElementById('playAgainBtn').addEventListener('click', () => {
+                    this.startNewGame();
+                });
+
+                document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('resumeBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('restartFromPauseBtn').addEventListener('click', () => {
+                    document.getElementById('pauseScreen').classList.add('hidden-screen');
+                    this.startNewGame();
+                });
+
+                document.getElementById('muteBtn').addEventListener('click', () => {
+                    const isMuted = this.sound.toggleMute();
+                    document.getElementById('soundOnIcon').classList.toggle('hidden-screen', isMuted);
+                    document.getElementById('soundOffIcon').classList.toggle('hidden-screen', !isMuted);
+                });
+
+                document.getElementById('mobileNovaBtn').addEventListener('click', () => {
+                    this.triggerNova();
+                });
+
+                // מקלדת
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (e.code === 'Space' && this.state === 'PLAYING') {
+                        e.preventDefault();
+                        this.triggerNova();
+                    }
+                    if (e.code === 'Escape' && (this.state === 'PLAYING' || this.state === 'PAUSED')) {
+                        this.togglePause();
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+
+                // עכבר
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    this.pointer.x = e.clientX;
+                    this.pointer.y = e.clientY;
+                    this.pointer.active = true;
+                    this.pointer.isTouch = false;
+                });
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    this.sound.init();
+                    this.pointer.x = e.clientX;
+                    this.pointer.y = e.clientY;
+                    this.pointer.active = true;
+                    if (e.button === 2) {
+                        this.triggerNova();
+                    }
+                });
+
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                // מגע (Touch)
+                this.canvas.addEventListener('touchstart', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    this.sound.init();
+                    const touch = e.touches[0];
+                    this.pointer.x = touch.clientX;
+                    this.pointer.y = touch.clientY - 40; // הרמה קלה מעל האצבע כדי לראות את החללית
+                    this.pointer.active = true;
+                    this.pointer.isTouch = true;
+
+                    // זיהוי לחיצה כפולה לנובה
+                    const now = Date.now();
+                    if (now - this.lastTapTime < 280) {
+                        this.triggerNova();
+                    }
+                    this.lastTapTime = now;
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchmove', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    this.pointer.x = touch.clientX;
+                    this.pointer.y = touch.clientY - 40;
+                    this.pointer.active = true;
+                }, { passive: false });
+            }
+
+            updateMenuStats() {
+                document.getElementById('highScoreDisplay').textContent = this.highScore.toLocaleString();
+                document.getElementById('highWaveDisplay').textContent = this.highWave;
+            }
+
+            startNewGame() {
+                this.bullets = [];
+                this.enemyBullets = [];
+                this.enemies = [];
+                this.particles = [];
+                this.pickups = [];
+                this.floatingTexts = [];
+                this.shockwaves = [];
+
+                this.score = 0;
+                this.kills = 0;
+                this.combo = 1;
+                this.comboTimer = 0;
+                this.wave = 1;
+                this.waveEnemiesLeft = 0;
+                this.spawnTimer = 0;
+                this.bossActive = false;
+
+                // אתחול שחקן
+                this.player = {
+                    x: this.width / 2,
+                    y: this.height * 0.82,
+                    vx: 0,
+                    vy: 0,
+                    radius: 18,
+                    speed: 460,
+                    hp: 100,
+                    maxHp: 100,
+                    invulnTimer: 0,
+                    fireTimer: 0,
+                    fireRate: 0.16,
+                    bulletSpeed: 780,
+                    damage: 18,
+                    weaponCount: 1,
+                    novaCharge: 0, // 0 עד 100
+                    novaGainMult: 1,
+                    magnetRadius: 130,
+                    drones: 0,
+                    droneAngle: 0,
+                    droneFireTimer: 0
+                };
+
+                this.pointer.active = false;
+
+                // הסתרת מסכים והצגת HUD
+                document.getElementById('startScreen').classList.add('hidden-screen');
+                document.getElementById('gameOverScreen').classList.add('hidden-screen');
+                document.getElementById('upgradeScreen').classList.add('hidden-screen');
+                document.getElementById('bossHud').classList.add('hidden-screen');
+                document.getElementById('hudLayer').classList.remove('hidden-screen');
+
+                this.state = 'PLAYING';
+                this.startWave(1);
+                this.updateHUD();
+            }
+
+            togglePause() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    document.getElementById('pauseScreen').classList.remove('hidden-screen');
+                } else if (this.state === 'PAUSED') {
+                    this.state = 'PLAYING';
+                    document.getElementById('pauseScreen').classList.add('hidden-screen');
+                    this.lastTime = performance.now();
+                }
+            }
+
+            showBanner(text, colorClass = 'text-cyan-300 neon-text-cyan') {
+                const banner = document.getElementById('centerBanner');
+                banner.textContent = text;
+                banner.className = `text-3xl sm:text-5xl font-black text-center transition-all duration-300 transform scale-100 opacity-100 ${colorClass}`;
+
+                clearTimeout(this.bannerTimeout);
+                this.bannerTimeout = setTimeout(() => {
+                    banner.classList.remove('scale-100', 'opacity-100');
+                    banner.classList.add('scale-75', 'opacity-0');
+                }, 1800);
+            }
+
+            startWave(waveNum) {
+                this.wave = waveNum;
+                this.bossActive = (waveNum % 4 === 0); // כל גל רביעי הוא קרב בוס!
+
+                if (this.bossActive) {
+                    this.showBanner(`⚠️ אזהרה: טיטאן מתקרב! ⚠️`, 'text-pink-500 neon-text-pink');
+                    this.waveEnemiesLeft = 0;
+                    this.spawnBoss(waveNum);
+                } else {
+                    this.showBanner(`גל ${waveNum}`, 'text-cyan-300 neon-text-cyan');
+                    this.waveEnemiesLeft = 8 + waveNum * 4;
+                    this.spawnTimer = 0.5;
+                }
+                this.updateHUD();
+            }
+
+            spawnBoss(waveNum) {
+                const bossNames = [
+                    'משחית הניאון - MK1',
+                    'מלכת הנחיל הקיברנטי',
+                    'אדון החור השחור',
+                    'הליבה האפלה - OMEGA'
+                ];
+                const name = bossNames[Math.floor((waveNum / 4 - 1) % bossNames.length)];
+                const maxHp = 650 + waveNum * 380;
+
+                const boss = {
+                    type: 'BOSS',
+                    name: name,
+                    x: this.width / 2,
+                    y: -100,
+                    targetY: 130,
+                    vx: 110,
+                    radius: 56,
+                    hp: maxHp,
+                    maxHp: maxHp,
+                    color: '#ff007f',
+                    scoreValue: 2500 * (waveNum / 4),
+                    fireTimer: 1.5,
+                    patternAngle: 0
+                };
+
+                this.enemies.push(boss);
+                document.getElementById('bossName').textContent = name;
+                document.getElementById('bossHud').classList.remove('hidden-screen');
+                document.getElementById('bossHpBar').style.width = '100%';
+            }
+
+            spawnEnemy() {
+                const margin = 45;
+                const x = margin + Math.random() * (this.width - margin * 2);
+                const y = -40;
+
+                // בחירת סוג אויב בהתאם לגל
+                const rand = Math.random();
+                let enemy;
+
+                if (this.wave >= 3 && rand < 0.22) {
+                    // משוריין כבד (Tank)
+                    enemy = {
+                        type: 'TANK',
+                        x, y,
+                        vx: (Math.random() - 0.5) * 40,
+                        vy: 65 + this.wave * 3,
+                        radius: 26,
+                        hp: 75 + this.wave * 22,
+                        maxHp: 75 + this.wave * 22,
+                        color: '#bc13fe',
+                        scoreValue: 300,
+                        fireTimer: 2.2
+                    };
+                } else if (this.wave >= 2 && rand < 0.5) {
+                    // מיירט מהיר (Interceptor)
+                    enemy = {
+                        type: 'FAST',
+                        x, y,
+                        vx: (Math.random() < 0.5 ? -1 : 1) * (140 + this.wave * 8),
+                        vy: 175 + this.wave * 9,
+                        radius: 15,
+                        hp: 22 + this.wave * 6,
+                        maxHp: 22 + this.wave * 6,
+                        color: '#ff9900',
+                        scoreValue: 180,
+                        fireTimer: 999
+                    };
+                } else {
+                    // סייר ניאון סטנדרטי (Scout)
+                    enemy = {
+                        type: 'SCOUT',
+                        x, y,
+                        vx: Math.sin(Math.random() * Math.PI * 2) * 70,
+                        vy: 110 + this.wave * 6,
+                        radius: 18,
+                        hp: 30 + this.wave * 9,
+                        maxHp: 30 + this.wave * 9,
+                        color: '#ff2a6d',
+                        scoreValue: 120,
+                        fireTimer: 1.8 + Math.random() * 1.5
+                    };
+                }
+
+                this.enemies.push(enemy);
+            }
+
+            triggerNova() {
+                if (this.state !== 'PLAYING' || this.player.novaCharge < 100) return;
+
+                this.player.novaCharge = 0;
+                this.sound.playNova();
+                this.addScreenShake(18, 0.5);
+
+                // גלי הלם מרהיבים
+                this.shockwaves.push(new Shockwave(this.player.x, this.player.y, Math.max(this.width, this.height) * 0.85, '#ff00ff', 10));
+                this.shockwaves.push(new Shockwave(this.player.x, this.player.y, Math.max(this.width, this.height) * 0.65, '#00f3ff', 6));
+
+                // ניקוי כל קליעי האויב
+                this.enemyBullets.forEach(b => {
+                    this.spawnParticles(b.x, b.y, '#ff00ff', 4, 120);
+                });
+                this.enemyBullets = [];
+
+                // נזק אדיר לכל האויבים במסך
+                for (let i = this.enemies.length - 1; i >= 0; i--) {
+                    const e = this.enemies[i];
+                    const dmg = e.type === 'BOSS' ? 450 : 9999;
+                    this.damageEnemy(e, dmg, i);
+                }
+
+                this.floatingTexts.push(new FloatingText(this.player.x, this.player.y - 40, 'פיצוץ נובה!', '#ff66ff', 24));
+                this.updateHUD();
+            }
+
+            addScreenShake(intensity, duration) {
+                this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+                this.shakeTime = Math.max(this.shakeTime, duration);
+            }
+
+            spawnParticles(x, y, color, count = 12, speed = 220) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const spd = Math.random() * speed + 30;
+                    const size = Math.random() * 3.5 + 1.5;
+                    const life = Math.random() * 0.45 + 0.2;
+                    this.particles.push(new Particle(
+                        x, y,
+                        Math.cos(angle) * spd,
+                        Math.sin(angle) * spd,
+                        color, size, life
+                    ));
+                }
+            }
+
+            firePlayerWeapons() {
+                const p = this.player;
+                const count = p.weaponCount;
+                const spreadAngle = 0.09; // רדיאנים בין קליעים
+
+                for (let i = 0; i < count; i++) {
+                    const offsetIndex = i - (count - 1) / 2;
+                    const angle = -Math.PI / 2 + offsetIndex * spreadAngle;
+                    const offsetX = offsetIndex * 10;
+
+                    this.bullets.push({
+                        x: p.x + offsetX,
+                        y: p.y - 16,
+                        vx: Math.cos(angle) * p.bulletSpeed,
+                        vy: Math.sin(angle) * p.bulletSpeed,
+                        radius: 4.5,
+                        damage: p.damage,
+                        color: '#00f3ff'
+                    });
+                }
+
+                this.sound.playShoot(1 + (count - 1) * 0.06);
+            }
+
+            damageEnemy(enemy, amount, index) {
+                enemy.hp -= amount;
+                enemy.hitFlash = 0.08;
+
+                if (enemy.type === 'BOSS') {
+                    const pct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+                    document.getElementById('bossHpBar').style.width = `${pct}%`;
+                }
+
+                if (enemy.hp <= 0) {
+                    // השמדת אויב
+                    const isBoss = enemy.type === 'BOSS';
+                    this.sound.playExplosion(isBoss ? 2.6 : 1.0);
+                    this.addScreenShake(isBoss ? 22 : 6, isBoss ? 0.6 : 0.15);
+
+                    this.spawnParticles(enemy.x, enemy.y, enemy.color, isBoss ? 65 : 18, isBoss ? 420 : 240);
+                    this.shockwaves.push(new Shockwave(enemy.x, enemy.y, enemy.radius * (isBoss ? 4.5 : 2.2), enemy.color, isBoss ? 6 : 3));
+
+                    // חישוב ניקוד וקומבו
+                    const gainedScore = Math.round(enemy.scoreValue * this.combo);
+                    this.score += gainedScore;
+                    this.kills++;
+                    this.combo = Math.min(10, this.combo + 0.25);
+                    this.comboTimer = 3.2;
+
+                    this.floatingTexts.push(new FloatingText(enemy.x, enemy.y, `+${gainedScore}`, '#ffd700', isBoss ? 26 : 15));
+
+                    // הפלת קריסטלים / ערכת תיקון
+                    const dropCount = isBoss ? 14 : (Math.random() < 0.75 ? 2 : 1);
+                    for (let d = 0; d < dropCount; d++) {
+                        const isHeal = Math.random() < 0.12 && this.player.hp < this.player.maxHp;
+                        this.pickups.push({
+                            x: enemy.x + (Math.random() - 0.5) * 30,
+                            y: enemy.y + (Math.random() - 0.5) * 30,
+                            vx: (Math.random() - 0.5) * 90,
+                            vy: (Math.random() - 0.5) * 90 + 40,
+                            type: isHeal ? 'HEAL' : 'ENERGY',
+                            radius: isHeal ? 10 : 7
+                        });
+                    }
+
+                    if (isBoss) {
+                        this.bossActive = false;
+                        document.getElementById('bossHud').classList.add('hidden-screen');
+                    }
+
+                    this.enemies.splice(index, 1);
+                }
+            }
+
+            damagePlayer(amount) {
+                const p = this.player;
+                if (p.invulnTimer > 0) return;
+
+                p.hp -= amount;
+                p.invulnTimer = 0.75;
+                this.combo = 1;
+                this.sound.playHit();
+                this.addScreenShake(14, 0.3);
+                this.spawnParticles(p.x, p.y, '#ff2a6d', 20, 260);
+                this.floatingTexts.push(new FloatingText(p.x, p.y - 25, `-${amount}`, '#ff2a6d', 20));
+
+                if (p.hp <= 0) {
+                    p.hp = 0;
+                    this.gameOver();
+                }
+                this.updateHUD();
+            }
+
+            openUpgradeMenu() {
+                this.state = 'UPGRADE';
+                const container = document.getElementById('upgradeCardsContainer');
+                container.innerHTML = '';
+
+                // בחירת 3 שדרוגים אקראיים מתוך המאגר
+                const shuffled = [...this.upgradePool].sort(() => 0.5 - Math.random());
+                const choices = shuffled.slice(0, 3);
+
+                choices.forEach(upg => {
+                    const card = document.createElement('button');
+                    card.className = `upgrade-card rounded-2xl p-5 flex flex-col justify-between text-right cursor-pointer ${upg.color}`;
+                    card.innerHTML = `
+                        <div>
+                            <div class="text-4xl mb-3">${upg.icon}</div>
+                            <h3 class="text-lg sm:text-xl font-black text-white mb-2">${upg.title}</h3>
+                            <p class="text-gray-300 text-xs sm:text-sm leading-relaxed">${upg.desc}</p>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-white/10 text-cyan-400 text-xs font-bold flex items-center justify-between">
+                            <span>התקן שדרוג</span>
+                            <span>←</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        this.sound.playPowerup();
+                        upg.apply(this.player);
+                        document.getElementById('upgradeScreen').classList.add('hidden-screen');
+                        this.state = 'PLAYING';
+                        this.lastTime = performance.now();
+                        this.startWave(this.wave + 1);
+                    });
+                    container.appendChild(card);
+                });
+
+                document.getElementById('upgradeScreen').classList.remove('hidden-screen');
+            }
+
+            gameOver() {
+                this.state = 'GAMEOVER';
+                this.sound.playExplosion(2.5);
+                document.getElementById('hudLayer').classList.add('hidden-screen');
+
+                let isNewRecord = false;
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('neon_guardian_highscore', this.highScore.toString());
+                    isNewRecord = true;
+                }
+                if (this.wave > this.highWave) {
+                    this.highWave = this.wave;
+                    localStorage.setItem('neon_guardian_highwave', this.highWave.toString());
+                }
+
+                document.getElementById('newRecordBadge').classList.toggle('hidden-screen', !isNewRecord);
+                document.getElementById('finalScoreText').textContent = this.score.toLocaleString();
+                document.getElementById('finalWaveText').textContent = this.wave;
+                document.getElementById('finalKillsText').textContent = this.kills;
+                document.getElementById('finalBestText').textContent = this.highScore.toLocaleString();
+
+                this.updateMenuStats();
+                document.getElementById('gameOverScreen').classList.remove('hidden-screen');
+            }
+
+            updateHUD() {
+                const p = this.player;
+                if (!p) return;
+
+                // מד חיים
+                const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+                document.getElementById('hpBar').style.width = `${hpPct}%`;
+                document.getElementById('hpText').textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
+
+                // מד נובה
+                const novaPct = Math.min(100, Math.floor(p.novaCharge));
+                document.getElementById('novaBar').style.width = `${novaPct}%`;
+                document.getElementById('novaText').textContent = novaPct >= 100 ? 'מוכן! ⚡' : `${novaPct}%`;
+
+                const mobileNovaBtn = document.getElementById('mobileNovaBtn');
+                if (novaPct >= 100) {
+                    mobileNovaBtn.classList.remove('hidden-screen');
+                } else {
+                    mobileNovaBtn.classList.add('hidden-screen');
+                }
+
+                // ניקוד, גל וקומבו
+                document.getElementById('scoreText').textContent = this.score.toLocaleString();
+                document.getElementById('waveText').textContent = this.wave;
+
+                const comboEl = document.getElementById('comboText');
+                if (this.combo > 1.1) {
+                    comboEl.classList.remove('hidden-screen');
+                    comboEl.textContent = `קומבו x${this.combo.toFixed(1)}`;
+                } else {
+                    comboEl.classList.add('hidden-screen');
+                }
+            }
+
+            update(dt) {
+                // עדכון כוכבי רקע תמיד (גם בתפריט)
+                for (const star of this.stars) {
+                    star.y += star.speed * dt * (this.state === 'PLAYING' ? 1.5 : 0.5);
+                    if (star.y > this.height) {
+                        star.y = 0;
+                        star.x = Math.random() * this.width;
+                    }
+                }
+
+                if (this.state !== 'PLAYING') return;
+
+                const p = this.player;
+
+                // רעידת מסך
+                if (this.shakeTime > 0) {
+                    this.shakeTime -= dt;
+                } else {
+                    this.shakeIntensity = 0;
+                }
+
+                // טיימר קומבו
+                if (this.combo > 1) {
+                    this.comboTimer -= dt;
+                    if (this.comboTimer <= 0) {
+                        this.combo = 1;
+                    }
+                }
+
+                // תנועת שחקן (מקלדת או עכבר/מגע)
+                let moveX = 0;
+                let moveY = 0;
+                if (this.keys['ArrowLeft'] || this.keys['KeyA']) moveX -= 1;
+                if (this.keys['ArrowRight'] || this.keys['KeyD']) moveX += 1;
+                if (this.keys['ArrowUp'] || this.keys['KeyW']) moveY -= 1;
+                if (this.keys['ArrowDown'] || this.keys['KeyS']) moveY += 1;
+
+                if (moveX !== 0 || moveY !== 0) {
+                    this.pointer.active = false; // מקלדת מבטלת מעקב עכבר אוטומטי
+                    const len = Math.hypot(moveX, moveY);
+                    p.x += (moveX / len) * p.speed * dt;
+                    p.y += (moveY / len) * p.speed * dt;
+                } else if (this.pointer.active) {
+                    // תנועה חלקה לעבר סמן העכבר / האצבע
+                    const dx = this.pointer.x - p.x;
+                    const dy = this.pointer.y - p.y;
+                    p.x += dx * Math.min(1, dt * 14);
+                    p.y += dy * Math.min(1, dt * 14);
+                }
+
+                // הגבלת שחקן לגבולות המסך
+                p.x = Math.max(p.radius + 10, Math.min(this.width - p.radius - 10, p.x));
+                p.y = Math.max(p.radius + 10, Math.min(this.height - p.radius - 10, p.y));
+
+                // שובל מנוע של החללית
+                if (Math.random() < 0.7) {
+                    this.particles.push(new Particle(
+                        p.x + (Math.random() - 0.5) * 10,
+                        p.y + 18,
+                        (Math.random() - 0.5) * 30,
+                        140 + Math.random() * 80,
+                        '#00f3ff', 3, 0.25
+                    ));
+                }
+
+                if (p.invulnTimer > 0) p.invulnTimer -= dt;
+
+                // ירי אוטומטי רציף
+                p.fireTimer -= dt;
+                if (p.fireTimer <= 0) {
+                    this.firePlayerWeapons();
+                    p.fireTimer = p.fireRate;
+                }
+
+                // עדכון רחפני ליווי (Drones)
+                if (p.drones > 0) {
+                    p.droneAngle += dt * 3;
+                    p.droneFireTimer -= dt;
+                    if (p.droneFireTimer <= 0 && this.enemies.length > 0) {
+                        p.droneFireTimer = 0.55;
+                        for (let d = 0; d < p.drones; d++) {
+                            const angle = p.droneAngle + (d * Math.PI * 2) / p.drones;
+                            const dx = p.x + Math.cos(angle) * 44;
+                            const dy = p.y + Math.sin(angle) * 44;
+                            this.bullets.push({
+                                x: dx, y: dy,
+                                vx: 0, vy: -720,
+                                radius: 3.5,
+                                damage: p.damage * 0.65,
+                                color: '#38bdf8'
+                            });
+                        }
+                    }
+                }
+
+                // ניהול גלי אויבים
+                if (!this.bossActive) {
+                    if (this.waveEnemiesLeft > 0) {
+                        this.spawnTimer -= dt;
+                        if (this.spawnTimer <= 0) {
+                            this.spawnEnemy();
+                            this.waveEnemiesLeft--;
+                            this.spawnTimer = Math.max(0.35, 1.25 - this.wave * 0.06);
+                        }
+                    } else if (this.enemies.length === 0) {
+                        // הגל הסתיים! מעבר לבחירת שדרוג
+                        this.openUpgradeMenu();
+                        return;
+                    }
+                }
+
+                // עדכון קליעי שחקן
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const b = this.bullets[i];
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+
+                    if (b.y < -20 || b.x < -20 || b.x > this.width + 20) {
+                        this.bullets.splice(i, 1);
+                        continue;
+                    }
+
+                    // בדיקת פגיעה באויבים
+                    for (let j = this.enemies.length - 1; j >= 0; j--) {
+                        const e = this.enemies[j];
+                        const dist = Math.hypot(b.x - e.x, b.y - e.y);
+                        if (dist < b.radius + e.radius) {
+                            this.spawnParticles(b.x, b.y, '#00f3ff', 5, 130);
+                            this.damageEnemy(e, b.damage, j);
+                            this.bullets.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+
+                // עדכון אויבים
+                for (let i = this.enemies.length - 1; i >= 0; i--) {
+                    const e = this.enemies[i];
+                    if (e.hitFlash > 0) e.hitFlash -= dt;
+
+                    if (e.type === 'BOSS') {
+                        // תנועת בוס
+                        if (e.y < e.targetY) {
+                            e.y += 80 * dt;
+                        } else {
+                            e.x += e.vx * dt;
+                            if (e.x < e.radius + 30 || e.x > this.width - e.radius - 30) {
+                                e.vx *= -1;
+                            }
+                        }
+
+                        // ירי בוס (דפוסי ירי מעגליים ומכוונים)
+                        e.fireTimer -= dt;
+                        if (e.fireTimer <= 0) {
+                            e.fireTimer = Math.max(0.75, 1.4 - this.wave * 0.03);
+                            e.patternAngle += 0.4;
+                            const bulletsCount = 8;
+                            for (let k = 0; k < bulletsCount; k++) {
+                                const ang = e.patternAngle + (k * Math.PI * 2) / bulletsCount;
+                                this.enemyBullets.push({
+                                    x: e.x, y: e.y + 20,
+                                    vx: Math.cos(ang) * 230,
+                                    vy: Math.sin(ang) * 230,
+                                    radius: 6,
+                                    color: '#ff007f'
+                                });
+                            }
+                        }
+                    } else {
+                        // תנועת אויב רגיל
+                        e.x += e.vx * dt;
+                        e.y += e.vy * dt;
+
+                        if (e.x < e.radius + 10 || e.x > this.width - e.radius - 10) {
+                            e.vx *= -1;
+                        }
+
+                        // ירי אויבים
+                        e.fireTimer -= dt;
+                        if (e.fireTimer <= 0 && e.y > 0 && e.y < this.height * 0.65) {
+                            e.fireTimer = 2.4;
+                            const angleToPlayer = Math.atan2(p.y - e.y, p.x - e.x);
+                            const spd = 250 + this.wave * 8;
+                            this.enemyBullets.push({
+                                x: e.x, y: e.y + e.radius,
+                                vx: Math.cos(angleToPlayer) * spd,
+                                vy: Math.sin(angleToPlayer) * spd,
+                                radius: 5,
+                                color: e.color
+                            });
+                        }
+
+                        // יציאה מתחתית המסך
+                        if (e.y > this.height + 50) {
+                            this.enemies.splice(i, 1);
+                            continue;
+                        }
+                    }
+
+                    // התנגשות ישירה עם השחקן
+                    const distToPlayer = Math.hypot(e.x - p.x, e.y - p.y);
+                    if (distToPlayer < e.radius + p.radius - 4) {
+                        this.damagePlayer(e.type === 'BOSS' ? 35 : 22);
+                        if (e.type !== 'BOSS') {
+                            this.spawnParticles(e.x, e.y, e.color, 15, 200);
+                            this.enemies.splice(i, 1);
+                        }
+                    }
+                }
+
+                // עדכון קליעי אויב
+                for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+                    const eb = this.enemyBullets[i];
+                    eb.x += eb.vx * dt;
+                    eb.y += eb.vy * dt;
+
+                    if (eb.y > this.height + 20 || eb.y < -20 || eb.x < -20 || eb.x > this.width + 20) {
+                        this.enemyBullets.splice(i, 1);
+                        continue;
+                    }
+
+                    const dist = Math.hypot(eb.x - p.x, eb.y - p.y);
+                    if (dist < eb.radius + p.radius - 5) {
+                        this.damagePlayer(15);
+                        this.enemyBullets.splice(i, 1);
+                    }
+                }
+
+                // עדכון קריסטלים וערכות תיקון (Pickups)
+                for (let i = this.pickups.length - 1; i >= 0; i--) {
+                    const pk = this.pickups[i];
+                    const dx = p.x - pk.x;
+                    const dy = p.y - pk.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    // משיכה מגנטית לשחקן
+                    if (dist < p.magnetRadius) {
+                        pk.vx += (dx / dist) * 1400 * dt;
+                        pk.vy += (dy / dist) * 1400 * dt;
+                    } else {
+                        pk.vx *= 0.96;
+                        pk.vy = Math.min(120, pk.vy + 40 * dt);
+                    }
+
+                    pk.x += pk.vx * dt;
+                    pk.y += pk.vy * dt;
+
+                    if (dist < p.radius + pk.radius + 8) {
+                        this.sound.playPowerup();
+                        if (pk.type === 'HEAL') {
+                            p.hp = Math.min(p.maxHp, p.hp + 20);
+                            this.floatingTexts.push(new FloatingText(p.x, p.y - 25, '+20 שריון', '#34d399', 15));
+                        } else {
+                            p.novaCharge = Math.min(100, p.novaCharge + 9 * p.novaGainMult);
+                            this.score += 50;
+                        }
+                        this.pickups.splice(i, 1);
+                        continue;
+                    }
+
+                    if (pk.y > this.height + 30) {
+                        this.pickups.splice(i, 1);
+                    }
+                }
+
+                // עדכון חלקיקים, טקסטים וגלי הלם
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    this.particles[i].update(dt);
+                    if (this.particles[i].life <= 0) this.particles.splice(i, 1);
+                }
+
+                for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+                    this.floatingTexts[i].update(dt);
+                    if (this.floatingTexts[i].life <= 0) this.floatingTexts.splice(i, 1);
+                }
+
+                for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+                    this.shockwaves[i].update(dt);
+                    if (this.shockwaves[i].life <= 0) this.shockwaves.splice(i, 1);
+                }
+
+                this.updateHUD();
+            }
+
+            drawGrid(ctx) {
+                // רשת סייברפאנק עדינה ברקע
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.04)';
+                ctx.lineWidth = 1;
+                const gridSize = 60;
+                const offsetY = (performance.now() * 0.04) % gridSize;
+
+                for (let x = 0; x < this.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, this.height);
+                    ctx.stroke();
+                }
+                for (let y = offsetY; y < this.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(this.width, y);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            drawPlayer(ctx) {
+                const p = this.player;
+                if (!p) return;
+
+                // הבהוב בזמן חסינות מפגיעה
+                if (p.invulnTimer > 0 && Math.floor(p.invulnTimer * 16) % 2 === 0) return;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+
+                // הילת מגן כשמד הנובה מלא
+                if (p.novaCharge >= 100) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.radius + 12 + Math.sin(performance.now() * 0.01) * 3, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(232, 121, 249, 0.75)';
+                    ctx.lineWidth = 2.5;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#e879f9';
+                    ctx.stroke();
+                }
+
+                // גוף החללית העתידנית
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = '#00f3ff';
+                ctx.fillStyle = '#0f172a';
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 2.5;
+
+                ctx.beginPath();
+                ctx.moveTo(0, -24);        // חרטום
+                ctx.lineTo(20, 16);        // כנף ימין
+                ctx.lineTo(7, 10);
+                ctx.lineTo(0, 18);         // מנוע מרכזי
+                ctx.lineTo(-7, 10);
+                ctx.lineTo(-20, 16);       // כנף שמאל
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // תא טייס זוהר
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.ellipse(0, -3, 4.5, 9, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // ציור רחפני ליווי (Drones)
+                for (let d = 0; d < p.drones; d++) {
+                    const angle = p.droneAngle + (d * Math.PI * 2) / p.drones;
+                    const dx = p.x + Math.cos(angle) * 44;
+                    const dy = p.y + Math.sin(angle) * 44;
+
+                    ctx.save();
+                    ctx.translate(dx, dy);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            drawEnemy(ctx, e) {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+
+                const drawColor = e.hitFlash > 0 ? '#ffffff' : e.color;
+                ctx.shadowBlur = 16;
+                ctx.shadowColor = drawColor;
+                ctx.strokeStyle = drawColor;
+                ctx.fillStyle = '#090a14';
+                ctx.lineWidth = e.type === 'BOSS' ? 4 : 2.5;
+
+                if (e.type === 'BOSS') {
+                    // צורת בוס מרשימה (מתומן משוריין עם ליבה פועמת)
+                    ctx.beginPath();
+                    const sides = 8;
+                    for (let i = 0; i < sides; i++) {
+                        const ang = (i * Math.PI * 2) / sides + Math.PI / 8;
+                        const r = i % 2 === 0 ? e.radius : e.radius * 0.82;
+                        const px = Math.cos(ang) * r;
+                        const py = Math.sin(ang) * r;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // ליבה פנימית
+                    ctx.fillStyle = drawColor;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 18 + Math.sin(performance.now() * 0.008) * 4, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (e.type === 'TANK') {
+                    // משושה כבד
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const ang = (i * Math.PI * 2) / 6;
+                        const px = Math.cos(ang) * e.radius;
+                        const py = Math.sin(ang) * e.radius;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (e.type === 'FAST') {
+                    // חץ מהיר כלפי מטה
+                    ctx.beginPath();
+                    ctx.moveTo(0, e.radius + 4);
+                    ctx.lineTo(e.radius, -e.radius);
+                    ctx.lineTo(0, -e.radius * 0.4);
+                    ctx.lineTo(-e.radius, -e.radius);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    // מעוין סייר
+                    ctx.beginPath();
+                    ctx.moveTo(0, e.radius);
+                    ctx.lineTo(e.radius, 0);
+                    ctx.lineTo(0, -e.radius);
+                    ctx.lineTo(-e.radius, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+
+            draw() {
+                const ctx = this.ctx;
+
+                // רקע כהה עמוק
+                ctx.fillStyle = '#05050a';
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                ctx.save();
+
+                // יישום רעידת מסך
+                if (this.shakeTime > 0) {
+                    const dx = (Math.random() - 0.5) * this.shakeIntensity;
+                    const dy = (Math.random() - 0.5) * this.shakeIntensity;
+                    ctx.translate(dx, dy);
+                }
+
+                // רשת וכוכבים
+                this.drawGrid(ctx);
+                for (const star of this.stars) {
+                    ctx.globalAlpha = star.alpha;
+                    ctx.fillStyle = star.color;
+                    ctx.fillRect(star.x, star.y, star.size, star.size);
+                }
+                ctx.globalAlpha = 1;
+
+                // גלי הלם
+                for (const sw of this.shockwaves) sw.draw(ctx);
+
+                // קריסטלים וערכות תיקון
+                for (const pk of this.pickups) {
+                    ctx.save();
+                    ctx.translate(pk.x, pk.y);
+                    const color = pk.type === 'HEAL' ? '#34d399' : '#e879f9';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = color;
+                    ctx.fillStyle = color;
+
+                    if (pk.type === 'HEAL') {
+                        // צלב תיקון
+                        ctx.fillRect(-3, -8, 6, 16);
+                        ctx.fillRect(-8, -3, 16, 6);
+                    } else {
+                        // יהלום אנרגיה
+                        ctx.beginPath();
+                        ctx.moveTo(0, -8);
+                        ctx.lineTo(6, 0);
+                        ctx.lineTo(0, 8);
+                        ctx.lineTo(-6, 0);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                // קליעי שחקן
+                for (const b of this.bullets) {
+                    ctx.save();
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = b.color;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.roundRect(b.x - 2.5, b.y - 10, 5, 20, 3);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // קליעי אויב
+                for (const eb of this.enemyBullets) {
+                    ctx.save();
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = eb.color;
+                    ctx.fillStyle = eb.color;
+                    ctx.beginPath();
+                    ctx.arc(eb.x, eb.y, eb.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(eb.x, eb.y, eb.radius * 0.45, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // אויבים
+                for (const e of this.enemies) this.drawEnemy(ctx, e);
+
+                // שחקן
+                if (this.state === 'PLAYING' || this.state === 'UPGRADE' || this.state === 'PAUSED') {
+                    this.drawPlayer(ctx);
+                }
+
+                // חלקיקים
+                for (const pt of this.particles) pt.draw(ctx);
+
+                // טקסטים צפים
+                for (const ft of this.floatingTexts) ft.draw(ctx);
+
+                ctx.restore();
+            }
+
+            loop(timestamp) {
+                if (!this.lastTime) this.lastTime = timestamp;
+                const dt = Math.min(0.05, (timestamp - this.lastTime) / 1000); // הגבלת dt למניעת קפיצות
+                this.lastTime = timestamp;
+
+                this.update(dt);
+                this.draw();
+
+                requestAnimationFrame((t) => this.loop(t));
+            }
+        }
+
+        // הפעלת המשחק לאחר טעינת הדף
+        window.onload = () => {
+            window.game = new NeonGuardianGame();
+        };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

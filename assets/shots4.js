@@ -25,7 +25,11 @@
     ttyped: { img: "img/d3-2.jpg", w: 1019, h: 411, url: "gemini.google.com" },
     tchat: { img: "img/d3-3.jpg", w: 941, h: 422, url: "gemini.google.com" },
     tview: { img: "img/d3-4.jpg", w: 1019, h: 411, url: "gemini.google.com" },
-    tfix: { img: "img/d3-5.jpg", w: 1019, h: 411, url: "gemini.google.com" }
+    tfix: { img: "img/d3-5.jpg", w: 1019, h: 411, url: "gemini.google.com" },
+    gmtyped: { img: "img/gm-1.jpg", w: 690, h: 250, url: "gemini.google.com" },
+    gmchat: { img: "img/gm-2.jpg", w: 1010, h: 590, url: "gemini.google.com" },
+    gmplay: { img: "img/gm-3.jpg", w: 1000, h: 591, url: "gemini.google.com" },
+    gmmore: { img: "img/gm-4.jpg", w: 730, h: 350, url: "gemini.google.com" }
   };
   const MARKS = {
     searchBox: ["search", 470, 28, 860, 50],
@@ -71,7 +75,14 @@
     tFull: ["tchat", 750, 252, 26, 26],
     tToggle: ["tchat", 470, 252, 135, 26],
     t3d: ["tview", 300, 110, 420, 230],
-    tFix: ["tfix", 222, 46, 152, 52]
+    tFix: ["tfix", 222, 46, 152, 52],
+    gText: ["gmtyped", 238, 130, 420, 40],
+    gSend: ["gmtyped", 29, 177, 36, 36],
+    gPreview: ["gmchat", 226, 250, 180, 40],
+    gGame: ["gmchat", 66, 356, 676, 230],
+    gPlay: ["gmplay", 330, 300, 380, 230],
+    gMore: ["gmmore", 17, 13, 471, 67],
+    gOpen: ["gmmore", 29, 282, 72, 40]
   };
   const SETS = {
     S: [
@@ -115,6 +126,14 @@
       { mark: "tFull", cap: "לוחצים על מסך מלא", click: true },
       { mark: "t3d", cap: "גוררים עם העכבר ומסתובבים בעולם!" },
       { mark: "tFix", cap: "לא עובד? כותבים: תתקן, זה לא עובד" }
+    ],
+    G: [
+      { mark: "gText", cap: "בצ׳אט כותבים: צור בקוד משחק תלת מימדי של..." },
+      { mark: "gSend", cap: "שולחים, וגמיני כותבת את כל המשחק לבד", click: true },
+      { mark: "gGame", cap: "המשחק מופיע! בוחרים דמות ולוחצים התחל" },
+      { mark: "gPlay", cap: "משחקים עם החצים או עם W A S D" },
+      { mark: "gMore", cap: "רוצים לשנות? כותבים באותה שיחה מה להוסיף" },
+      { mark: "gOpen", cap: "לוחצים פתיחה, ומשחקים בגרסה החדשה", click: true }
     ]
   };
 

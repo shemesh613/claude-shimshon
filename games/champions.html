@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מרוץ תלת מימד - מרוץ האלופים</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,700;0,900;1,900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Rubik', sans-serif;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #090d16;
+            touch-action: none;
+        }
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.4);
+        }
+        .neon-text-amber {
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+        .btn-3d {
+            transition: all 0.15s ease;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4), 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        /* אפקט מהירות בקצוות המסך בזמן ניטרו */
+        #nitro-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: inset 0 0 90px rgba(56, 189, 248, 0);
+            transition: box-shadow 0.3s ease;
+        }
+        #nitro-overlay.active {
+            box-shadow: inset 0 0 110px rgba(56, 189, 248, 0.65);
+        }
+        /* אפקט פגיעה אדום */
+        #damage-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 6;
+            background: radial-gradient(circle, transparent 50%, rgba(239, 68, 68, 0.6) 100%);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(6px);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background 0.1s, transform 0.1s;
+        }
+        .touch-btn:active, .touch-btn.pressed {
+            background: rgba(34, 211, 238, 0.45);
+            border-color: #22d3ee;
+            transform: scale(0.94);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- קנבס התלת מימד -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- שכבות אפקטים ויזואליים -->
+    <div id="nitro-overlay"></div>
+    <div id="damage-overlay"></div>
+
+    <!-- ממשק משתמש ראשי (HUD בזמן משחק) -->
+    <div id="hud-layer" class="ui-layer hidden flex flex-col justify-between p-3 sm:p-5">
+        
+        <!-- חלק עליון של ה-HUD -->
+        <div class="flex flex-wrap items-start justify-between gap-2 w-full">
+            
+            <!-- ימין: שלב, חיים וניטרו -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col gap-2 min-w-[170px] sm:min-w-[220px]">
+                <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span id="hud-level-name" class="font-black text-cyan-400 text-sm sm:text-base">שלב 1: עיר הניאון</span>
+                    <button id="btn-mute" class="interactive text-white/80 hover:text-white p-1 rounded-lg bg-white/5" title="השתק/הפעל צליל">
+                        <svg id="icon-sound-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                        <svg id="icon-sound-off" class="w-5 h-5 hidden text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- מד שלמות הרכב / מגן -->
+                <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                        <span>שלמות הרכב</span>
+                        <span id="hud-health-text" class="font-bold text-emerald-400">100%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-white/10">
+                        <div id="hud-health-bar" class="h-full bg-gradient-to-l from-emerald-400 to-teal-500 transition-all duration-200" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- מד ניטרו -->
+                <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                        <span>ניטרו (רווח / Shift)</span>
+                        <span id="hud-nitro-text" class="font-bold text-sky-400">100%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/10">
+                        <div id="hud-nitro-bar" class="h-full bg-gradient-to-l from-sky-400 to-blue-600 transition-all duration-100" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- מרכז: מד התקדמות במסלול וזמן -->
+            <div class="glass-panel rounded-2xl p-3 sm:px-6 flex flex-col items-center flex-1 max-w-md mx-auto">
+                <div class="flex items-center justify-between w-full text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    <span>מרחק לסיום: <span id="hud-distance" class="text-amber-400">1000 מ'</span></span>
+                    <span>זמן: <span id="hud-time" class="text-white font-mono">00:00</span></span>
+                </div>
+                <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden relative border border-white/15">
+                    <div id="hud-progress-bar" class="h-full bg-gradient-to-l from-amber-400 via-orange-500 to-rose-500 transition-all duration-100" style="width: 0%;"></div>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-1 hidden sm:block">גרור עם העכבר על המסך לסיבוב זווית המצלמה</div>
+            </div>
+
+            <!-- שמאל: ניקוד ומד מהירות -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 flex items-center gap-4">
+                <div class="text-center">
+                    <div class="text-xs text-slate-400">ניקוד</div>
+                    <div id="hud-score" class="text-xl sm:text-2xl font-black text-amber-400 neon-text-amber">0</div>
+                </div>
+                <div class="h-10 w-[1px] bg-white/15"></div>
+                <div class="text-center min-w-[75px]">
+                    <div class="text-xs text-slate-400">מהירות</div>
+                    <div class="flex items-baseline justify-center gap-1">
+                        <span id="hud-speed" class="text-2xl sm:text-3xl font-black text-white italic">0</span>
+                        <span class="text-[10px] text-cyan-400 font-bold">קמ"ש</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- הודעות קופצות באמצע המסך (בונוס, פגיעה, מגן) -->
+        <div id="floating-toast" class="self-center my-auto text-center pointer-events-none opacity-0 transition-all duration-300 transform scale-90">
+            <span id="floating-toast-text" class="px-5 py-2 rounded-full glass-panel font-black text-lg sm:text-2xl text-amber-300 border-amber-400/50"></span>
+        </div>
+
+        <!-- בקרי מגע למובייל וטאבלט (מוצג תמיד במסכים קטנים או בלחיצה) -->
+        <div id="touch-controls" class="w-full flex justify-between items-end pb-2 sm:hidden interactive">
+            <!-- ימין ושמאל -->
+            <div class="flex gap-3">
+                <button id="touch-right" class="touch-btn w-16 h-16 sm:w-20 sm:h-20" aria-label="ימינה">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                <button id="touch-left" class="touch-btn w-16 h-16 sm:w-20 sm:h-20" aria-label="שמאלה">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+            </div>
+
+            <!-- ניטרו, בלם וגז -->
+            <div class="flex gap-2.5 items-end">
+                <button id="touch-nitro" class="touch-btn w-14 h-14 border-sky-400/50 text-sky-300 font-black text-xs" aria-label="ניטרו">
+                    NITRO
+                </button>
+                <button id="touch-brake" class="touch-btn w-14 h-16 border-rose-400/50 text-rose-300 font-bold text-xs" aria-label="בלם">
+                    בלם
+                </button>
+                <button id="touch-gas" class="touch-btn w-16 h-20 border-emerald-400/60 text-emerald-300 font-black text-sm" aria-label="גז">
+                    גז
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך פתיחה ובחירת שלבים -->
+    <div id="start-screen" class="ui-layer interactive flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+        <div class="glass-panel rounded-3xl max-w-3xl w-full p-6 sm:p-10 text-center border border-cyan-500/30">
+            <div class="inline-block px-4 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-xs sm:text-sm font-bold mb-3 border border-cyan-400/30">
+                גרסת 3D משודרגת • אפקטים קוליים מלאים
+            </div>
+            <h1 class="text-4xl sm:text-6xl font-black text-white italic tracking-tight mb-2 neon-text-cyan">
+                מרוץ האלופים <span class="text-amber-400">3D</span>
+            </h1>
+            <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto mb-6">
+                התחמק ממכוניות תנועה ומחסומים, אסוף מטבעות זהב ומגנים, והפעל ניטרו כדי להגיע לקו הסיום בזמן שיא!
+            </p>
+
+            <!-- בחירת שלב -->
+            <div class="mb-6">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">בחר שלב להתחלה:</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-right">
+                    <!-- שלב 1 -->
+                    <button onclick="selectLevel(0)" id="lvl-card-0" class="level-card interactive p-4 rounded-2xl border-2 border-cyan-400 bg-cyan-950/40 transition-all hover:scale-[1.02]">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-cyan-500/30 text-cyan-300">שלב 1</span>
+                            <span class="text-xs text-emerald-400 font-bold">קל</span>
+                        </div>
+                        <div class="font-black text-white text-lg">עיר הניאון</div>
+                        <div class="text-xs text-slate-300 mt-1">כביש לילי מהיר, תנועה דלילה ומטבעות בשפע.</div>
+                    </button>
+
+                    <!-- שלב 2 -->
+                    <button onclick="selectLevel(1)" id="lvl-card-1" class="level-card interactive p-4 rounded-2xl border-2 border-white/10 bg-slate-900/60 transition-all hover:scale-[1.02]">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/30 text-amber-300">שלב 2</span>
+                            <span class="text-xs text-amber-400 font-bold">בינוני</span>
+                        </div>
+                        <div class="font-black text-white text-lg">קניון המדבר</div>
+                        <div class="text-xs text-slate-300 mt-1">סלעים על הכביש, משאיות כבדות ומהירות גבוהה.</div>
+                    </button>
+
+                    <!-- שלב 3 -->
+                    <button onclick="selectLevel(2)" id="lvl-card-2" class="level-card interactive p-4 rounded-2xl border-2 border-white/10 bg-slate-900/60 transition-all hover:scale-[1.02]">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/30 text-rose-300">שלב 3</span>
+                            <span class="text-xs text-rose-400 font-bold">קשה</span>
+                        </div>
+                        <div class="font-black text-white text-lg">מסלול הגרנד פרי</div>
+                        <div class="text-xs text-slate-300 mt-1">מרוץ צפוף ומאתגר במהירות שיא עד קו הגמר!</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- מקרא שליטה -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-900/70 p-3 rounded-2xl border border-white/10 text-xs text-slate-300 mb-6">
+                <div><strong class="text-white">▲ / W</strong> : האצה</div>
+                <div><strong class="text-white">▼ / S</strong> : בלימה</div>
+                <div><strong class="text-white">◄ ► / A D</strong> : היגוי</div>
+                <div><strong class="text-sky-400">רווח / Shift</strong> : ניטרו</div>
+            </div>
+
+            <button id="btn-start-game" class="btn-3d interactive w-full sm:w-auto px-12 py-4 rounded-2xl bg-gradient-to-l from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xl tracking-wide">
+                התחל מרוץ! 🏁
+            </button>
+        </div>
+    </div>
+
+    <!-- מסך מעבר בין שלבים / סיום משחק -->
+    <div id="end-screen" class="ui-layer hidden interactive flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+        <div class="glass-panel rounded-3xl max-w-lg w-full p-8 text-center border border-white/20">
+            <div id="end-badge" class="inline-block px-4 py-1 rounded-full text-sm font-bold mb-3"></div>
+            <h2 id="end-title" class="text-3xl sm:text-5xl font-black text-white mb-2"></h2>
+            <p id="end-subtitle" class="text-slate-300 text-sm sm:text-base mb-6"></p>
+
+            <!-- סיכום נתונים -->
+            <div class="grid grid-cols-3 gap-3 bg-slate-900/80 p-4 rounded-2xl border border-white/10 mb-6">
+                <div>
+                    <div class="text-xs text-slate-400">ניקוד</div>
+                    <div id="end-score" class="text-xl font-black text-amber-400">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400">זמן</div>
+                    <div id="end-time" class="text-xl font-black text-white">00:00</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400">שלמות</div>
+                    <div id="end-health" class="text-xl font-black text-emerald-400">100%</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button id="btn-next-level" class="btn-3d interactive px-8 py-3.5 rounded-2xl bg-gradient-to-l from-emerald-500 to-teal-600 text-white font-black text-lg">
+                    לשלב הבא ➔
+                </button>
+                <button id="btn-restart-level" class="btn-3d interactive px-8 py-3.5 rounded-2xl bg-gradient-to-l from-amber-500 to-orange-600 text-white font-black text-lg">
+                    נסה שוב ↻
+                </button>
+                <button id="btn-back-menu" class="btn-3d interactive px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-base border border-white/10">
+                    תפריט ראשי
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * מנוע סאונד מסונתז בזמן אמת (Web Audio API) - ללא תלות בקבצים חיצוניים
+         * ============================================================================
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.engineOsc = null;
+                this.engineGain = null;
+                this.isInitialized = false;
+            }
+
+            init() {
+                if (this.isInitialized) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+
+                    // יצירת אוסילטור רציף לצליל המנוע
+                    this.engineOsc = this.ctx.createOscillator();
+                    this.engineGain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+
+                    this.engineOsc.type = 'sawtooth';
+                    this.engineOsc.frequency.value = 55;
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 280;
+
+                    this.engineGain.gain.value = 0;
+
+                    this.engineOsc.connect(filter);
+                    filter.connect(this.engineGain);
+                    this.engineGain.connect(this.ctx.destination);
+                    this.engineOsc.start();
+
+                    this.isInitialized = true;
+                } catch (e) {
+                    console.warn("Web Audio API אינו נתמך בדפדפן זה:", e);
+                }
+            }
+
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            setMute(muteState) {
+                this.muted = muteState;
+                if (this.engineGain && this.ctx) {
+                    this.engineGain.gain.setTargetAtTime(this.muted ? 0 : 0.08, this.ctx.currentTime, 0.05);
+                }
+            }
+
+            // עדכון גובה הצליל ועוצמת המנוע לפי מהירות הרכב
+            updateEngine(speedRatio, isNitro, isPlaying) {
+                if (!this.isInitialized || !this.engineOsc || !this.engineGain) return;
+                if (this.muted || !isPlaying) {
+                    this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);
+                    return;
+                }
+                const baseFreq = 50 + speedRatio * 115 + (isNitro ? 45 : 0);
+                this.engineOsc.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.05);
+                const vol = 0.05 + speedRatio * 0.07;
+                this.engineGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.05);
+            }
+
+            // צליל איסוף מטבע
+            playCoin() {
+                if (this.muted || !this.isInitialized) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.16);
+            }
+
+            // צליל איסוף מגן / ניטרו
+            playPowerup() {
+                if (this.muted || !this.isInitialized) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                osc.frequency.exponentialRampToValueAtTime(1174, now + 0.3);
+
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            // צליל התנגשות
+            playCrash() {
+                if (this.muted || !this.isInitialized) return;
+                const now = this.ctx.currentTime;
+                // יצירת רעש לבן להתנגשות
+                const bufferSize = this.ctx.sampleRate * 0.3;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(600, now);
+                filter.frequency.linearRampToValueAtTime(100, now + 0.3);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+            }
+
+            // צליל ניצחון שלב
+            playWin() {
+                if (this.muted || !this.isInitialized) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const now = this.ctx.currentTime + idx * 0.12;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.36);
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /**
+         * ============================================================================
+         * הגדרות השלבים (Levels Configuration)
+         * ============================================================================
+         */
+        const LEVELS = [
+            {
+                id: 0,
+                name: "שלב 1: עיר הניאון",
+                distance: 1500, // מטרים לסיום
+                maxSpeed: 115,
+                trafficSpawnRate: 1.35, // שניות בין הופעות
+                trafficSpeedFactor: 0.45,
+                skyColor: 0x070b19,
+                fogColor: 0x0b132b,
+                roadColor: 0x1e293b,
+                stripeColor: 0x38bdf8,
+                groundColor: 0x090d16,
+                buildingColors: [0x1e1b4b, 0x312e81, 0x0f172a],
+                neonAccent: 0x22d3ee,
+                envType: 'city'
+            },
+            {
+                id: 1,
+                name: "שלב 2: קניון המדבר",
+                distance: 2200,
+                maxSpeed: 135,
+                trafficSpawnRate: 1.0,
+                trafficSpeedFactor: 0.52,
+                skyColor: 0xd97706,
+                fogColor: 0xf59e0b,
+                roadColor: 0x3f3f46,
+                stripeColor: 0xfef08a,
+                groundColor: 0xb45309,
+                buildingColors: [0x9a3412, 0x7c2d12, 0xb45309],
+                neonAccent: 0xfbbf24,
+                envType: 'desert'
+            },
+            {
+                id: 2,
+                name: "שלב 3: מסלול הגרנד פרי",
+                distance: 3000,
+                maxSpeed: 160,
+                trafficSpawnRate: 0.72,
+                trafficSpeedFactor: 0.62,
+                skyColor: 0x0284c7,
+                fogColor: 0x7dd3fc,
+                roadColor: 0x18181b,
+                stripeColor: 0xffffff,
+                groundColor: 0x15803d,
+                buildingColors: [0xe11d48, 0x2563eb, 0xf8fafc],
+                neonAccent: 0xf43f5e,
+                envType: 'circuit'
+            }
+        ];
+
+        /**
+         * ============================================================================
+         * משתנים גלובליים ומצב המשחק (Game State)
+         * ============================================================================
+         */
+        let scene, camera, renderer;
+        let playerCar, playerShieldMesh, nitroFlames = [];
+        let roadGroup, roadStripes = [], sceneryObjects = [];
+        let obstacles = [], collectibles = [], particles = [];
+        let finishLineMesh = null;
+
+        let currentLevelIndex = 0;
+        let gameState = 'MENU'; // MENU, PLAYING, LEVEL_COMPLETE, GAME_OVER
+
+        // נתוני נהיגה של השחקן
+        const ROAD_WIDTH = 16;
+        const LANE_POSITIONS = [-5.2, -1.75, 1.75, 5.2];
+        let playerState = {
+            x: 0,
+            vx: 0,
+            speed: 0,
+            health: 100,
+            nitro: 100,
+            isNitroActive: false,
+            hasShield: false,
+            score: 0,
+            distanceTraveled: 0,
+            elapsedTime: 0,
+            invulnerableTimer: 0
+        };
+
+        // בקרת קלט (מקלדת ומגע)
+        const keys = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            nitro: false
+        };
+
+        // משתני שליטה בזווית המצלמה בעזרת העכבר
+        let cameraControl = {
+            isDragging: false,
+            prevX: 0,
+            prevY: 0,
+            yawOffset: 0,
+            pitchOffset: 0
+        };
+
+        let spawnTimer = 0;
+        let collectibleTimer = 0;
+        let lastTime = 0;
+
+        /**
+         * ============================================================================
+         * אתחול סצנת Three.js ובניית מודלים תלת מימדיים
+         * ============================================================================
+         */
+        function initThreeJS() {
+            const canvas = document.getElementById('game-canvas');
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 450);
+            camera.position.set(0, 5.2, 11.5);
+            camera.lookAt(0, 1.2, -10);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // תאורה
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+            dirLight.position.set(25, 45, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 1;
+            dirLight.shadow.camera.far = 150;
+            const d = 35;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // בניית מכונית השחקן
+            buildPlayerCar();
+
+            // בניית הכביש והסביבה הראשונית
+            buildRoad();
+            applyLevelEnvironment(LEVELS[0]);
+
+            // האזנה לשינוי גודל מסך
+            window.addEventListener('resize', onWindowResize);
+            setupCameraMouseControls(canvas);
+        }
+
+        // יצירת מודל מכונית ספורט תלת מימדית מפורטת לשחקן
+        function buildPlayerCar() {
+            playerCar = new THREE.Group();
+
+            // שלדה תחתונה
+            const chassisGeo = new THREE.BoxGeometry(2.1, 0.65, 4.4);
+            const chassisMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                metalness: 0.6,
+                roughness: 0.2
+            });
+            const chassis = new THREE.Mesh(chassisGeo, chassisMat);
+            chassis.position.y = 0.65;
+            chassis.castShadow = true;
+            chassis.receiveShadow = true;
+            playerCar.add(chassis);
+
+            // תא נוסעים (חופה)
+            const cabinGeo = new THREE.BoxGeometry(1.65, 0.55, 2.1);
+            const cabinMat = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                metalness: 0.85,
+                roughness: 0.1
+            });
+            const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+            cabin.position.set(0, 1.2, -0.15);
+            cabin.castShadow = true;
+            playerCar.add(cabin);
+
+            // ספוילר אחורי
+            const spoilerWingGeo = new THREE.BoxGeometry(2.15, 0.12, 0.45);
+            const spoilerMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, metalness: 0.4, roughness: 0.4 });
+            const spoilerWing = new THREE.Mesh(spoilerWingGeo, spoilerMat);
+            spoilerWing.position.set(0, 1.32, 1.95);
+            playerCar.add(spoilerWing);
+
+            const strutGeo = new THREE.BoxGeometry(0.12, 0.35, 0.25);
+            const strutL = new THREE.Mesh(strutGeo, cabinMat);
+            strutL.position.set(-0.7, 1.1, 1.95);
+            const strutR = new THREE.Mesh(strutGeo, cabinMat);
+            strutR.position.set(0.7, 1.1, 1.95);
+            playerCar.add(strutL, strutR);
+
+            // פנסים קדמיים
+            const headLightGeo = new THREE.BoxGeometry(0.45, 0.18, 0.1);
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const hlLeft = new THREE.Mesh(headLightGeo, headLightMat);
+            hlLeft.position.set(-0.68, 0.72, -2.21);
+            const hlRight = new THREE.Mesh(headLightGeo, headLightMat);
+            hlRight.position.set(0.68, 0.72, -2.21);
+            playerCar.add(hlLeft, hlRight);
+
+            // פנסים אחוריים (אורות בלם)
+            const tailLightGeo = new THREE.BoxGeometry(0.55, 0.18, 0.1);
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff1e42 });
+            const tlLeft = new THREE.Mesh(tailLightGeo, tailLightMat);
+            tlLeft.position.set(-0.65, 0.75, 2.21);
+            const tlRight = new THREE.Mesh(tailLightGeo, tailLightMat);
+            tlRight.position.set(0.65, 0.75, 2.21);
+            playerCar.add(tlLeft, tlRight);
+
+            // להבות ניטרו מהאגזוזים
+            nitroFlames = [];
+            const flameGeo = new THREE.ConeGeometry(0.22, 1.3, 8);
+            flameGeo.rotateX(Math.PI / 2);
+            const flameMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9 });
+            [-0.5, 0.5].forEach(xOffset => {
+                const flame = new THREE.Mesh(flameGeo, flameMat);
+                flame.position.set(xOffset, 0.5, 2.8);
+                flame.visible = false;
+                playerCar.add(flame);
+                nitroFlames.push(flame);
+            });
+
+            // גלגלים
+            const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.35, 16);
+            wheelGeo.rotateZ(Math.PI / 2);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+            const wheelPositions = [
+                [-1.08, 0.42, -1.35],
+                [1.08, 0.42, -1.35],
+                [-1.08, 0.42, 1.35],
+                [1.08, 0.42, 1.35]
+            ];
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.position.set(...pos);
+                wheel.castShadow = true;
+                playerCar.add(wheel);
+            });
+
+            // בועת מגן אנרגיה (מוסתרת כברירת מחדל)
+            const shieldGeo = new THREE.SphereGeometry(2.7, 24, 24);
+            const shieldMat = new THREE.MeshBasicMaterial({
+                color: 0x10b981,
+                transparent: true,
+                opacity: 0.25,
+                wireframe: true
+            });
+            playerShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            playerShieldMesh.position.y = 0.9;
+            playerShieldMesh.visible = false;
+            playerCar.add(playerShieldMesh);
+
+            playerCar.position.set(0, 0, 2);
+            scene.add(playerCar);
+        }
+
+        // יצירת מכונית יריבה / תנועה
+        function createTrafficCar(isTruck = false) {
+            const group = new THREE.Group();
+            const colors = [0xef4444, 0xf59e0b, 0x8b5cf6, 0x10b981, 0xe2e8f0, 0xec4899];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            if (isTruck) {
+                // משאית גדולה
+                const cab = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.3, 2.2, 2.0),
+                    new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 })
+                );
+                cab.position.set(0, 1.4, -2.2);
+                cab.castShadow = true;
+                group.add(cab);
+
+                const trailer = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.4, 2.6, 5.2),
+                    new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 })
+                );
+                trailer.position.set(0, 1.6, 1.5);
+                trailer.castShadow = true;
+                group.add(trailer);
+
+                group.userData = { width: 2.4, length: 7.4, speedMult: 0.75 };
+            } else {
+                // מכונית פרטית
+                const body = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.0, 0.7, 4.1),
+                    new THREE.MeshStandardMaterial({ color: color, metalness: 0.4, roughness: 0.3 })
+                );
+                body.position.y = 0.65;
+                body.castShadow = true;
+                group.add(body);
+
+                const top = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.6, 0.55, 2.0),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2 })
+                );
+                top.position.set(0, 1.2, 0.1);
+                group.add(top);
+
+                // פנסים אחוריים
+                const tailMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.1), tailMat);
+                t1.position.set(-0.6, 0.75, 2.06);
+                const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.1), tailMat);
+                t2.position.set(0.6, 0.75, 2.06);
+                group.add(t1, t2);
+
+                group.userData = { width: 2.0, length: 4.1, speedMult: 1.0 };
+            }
+
+            return group;
+        }
+
+        // יצירת מכשול סטטי על הכביש (מחסום עבודות / סלע)
+        function createRoadBarrier(envType) {
+            const group = new THREE.Group();
+            if (envType === 'desert') {
+                // סלע מדברי
+                const rockGeo = new THREE.DodecahedronGeometry(1.25, 0);
+                const rockMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+                rock.position.y = 0.9;
+                rock.scale.set(1.3, 0.9, 1.1);
+                rock.castShadow = true;
+                group.add(rock);
+            } else {
+                // מחסום תנועה זוהר
+                const barGeo = new THREE.BoxGeometry(2.6, 1.1, 0.8);
+                const barMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 });
+                const bar = new THREE.Mesh(barGeo, barMat);
+                bar.position.y = 0.65;
+                bar.castShadow = true;
+                group.add(bar);
+
+                const stripe = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.65, 0.25, 0.85),
+                    new THREE.MeshBasicMaterial({ color: 0xffffff })
+                );
+                stripe.position.y = 0.75;
+                group.add(stripe);
+            }
+            group.userData = { width: 2.5, length: 1.2, isStatic: true };
+            return group;
+        }
+
+        // בניית הכביש והקרקע
+        function buildRoad() {
+            roadGroup = new THREE.Group();
+
+            // משטח הקרקע הרחב משני צידי הכביש
+            const groundGeo = new THREE.PlaneGeometry(500, 600);
+            groundGeo.rotateX(-Math.PI / 2);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.9 });
+            const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+            groundMesh.position.set(0, -0.05, -200);
+            groundMesh.receiveShadow = true;
+            groundMesh.name = "ground";
+            roadGroup.add(groundMesh);
+
+            // אספלט הכביש
+            const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, 600);
+            roadGeo.rotateX(-Math.PI / 2);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.75 });
+            const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+            roadMesh.position.set(0, 0, -200);
+            roadMesh.receiveShadow = true;
+            roadMesh.name = "asphalt";
+            roadGroup.add(roadMesh);
+
+            // שוליים בולטים לכביש
+            const curbGeo = new THREE.BoxGeometry(0.7, 0.25, 600);
+            const curbMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+            const leftCurb = new THREE.Mesh(curbGeo, curbMat);
+            leftCurb.position.set(-ROAD_WIDTH / 2 - 0.35, 0.12, -200);
+            const rightCurb = new THREE.Mesh(curbGeo, curbMat);
+            rightCurb.position.set(ROAD_WIDTH / 2 + 0.35, 0.12, -200);
+            leftCurb.name = "curbL";
+            rightCurb.name = "curbR";
+            roadGroup.add(leftCurb, rightCurb);
+
+            // קווי הפרדה מקווקווים בין הנתיבים
+            roadStripes = [];
+            const stripeGeo = new THREE.PlaneGeometry(0.22, 4.5);
+            stripeGeo.rotateX(-Math.PI / 2);
+            const stripeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+            const laneDividers = [-3.5, 0, 3.5];
+            for (let z = 20; z > -320; z -= 12) {
+                laneDividers.forEach(xPos => {
+                    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+                    stripe.position.set(xPos, 0.02, z);
+                    roadGroup.add(stripe);
+                    roadStripes.push(stripe);
+                });
+            }
+
+            scene.add(roadGroup);
+        }
+
+        // החלת עיצוב הסביבה בהתאם לשלב שנבחר
+        function applyLevelEnvironment(level) {
+            scene.background = new THREE.Color(level.skyColor);
+            scene.fog = new THREE.FogExp2(level.fogColor, 0.0075);
+
+            const ground = roadGroup.getObjectByName("ground");
+            const asphalt = roadGroup.getObjectByName("asphalt");
+            const curbL = roadGroup.getObjectByName("curbL");
+            const curbR = roadGroup.getObjectByName("curbR");
+
+            if (ground) ground.material.color.setHex(level.groundColor);
+            if (asphalt) asphalt.material.color.setHex(level.roadColor);
+            if (curbL) curbL.material.color.setHex(level.neonAccent);
+            if (curbR) curbR.material.color.setHex(level.neonAccent);
+
+            roadStripes.forEach(s => s.material.color.setHex(level.stripeColor));
+
+            // ניקוי אלמנטים קודמים בצדי הדרך
+            sceneryObjects.forEach(obj => scene.remove(obj));
+            sceneryObjects = [];
+
+            // יצירת תפאורה חדשה משני צידי הכביש
+            for (let z = 20; z > -340; z -= 18) {
+                [-1, 1].forEach(side => {
+                    const xBase = side * (ROAD_WIDTH / 2 + 5 + Math.random() * 14);
+                    let prop;
+
+                    if (level.envType === 'city') {
+                        // גורדי שחקים עם חלונות זוהרים
+                        const h = 12 + Math.random() * 28;
+                        const w = 5 + Math.random() * 5;
+                        const bGeo = new THREE.BoxGeometry(w, h, w);
+                        const color = level.buildingColors[Math.floor(Math.random() * level.buildingColors.length)];
+                        const bMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
+                        prop = new THREE.Mesh(bGeo, bMat);
+                        prop.position.set(xBase, h / 2, z);
+
+                        // פס ניאון על הבניין
+                        const neonStrip = new THREE.Mesh(
+                            new THREE.BoxGeometry(w + 0.15, 0.4, w + 0.15),
+                            new THREE.MeshBasicMaterial({ color: level.neonAccent })
+                        );
+                        neonStrip.position.y = h * 0.35;
+                        prop.add(neonStrip);
+                    } else if (level.envType === 'desert') {
+                        // צוקי מדבר וקקטוסים
+                        if (Math.random() > 0.35) {
+                            const h = 6 + Math.random() * 16;
+                            const mesaGeo = new THREE.CylinderGeometry(2.5, 5.5, h, 6);
+                            const mesaMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.9 });
+                            prop = new THREE.Mesh(mesaGeo, mesaMat);
+                            prop.position.set(xBase + side * 4, h / 2, z);
+                        } else {
+                            // קקטוס
+                            prop = new THREE.Group();
+                            const trunk = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.35, 0.4, 3.5, 8),
+                                new THREE.MeshStandardMaterial({ color: 0x15803d })
+                            );
+                            trunk.position.y = 1.75;
+                            prop.add(trunk);
+                            prop.position.set(xBase - side * 2, 0, z);
+                        }
+                    } else {
+                        // מסלול גרנד פרי: טריבונות, דגלים ועצים
+                        if (Math.random() > 0.4) {
+                            const tree = new THREE.Group();
+                            const trunk = new THREE.Mesh(
+                                new THREE.CylinderGeometry(0.3, 0.4, 2, 6),
+                                new THREE.MeshStandardMaterial({ color: 0x78350f })
+                            );
+                            trunk.position.y = 1;
+                            const leaves = new THREE.Mesh(
+                                new THREE.ConeGeometry(2.2, 5, 8),
+                                new THREE.MeshStandardMaterial({ color: 0x166534 })
+                            );
+                            leaves.position.y = 4;
+                            tree.add(trunk, leaves);
+                            prop = tree;
+                            prop.position.set(xBase, 0, z);
+                        } else {
+                            const stand = new THREE.Mesh(
+                                new THREE.BoxGeometry(6, 5, 10),
+                                new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
+                            );
+                            stand.position.set(xBase + side * 3, 2.5, z);
+                            prop = stand;
+                        }
+                    }
+
+                    scene.add(prop);
+                    sceneryObjects.push(prop);
+                });
+            }
+
+            // יצירת שער קו הסיום (מוצב רחוק ומתקרב בסוף השלב)
+            if (finishLineMesh) scene.remove(finishLineMesh);
+            finishLineMesh = new THREE.Group();
+
+            const pillarGeo = new THREE.BoxGeometry(1, 9, 1);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6 });
+            const pLeft = new THREE.Mesh(pillarGeo, pillarMat);
+            pLeft.position.set(-ROAD_WIDTH / 2 - 0.5, 4.5, 0);
+            const pRight = new THREE.Mesh(pillarGeo, pillarMat);
+            pRight.position.set(ROAD_WIDTH / 2 + 0.5, 4.5, 0);
+
+            const banner = new THREE.Mesh(
+                new THREE.BoxGeometry(ROAD_WIDTH + 2, 2.2, 0.8),
+                new THREE.MeshBasicMaterial({ color: 0x10b981 })
+            );
+            banner.position.set(0, 8.2, 0);
+
+            finishLineMesh.add(pLeft, pRight, banner);
+            finishLineMesh.position.set(0, 0, -500);
+            finishLineMesh.visible = false;
+            scene.add(finishLineMesh);
+        }
+
+        /**
+         * ============================================================================
+         * ניהול מצבי המשחק (התחלה, בחירת שלב, סיום)
+         * ============================================================================
+         */
+        function selectLevel(index) {
+            currentLevelIndex = index;
+            document.querySelectorAll('.level-card').forEach((card, idx) => {
+                if (idx === index) {
+                    card.classList.remove('border-white/10', 'bg-slate-900/60');
+                    card.classList.add('border-cyan-400', 'bg-cyan-950/40');
+                } else {
+                    card.classList.add('border-white/10', 'bg-slate-900/60');
+                    card.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                }
+            });
+            applyLevelEnvironment(LEVELS[index]);
+        }
+
+        function startLevel(levelIdx) {
+            sound.init();
+            sound.resume();
+
+            currentLevelIndex = levelIdx;
+            const level = LEVELS[currentLevelIndex];
+            applyLevelEnvironment(level);
+
+            // איפוס משתני השחקן
+            playerState = {
+                x: 0,
+                vx: 0,
+                speed: 35,
+                health: 100,
+                nitro: 100,
+                isNitroActive: false,
+                hasShield: false,
+                score: levelIdx === 0 ? 0 : playerState.score,
+                distanceTraveled: 0,
+                elapsedTime: 0,
+                invulnerableTimer: 0
+            };
+
+            playerCar.position.set(0, 0, 2);
+            playerCar.rotation.set(0, 0, 0);
+            playerShieldMesh.visible = false;
+
+            // ניקוי מכשולים ופריטים קודמים
+            obstacles.forEach(o => scene.remove(o));
+            obstacles = [];
+            collectibles.forEach(c => scene.remove(c));
+            collectibles = [];
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+
+            spawnTimer = 0.5;
+            collectibleTimer = 1.0;
+
+            // עדכון ממשק המשתמש
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('hud-layer').classList.remove('hidden');
+            document.getElementById('hud-level-name').textContent = level.name;
+
+            gameState = 'PLAYING';
+            lastTime = performance.now();
+        }
+
+        function showFloatingToast(text, colorClass = "text-amber-300") {
+            const toast = document.getElementById('floating-toast');
+            const toastText = document.getElementById('floating-toast-text');
+            toastText.textContent = text;
+            toastText.className = `px-5 py-2 rounded-full glass-panel font-black text-lg sm:text-2xl ${colorClass}`;
+            toast.classList.remove('opacity-0', 'scale-90');
+            toast.classList.add('opacity-100', 'scale-100');
+
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-90');
+                toast.classList.remove('opacity-100', 'scale-100');
+            }, 1100);
+        }
+
+        function handleLevelEnd(isVictory) {
+            gameState = isVictory ? 'LEVEL_COMPLETE' : 'GAME_OVER';
+            sound.updateEngine(0, false, false);
+            document.getElementById('nitro-overlay').classList.remove('active');
+
+            const endScreen = document.getElementById('end-screen');
+            const badge = document.getElementById('end-badge');
+            const title = document.getElementById('end-title');
+            const subtitle = document.getElementById('end-subtitle');
+            const btnNext = document.getElementById('btn-next-level');
+            const btnRestart = document.getElementById('btn-restart-level');
+
+            endScreen.classList.remove('hidden');
+
+            // פורמט זמן
+            const mins = Math.floor(playerState.elapsedTime / 60).toString().padStart(2, '0');
+            const secs = Math.floor(playerState.elapsedTime % 60).toString().padStart(2, '0');
+
+            document.getElementById('end-score').textContent = Math.floor(playerState.score);
+            document.getElementById('end-time').textContent = `${mins}:${secs}`;
+            document.getElementById('end-health').textContent = `${Math.max(0, Math.round(playerState.health))}%`;
+
+            if (isVictory) {
+                sound.playWin();
+                const isLastLevel = currentLevelIndex >= LEVELS.length - 1;
+                badge.textContent = isLastLevel ? "🏆 אלוף האלופים!" : "🏁 שלב הושלם!";
+                badge.className = "inline-block px-4 py-1 rounded-full text-sm font-bold mb-3 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40";
+                title.textContent = isLastLevel ? "ניצחת את כל האליפות!" : "כל הכבוד! עברת שלב";
+                subtitle.textContent = isLastLevel
+                    ? "השלמת בהצלחה את כל שלושת המסלולים המאתגרים!"
+                    : `התכונן לאתגר הבא: ${LEVELS[currentLevelIndex + 1].name}`;
+
+                if (isLastLevel) {
+                    btnNext.classList.add('hidden');
+                    btnRestart.textContent = "שחק שוב מההתחלה ↻";
+                    btnRestart.onclick = () => startLevel(0);
+                } else {
+                    btnNext.classList.remove('hidden');
+                    btnNext.onclick = () => startLevel(currentLevelIndex + 1);
+                    btnRestart.textContent = "שפר תוצאה בשלב ↻";
+                    btnRestart.onclick = () => startLevel(currentLevelIndex);
+                }
+            } else {
+                badge.textContent = "💥 הרכב הושבת";
+                badge.className = "inline-block px-4 py-1 rounded-full text-sm font-bold mb-3 bg-rose-500/20 text-rose-300 border border-rose-400/40";
+                title.textContent = "המשחק הסתיים";
+                subtitle.textContent = "הרכב ספג נזק כבד מדי מהתנגשויות. נסה להתחמק ולקחת מגנים!";
+                btnNext.classList.add('hidden');
+                btnRestart.textContent = "נסה שוב ↻";
+                btnRestart.onclick = () => startLevel(currentLevelIndex);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * יצירת פריטים לאיסוף, מכשולים ואפקטים חלקיקיים
+         * ============================================================================
+         */
+        function spawnObstacle(level) {
+            const lane = LANE_POSITIONS[Math.floor(Math.random() * LANE_POSITIONS.length)];
+            // מניעת חסימה מלאה של כל הנתיבים יחד
+            const tooClose = obstacles.some(o => o.position.z < -150);
+            if (tooClose) return;
+
+            const rand = Math.random();
+            let obs;
+            if (rand < 0.25) {
+                obs = createRoadBarrier(level.envType);
+                obs.userData.speed = 0; // מכשול נייח
+            } else {
+                const isTruck = rand > 0.72;
+                obs = createTrafficCar(isTruck);
+                obs.userData.speed = level.maxSpeed * level.trafficSpeedFactor * obs.userData.speedMult;
+            }
+
+            obs.position.set(lane, 0, -210);
+            scene.add(obs);
+            obstacles.push(obs);
+        }
+
+        function spawnCollectible() {
+            const lane = LANE_POSITIONS[Math.floor(Math.random() * LANE_POSITIONS.length)];
+            const rand = Math.random();
+            const group = new THREE.Group();
+
+            if (rand < 0.65) {
+                // מטבע זהב
+                const coinGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.2, 16);
+                coinGeo.rotateX(Math.PI / 2);
+                const coinMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    emissive: 0xd97706,
+                    emissiveIntensity: 0.4,
+                    metalness: 0.8,
+                    roughness: 0.2
+                });
+                const mesh = new THREE.Mesh(coinGeo, coinMat);
+                mesh.position.y = 1.0;
+                group.add(mesh);
+                group.userData = { type: 'coin' };
+            } else if (rand < 0.85) {
+                // מיכל ניטרו כחול
+                const nitroGeo = new THREE.CylinderGeometry(0.45, 0.45, 1.3, 12);
+                const nitroMat = new THREE.MeshStandardMaterial({
+                    color: 0x38bdf8,
+                    emissive: 0x0284c7,
+                    emissiveIntensity: 0.6
+                });
+                const mesh = new THREE.Mesh(nitroGeo, nitroMat);
+                mesh.position.y = 1.0;
+                group.add(mesh);
+                group.userData = { type: 'nitro' };
+            } else {
+                // מגן / תיקון ירוק
+                const shieldGeo = new THREE.OctahedronGeometry(0.75, 0);
+                const shieldMat = new THREE.MeshStandardMaterial({
+                    color: 0x10b981,
+                    emissive: 0x059669,
+                    emissiveIntensity: 0.6
+                });
+                const mesh = new THREE.Mesh(shieldGeo, shieldMat);
+                mesh.position.y = 1.0;
+                group.add(mesh);
+                group.userData = { type: 'shield' };
+            }
+
+            group.position.set(lane, 0, -210);
+            scene.add(group);
+            collectibles.push(group);
+        }
+
+        function createExplosionParticles(x, y, z, colorHex) {
+            const geo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+            for (let i = 0; i < 18; i++) {
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(x, y + 0.8, z);
+                p.userData = {
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: Math.random() * 12 + 3,
+                    vz: (Math.random() - 0.5) * 18,
+                    life: 0.6
+                };
+                scene.add(p);
+                particles.push(p);
+            }
+        }
+
+        /**
+         * ============================================================================
+         * לולאת העדכון המרכזית (Physics & Game Loop)
+         * ============================================================================
+         */
+        function updateGame(dt) {
+            const level = LEVELS[currentLevelIndex];
+
+            if (gameState === 'MENU') {
+                // אנימציית תצוגה חיה ברקע מסך הפתיחה
+                const time = performance.now() * 0.001;
+                playerCar.position.x = Math.sin(time * 0.8) * 3;
+                playerCar.rotation.z = -Math.cos(time * 0.8) * 0.06;
+                moveEnvironment(45, dt);
+                camera.position.set(Math.sin(time * 0.4) * 4, 4.8, 10.5);
+                camera.lookAt(0, 1.2, -8);
+                return;
+            }
+
+            if (gameState !== 'PLAYING') return;
+
+            playerState.elapsedTime += dt;
+            if (playerState.invulnerableTimer > 0) {
+                playerState.invulnerableTimer -= dt;
+                playerCar.visible = Math.floor(playerState.invulnerableTimer * 16) % 2 === 0;
+            } else {
+                playerCar.visible = true;
+            }
+
+            // ניהול ניטרו
+            if (keys.nitro && playerState.nitro > 2 && playerState.speed > 20) {
+                playerState.isNitroActive = true;
+                playerState.nitro = Math.max(0, playerState.nitro - 32 * dt);
+                document.getElementById('nitro-overlay').classList.add('active');
+                nitroFlames.forEach(f => {
+                    f.visible = true;
+                    f.scale.set(1, 0.8 + Math.random() * 0.6, 1);
+                });
+            } else {
+                playerState.isNitroActive = false;
+                playerState.nitro = Math.min(100, playerState.nitro + 8 * dt);
+                document.getElementById('nitro-overlay').classList.remove('active');
+                nitroFlames.forEach(f => f.visible = false);
+            }
+
+            // חישוב האצה ובלימה
+            const effectiveMaxSpeed = playerState.isNitroActive ? level.maxSpeed * 1.38 : level.maxSpeed;
+            const minCruiseSpeed = 25;
+
+            if (keys.up || playerState.isNitroActive) {
+                const accel = playerState.isNitroActive ? 85 : 48;
+                playerState.speed += accel * dt;
+            } else if (keys.down) {
+                playerState.speed -= 85 * dt;
+            } else {
+                // האטה טבעית עדינה לעבר מהירות שיוט
+                if (playerState.speed > 55) {
+                    playerState.speed -= 18 * dt;
+                } else if (playerState.speed < 55) {
+                    playerState.speed += 20 * dt;
+                }
+            }
+            playerState.speed = Math.max(minCruiseSpeed, Math.min(effectiveMaxSpeed, playerState.speed));
+
+            // היגוי ימינה ושמאלה
+            const steerSpeed = 22;
+            if (keys.left) {
+                playerState.vx = -steerSpeed;
+            } else if (keys.right) {
+                playerState.vx = steerSpeed;
+            } else {
+                playerState.vx *= 0.82;
+            }
+
+            playerState.x += playerState.vx * dt;
+            const maxBoundary = ROAD_WIDTH / 2 - 1.35;
+            if (playerState.x < -maxBoundary) {
+                playerState.x = -maxBoundary;
+                playerState.vx = 0;
+            } else if (playerState.x > maxBoundary) {
+                playerState.x = maxBoundary;
+                playerState.vx = 0;
+            }
+
+            // עדכון מיקום וזווית נטייה של מכונית השחקן
+            playerCar.position.x = playerState.x;
+            playerCar.rotation.z = -playerState.vx * 0.008;
+            playerCar.rotation.y = -playerState.vx * 0.005;
+
+            if (playerShieldMesh.visible) {
+                playerShieldMesh.rotation.y += 2.5 * dt;
+            }
+
+            // עדכון מרחק וניקוד
+            const metersPerSecond = playerState.speed * 0.45;
+            playerState.distanceTraveled += metersPerSecond * dt;
+            playerState.score += (metersPerSecond * dt) * 1.5;
+
+            // עדכון צליל מנוע
+            sound.updateEngine(playerState.speed / level.maxSpeed, playerState.isNitroActive, true);
+
+            // הזזת הכביש והסביבה
+            moveEnvironment(metersPerSecond, dt);
+
+            // הצגת קו הסיום לקראת סוף השלב
+            const remainingDistance = level.distance - playerState.distanceTraveled;
+            if (remainingDistance <= 220) {
+                finishLineMesh.visible = true;
+                finishLineMesh.position.z = playerCar.position.z - remainingDistance;
+            }
+
+            // בדיקת הגעה לקו הסיום
+            if (remainingDistance <= 0) {
+                playerState.score += Math.round(playerState.health * 5);
+                handleLevelEnd(true);
+                return;
+            }
+
+            // יצירת מכשולים ופריטים
+            if (remainingDistance > 160) {
+                spawnTimer -= dt;
+                if (spawnTimer <= 0) {
+                    spawnObstacle(level);
+                    spawnTimer = level.trafficSpawnRate * (0.75 + Math.random() * 0.5);
+                }
+
+                collectibleTimer -= dt;
+                if (collectibleTimer <= 0) {
+                    spawnCollectible();
+                    collectibleTimer = 1.3 + Math.random() * 1.1;
+                }
+            }
+
+            // עדכון מכשולים ובדיקת התנגשויות
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                const relativeSpeed = metersPerSecond - (obs.userData.speed * 0.45);
+                obs.position.z += relativeSpeed * dt;
+
+                // בדיקת התנגשות (AABB)
+                const dx = Math.abs(playerCar.position.x - obs.position.x);
+                const dz = Math.abs(playerCar.position.z - obs.position.z);
+                const hitX = (1.9 + obs.userData.width) * 0.46;
+                const hitZ = (4.2 + obs.userData.length) * 0.46;
+
+                if (dx < hitX && dz < hitZ) {
+                    createExplosionParticles(obs.position.x, 0.5, obs.position.z, 0xf97316);
+                    scene.remove(obs);
+                    obstacles.splice(i, 1);
+
+                    if (playerState.hasShield) {
+                        playerState.hasShield = false;
+                        playerShieldMesh.visible = false;
+                        sound.playPowerup();
+                        showFloatingToast("המגן ספג את הפגיעה! 🛡️", "text-emerald-300");
+                    } else if (playerState.invulnerableTimer <= 0) {
+                        sound.playCrash();
+                        playerState.health -= 28;
+                        playerState.speed *= 0.55;
+                        playerState.invulnerableTimer = 1.1;
+
+                        // הבזק אדום במסך
+                        const dmgOverlay = document.getElementById('damage-overlay');
+                        dmgOverlay.style.opacity = '1';
+                        setTimeout(() => dmgOverlay.style.opacity = '0', 180);
+
+                        showFloatingToast("התנגשות! -28% שלמות", "text-rose-400");
+
+                        if (playerState.health <= 0) {
+                            playerState.health = 0;
+                            updateHUD(level);
+                            handleLevelEnd(false);
+                            return;
+                        }
+                    }
+                    continue;
+                }
+
+                if (obs.position.z > 25) {
+                    scene.remove(obs);
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // עדכון פריטים לאיסוף
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const item = collectibles[i];
+                item.position.z += metersPerSecond * dt;
+                item.rotation.y += 3.2 * dt;
+
+                const dx = Math.abs(playerCar.position.x - item.position.x);
+                const dz = Math.abs(playerCar.position.z - item.position.z);
+
+                if (dx < 2.1 && dz < 3.0) {
+                    const type = item.userData.type;
+                    if (type === 'coin') {
+                        sound.playCoin();
+                        playerState.score += 150;
+                        createExplosionParticles(item.position.x, 0.8, item.position.z, 0xfbbf24);
+                        showFloatingToast("+150 נקודות!", "text-amber-300");
+                    } else if (type === 'nitro') {
+                        sound.playPowerup();
+                        playerState.nitro = Math.min(100, playerState.nitro + 45);
+                        playerState.score += 100;
+                        createExplosionParticles(item.position.x, 0.8, item.position.z, 0x38bdf8);
+                        showFloatingToast("ניטרו מלא! ⚡", "text-sky-300");
+                    } else if (type === 'shield') {
+                        sound.playPowerup();
+                        playerState.hasShield = true;
+                        playerShieldMesh.visible = true;
+                        playerState.health = Math.min(100, playerState.health + 20);
+                        createExplosionParticles(item.position.x, 0.8, item.position.z, 0x10b981);
+                        showFloatingToast("מגן אנרגיה + תיקון! 🛡️", "text-emerald-300");
+                    }
+
+                    scene.remove(item);
+                    collectibles.splice(i, 1);
+                    continue;
+                }
+
+                if (item.position.z > 20) {
+                    scene.remove(item);
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            // עדכון חלקיקים
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.x += p.userData.vx * dt;
+                p.position.y += p.userData.vy * dt;
+                p.position.z += p.userData.vz * dt;
+                p.userData.vy -= 25 * dt;
+                p.userData.life -= dt;
+                p.scale.setScalar(Math.max(0.01, p.userData.life * 1.5));
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // עדכון מצלמה דינמית (כולל אפקט FOV בניטרו והטיית עכבר)
+            const targetFov = playerState.isNitroActive ? 74 : 62;
+            camera.fov += (targetFov - camera.fov) * 6 * dt;
+            camera.updateProjectionMatrix();
+
+            const camTargetX = playerCar.position.x * 0.55 + Math.sin(cameraControl.yawOffset) * 10;
+            const camTargetY = 5.0 + cameraControl.pitchOffset * 4;
+            const camTargetZ = 11.2 + (Math.cos(cameraControl.yawOffset) - 1) * 4;
+
+            camera.position.x += (camTargetX - camera.position.x) * 8 * dt;
+            camera.position.y += (camTargetY - camera.position.y) * 8 * dt;
+            camera.position.z += (camTargetZ - camera.position.z) * 8 * dt;
+            camera.lookAt(playerCar.position.x * 0.4, 1.3, -12);
+
+            // עדכון נתוני ה-HUD
+            updateHUD(level);
+        }
+
+        function moveEnvironment(speedMetersPerSec, dt) {
+            const deltaZ = speedMetersPerSec * dt;
+
+            roadStripes.forEach(s => {
+                s.position.z += deltaZ;
+                if (s.position.z > 22) {
+                    s.position.z -= 336;
+                }
+            });
+
+            sceneryObjects.forEach(obj => {
+                obj.position.z += deltaZ;
+                if (obj.position.z > 25) {
+                    obj.position.z -= 360;
+                }
+            });
+        }
+
+        function updateHUD(level) {
+            const speedKmh = Math.round(playerState.speed * 1.55);
+            document.getElementById('hud-speed').textContent = speedKmh;
+            document.getElementById('hud-score').textContent = Math.floor(playerState.score);
+
+            const remaining = Math.max(0, Math.round(level.distance - playerState.distanceTraveled));
+            document.getElementById('hud-distance').textContent = `${remaining} מ'`;
+
+            const progressPct = Math.min(100, (playerState.distanceTraveled / level.distance) * 100);
+            document.getElementById('hud-progress-bar').style.width = `${progressPct}%`;
+
+            const mins = Math.floor(playerState.elapsedTime / 60).toString().padStart(2, '0');
+            const secs = Math.floor(playerState.elapsedTime % 60).toString().padStart(2, '0');
+            document.getElementById('hud-time').textContent = `${mins}:${secs}`;
+
+            const hp = Math.max(0, Math.round(playerState.health));
+            document.getElementById('hud-health-text').textContent = `${hp}%`;
+            const hpBar = document.getElementById('hud-health-bar');
+            hpBar.style.width = `${hp}%`;
+            if (hp > 50) {
+                hpBar.className = "h-full bg-gradient-to-l from-emerald-400 to-teal-500 transition-all duration-200";
+            } else if (hp > 25) {
+                hpBar.className = "h-full bg-gradient-to-l from-amber-400 to-orange-500 transition-all duration-200";
+            } else {
+                hpBar.className = "h-full bg-gradient-to-l from-rose-500 to-red-600 transition-all duration-200";
+            }
+
+            const nitroPct = Math.round(playerState.nitro);
+            document.getElementById('hud-nitro-text').textContent = `${nitroPct}%`;
+            document.getElementById('hud-nitro-bar').style.width = `${nitroPct}%`;
+        }
+
+        /**
+         * ============================================================================
+         * מאזיני קלט (מקלדת, מסכי מגע, והזזת מצלמה עם העכבר)
+         * ============================================================================
+         */
+        function setupInputListeners() {
+            window.addEventListener('keydown', (e) => {
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        keys.up = true;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        keys.down = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        keys.left = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        keys.right = true;
+                        break;
+                    case 'Space':
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        keys.nitro = true;
+                        break;
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        keys.up = false;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        keys.down = false;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        keys.left = false;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        keys.right = false;
+                        break;
+                    case 'Space':
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        keys.nitro = false;
+                        break;
+                }
+            });
+
+            // כפתורי מגע למובייל
+            const bindTouchBtn = (id, keyName) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const press = (e) => {
+                    e.preventDefault();
+                    keys[keyName] = true;
+                    btn.classList.add('pressed');
+                };
+                const release = (e) => {
+                    e.preventDefault();
+                    keys[keyName] = false;
+                    btn.classList.remove('pressed');
+                };
+                btn.addEventListener('touchstart', press, { passive: false });
+                btn.addEventListener('touchend', release, { passive: false });
+                btn.addEventListener('touchcancel', release, { passive: false });
+                btn.addEventListener('mousedown', press);
+                btn.addEventListener('mouseup', release);
+                btn.addEventListener('mouseleave', release);
+            };
+
+            bindTouchBtn('touch-left', 'left');
+            bindTouchBtn('touch-right', 'right');
+            bindTouchBtn('touch-gas', 'up');
+            bindTouchBtn('touch-brake', 'down');
+            bindTouchBtn('touch-nitro', 'nitro');
+
+            // כפתורי ממשק
+            document.getElementById('btn-start-game').addEventListener('click', () => {
+                startLevel(currentLevelIndex);
+            });
+
+            document.getElementById('btn-back-menu').addEventListener('click', () => {
+                gameState = 'MENU';
+                sound.updateEngine(0, false, false);
+                document.getElementById('end-screen').classList.add('hidden');
+                document.getElementById('hud-layer').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            });
+
+            document.getElementById('btn-mute').addEventListener('click', () => {
+                sound.init();
+                const nextMute = !sound.muted;
+                sound.setMute(nextMute);
+                document.getElementById('icon-sound-on').classList.toggle('hidden', nextMute);
+                document.getElementById('icon-sound-off').classList.toggle('hidden', !nextMute);
+            });
+        }
+
+        // שליטה בזווית המצלמה בעזרת גרירת עכבר
+        function setupCameraMouseControls(canvas) {
+            canvas.addEventListener('mousedown', (e) => {
+                cameraControl.isDragging = true;
+                cameraControl.prevX = e.clientX;
+                cameraControl.prevY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => {
+                cameraControl.isDragging = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!cameraControl.isDragging || gameState !== 'PLAYING') return;
+                const deltaX = e.clientX - cameraControl.prevX;
+                const deltaY = e.clientY - cameraControl.prevY;
+                cameraControl.prevX = e.clientX;
+                cameraControl.prevY = e.clientY;
+
+                cameraControl.yawOffset = Math.max(-0.65, Math.min(0.65, cameraControl.yawOffset - deltaX * 0.005));
+                cameraControl.pitchOffset = Math.max(-0.3, Math.min(0.8, cameraControl.pitchOffset + deltaY * 0.005));
+            });
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            if (!lastTime) lastTime = now;
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            updateGame(dt);
+            renderer.render(scene, camera);
+        }
+
+        // הפעלת המשחק לאחר טעינת החלון
+        window.onload = function () {
+            initThreeJS();
+            setupInputListeners();
+            requestAnimationFrame(animate);
+        };
+    </script>
+
+<a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
+<script>if (window.top !== window) document.getElementById("club-back").remove();</script>
+</body>
+</html>

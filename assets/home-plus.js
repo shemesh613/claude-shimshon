@@ -6,7 +6,9 @@
   const total = lessons.length;
   const CAMERA = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="4"/></svg>';
   const CUBE = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/></svg>';
+  const PAD = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg>';
   const topic = (href) =>
+    /games/.test(href) ? { icon: PAD, color: "coral" } :
     /sim3d/.test(href) ? { icon: CUBE, color: "ink" } :
     /edit/.test(href) ? { icon: CAMERA, color: "coral" } :
     /images/.test(href) ? { icon: ICONS.pencil, color: "sky" } :
