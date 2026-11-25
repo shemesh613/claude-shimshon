@@ -3097,13 +3097,15 @@
         renderer.render(scene, camera);
     }
 
-    window.onload = function () {
+    window.__start = function () {
         renderStageCards();
         loadStage(0);
         lastTime = performance.now();
         animate(lastTime);
     };
     </script>
+
+<script>(function(){var s=function(){if(window.__started)return;window.__started=1;window.__start&&window.__start()};if(document.readyState!=="loading")setTimeout(s,0);else document.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s)})()</script>
 
 <a id="club-back" href="../index.html#products-shelf" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#1d2433;border:2px solid #cfe0f0;border-radius:999px;padding:8px 18px;font:600 15px/1.2 Arial,sans-serif;text-decoration:none;direction:rtl;box-shadow:0 3px 0 #cfe0f0">→ חזרה לאתר החוג</a>
 <script>if (window.top !== window) document.getElementById("club-back").remove();</script>
